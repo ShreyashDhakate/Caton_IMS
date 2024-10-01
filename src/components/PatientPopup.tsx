@@ -53,7 +53,7 @@ const PatientPopup: React.FC<PatientPopupProps> = ({ patient, onClose }) => {
     onClose();
   };
   return (
-    <Dialog open onClose={onClose} maxWidth="lg" fullWidth>
+    <Dialog open onClose={onClose} maxWidth="lg" fullWidth className='animate-fade-in'>
       <DialogTitle>Patient Details</DialogTitle>
       <DialogContent>
         <Typography variant="h6">{patient.name}</Typography>

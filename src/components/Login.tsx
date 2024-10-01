@@ -23,7 +23,7 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <Container component="main" maxWidth="xs">
+    <Container component="main" maxWidth="xs" className='animate-fade-in'>
       <Paper elevation={3} style={{ padding: '20px', marginTop: '100px' }}>
         <Typography variant="h5" align="center">Login</Typography>
         <form noValidate>

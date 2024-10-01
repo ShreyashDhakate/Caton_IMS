@@ -23,7 +23,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <Box className="p-4">
+    <Box className="p-4 animate-fade-in">
       <Typography variant="h4" gutterBottom>
         Patient Dashboard
       </Typography>

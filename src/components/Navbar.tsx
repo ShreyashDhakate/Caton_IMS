@@ -15,7 +15,7 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <AppBar position="static" sx={{ width: '100%', backgroundColor: '#057A85' }}>
+    <AppBar position="static" sx={{ width: '100%', backgroundColor: '#057A85' }} className='animate-fade-in'>
       <Toolbar>
         <Typography
           component={Link}

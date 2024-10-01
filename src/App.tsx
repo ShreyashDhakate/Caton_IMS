@@ -7,6 +7,7 @@ import Dashboard from './components/Dashboard';
 import LoginPage from './components/Login';
 import { Toaster } from './components/ui/sonner';
 import { AuthProvider } from './context/AuthContext'; // Import the AuthProvider
+import ProfileComponent from './containers/Profile';
 
 // Custom festival backgrounds
 const festivalBackgrounds = {
@@ -37,7 +38,7 @@ const App: React.FC = () => {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/history" element={<div>History Page</div>} />
           <Route path="/announcement" element={<div>Announcement Page</div>} />
-          <Route path="/profile" element={<div>Profile Page</div>} />
+          <Route path="/profile" element={<ProfileComponent bgImage={festivalBackgrounds[currentFestival] || festivalBackgrounds.default}/>} />
         </Routes>
       </Router>
     </AuthProvider>
