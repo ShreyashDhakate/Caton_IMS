@@ -8,6 +8,8 @@ import LoginPage from './components/Login';
 import { Toaster } from './components/ui/sonner';
 import { AuthProvider } from './context/AuthContext'; // Import the AuthProvider
 import ProfileComponent from './containers/Profile';
+import AnnouncementPage from './components/Announcement';
+import { Component } from './components/History';
 
 // Custom festival backgrounds
 const festivalBackgrounds = {
@@ -36,8 +38,8 @@ const App: React.FC = () => {
             }
           />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/history" element={<div>History Page</div>} />
-          <Route path="/announcement" element={<div>Announcement Page</div>} />
+          <Route path="/history" element={<Component/>} />
+          <Route path="/announcement" element={<AnnouncementPage/>} />
           <Route path="/profile" element={<ProfileComponent bgImage={festivalBackgrounds[currentFestival] || festivalBackgrounds.default}/>} />
         </Routes>
       </Router>

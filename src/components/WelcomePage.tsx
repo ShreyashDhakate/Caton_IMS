@@ -29,7 +29,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ bgImage }) => {
 
         {/* Subtitle */}
         <p className="text-lg mb-8 sm:text-xl lg:text-2xl">
-          Manage your projects, tasks, and workflow all in one place.
+          Manage your appointments, billing, and resources all in one place.
         </p>
 
         {/* Button */}
