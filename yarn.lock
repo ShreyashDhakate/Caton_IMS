@@ -558,10 +558,10 @@
     prompts "^2.4.2"
     zod "^3.20.2"
 
-"@tauri-apps/api@^2.0.0-rc.4", "@tauri-apps/api@>=2.0.0-rc.0":
-  version "2.0.0-rc.6"
-  resolved "https://registry.npmjs.org/@tauri-apps/api/-/api-2.0.0-rc.6.tgz"
-  integrity sha512-oENxL0C5WqHNSXWjZEbjnzoBwFFyn8do5S0elOg0ME1cLvWJOAKmqdCnWPpAwtzHQZ+xAzMU0/k8nPpJq4OQYA==
+"@tauri-apps/api@^2.0.0", "@tauri-apps/api@^2.0.0-rc.4", "@tauri-apps/api@^2.0.2":
+  version "2.0.2"
+  resolved "https://registry.npmjs.org/@tauri-apps/api/-/api-2.0.2.tgz"
+  integrity sha512-3wSwmG+1kr6WrgAFKK5ijkNFPp8TT3FLj3YHUb5EwMO+3FxX4uWlfSWkeeBy+Kc1RsKzugtYLuuya+98Flj+3w==
 
 "@tauri-apps/cli-win32-x64-msvc@2.0.0-rc.17":
   version "2.0.0-rc.17"
@@ -590,6 +590,13 @@
   integrity sha512-JtNROc0rqEwN/g93ig5pK4cl1vUo2yn+osCpY9de64cy/d9hRzof7AuYOgvt/Xcd5VPQmlgo2AGvUh5sQRSR1A==
   dependencies:
     "@tauri-apps/api" "^2.0.0-rc.4"
+
+"@tauri-apps/plugin-sql@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.npmjs.org/@tauri-apps/plugin-sql/-/plugin-sql-2.0.0.tgz"
+  integrity sha512-H4dodCbRvmaHGx7/E1hPh/v7Qf8/pI0XjmRWgMkCeC8NSPXnjYcpm5+HUhBeHUM5zkB85/Mucg4gpQZ0Dj33gQ==
+  dependencies:
+    "@tauri-apps/api" "^2.0.0"
 
 "@ts-morph/common@~0.19.0":
   version "0.19.0"

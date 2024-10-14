@@ -6,10 +6,11 @@ import './index.css';
 import Dashboard from './components/Dashboard';
 import LoginPage from './components/Login';
 import { Toaster } from './components/ui/sonner';
-import { AuthProvider } from './context/AuthContext'; // Import the AuthProvider
-import ProfileComponent from './containers/Profile';
+import { AuthProvider } from './context/AuthContext'; 
+// import ProfileComponent from './containers/Profile';
 import AnnouncementPage from './components/Announcement';
 import { Component } from './components/History';
+// import Inventory from './components/Inventory';
 
 // Custom festival backgrounds
 const festivalBackgrounds = {
@@ -37,10 +38,11 @@ const App: React.FC = () => {
               />
             }
           />
+          {/* <Route path="/dashboard" element={<Inventory />} /> */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/history" element={<Component/>} />
           <Route path="/announcement" element={<AnnouncementPage/>} />
-          <Route path="/profile" element={<ProfileComponent bgImage={festivalBackgrounds[currentFestival] || festivalBackgrounds.default}/>} />
+          {/* <Route path="/profile" element={<ProfileComponent bgImage={festivalBackgrounds[currentFestival] || festivalBackgrounds.default}/>} /> */}
         </Routes>
       </Router>
     </AuthProvider>
