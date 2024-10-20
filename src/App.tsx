@@ -10,6 +10,7 @@ import { AuthProvider } from './context/AuthContext';
 // import ProfileComponent from './containers/Profile';
 import AnnouncementPage from './components/Announcement';
 import { Component } from './components/History';
+import PharmacyStockUpdate from './components/StockUpdate';
 // import Inventory from './components/Inventory';
 
 // Custom festival backgrounds
@@ -42,7 +43,7 @@ const App: React.FC = () => {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/history" element={<Component/>} />
           <Route path="/announcement" element={<AnnouncementPage/>} />
-          {/* <Route path="/profile" element={<ProfileComponent bgImage={festivalBackgrounds[currentFestival] || festivalBackgrounds.default}/>} /> */}
+          <Route path="/stockupdate" element={<PharmacyStockUpdate/>}/>
         </Routes>
       </Router>
     </AuthProvider>
