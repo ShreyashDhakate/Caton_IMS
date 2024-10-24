@@ -119,3 +119,26 @@ pub async fn delete_medicine(id: u32) -> Result<String, String> {
 
     Ok("Medicine deleted successfully.".to_string())
 }
+
+#[derive(Serialize)]
+pub struct MedicineInfo {
+    pub name: String,
+    pub selling_price: f64,
+}
+
+#[command]
+pub fn search_medicines(query: String, page: u32, limit: u32) -> Result<Vec<MedicineInfo>, String> {
+    let mut conn = get_db_connection()?;
+    let search_query = format!("%{}%", query);
+    let offset = (page - 1) * limit;
+
+    let medicine_info = conn
+        .exec_map(
+            "SELECT name, selling_price FROM medicines WHERE name LIKE :query LIMIT :limit OFFSET :offset",
+            params! { "query" => &search_query, "limit" => limit, "offset" => offset },
+            |(name, selling_price)| MedicineInfo { name, selling_price },
+        )
+        .map_err(|e| e.to_string())?;
+
+    Ok(medicine_info)
+}
