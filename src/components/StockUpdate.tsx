@@ -1,9 +1,10 @@
-// components/PharmacyStockUpdate.tsx
-
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { TextField, Button, IconButton, Typography, Divider } from "@mui/material";
 import { AddCircleOutline, DeleteOutline } from "@mui/icons-material";
 import dayjs from "dayjs";
+import { invoke } from "@tauri-apps/api/core";
+import { useInitializeDatabase } from "../hooks/useInitializeDatabase.ts";
+import { toast } from 'sonner';
 
 interface Medicine {
   id: number;
@@ -30,7 +31,7 @@ const PharmacyStockUpdate: React.FC = () => {
       purchaseDate: dayjs().format("YYYY-MM-DD"),
       medicines: [
         {
-          id: 1,
+          id: Date.now(),
           name: "",
           batchNumber: "",
           expiryDate: "",
@@ -41,6 +42,12 @@ const PharmacyStockUpdate: React.FC = () => {
       ],
     },
   ]);
+
+  const { initializeDatabase } = useInitializeDatabase();
+
+  useEffect(() => {
+    initializeDatabase();
+  }, [initializeDatabase]);
 
   // Handle input change for wholesaler or purchase date
   const handlePurchaseChange = (id: number, field: keyof WholesalerPurchase, value: string) => {
@@ -106,14 +113,30 @@ const PharmacyStockUpdate: React.FC = () => {
     );
   };
 
-  // Handle submit
-  const handleSubmit = () => {
-    console.log("Purchases:", purchases);
-    alert("Purchase Confirmed!");
+  // Handle submit to add medicines to the database
+  const handleSubmit = async () => {
+    try {
+      for (const purchase of purchases) {
+        for (const medicine of purchase.medicines) {
+          await invoke("insert_medicine", {
+            name: medicine.name,
+            batchNumber: medicine.batchNumber,
+            expiryDate: medicine.expiryDate,
+            quantity: medicine.quantity,
+            purchasePrice: medicine.purchasePrice,
+            sellingPrice: medicine.sellingPrice,
+          });
+        }
+      }
+      toast.success('Purchase confirmed and medicines added successfully!');
+    } catch (error) {
+      console.error("Error adding medicines:", error);
+      alert("Failed to confirm purchase.");
+    }
   };
 
   return (
-    <div className="p-6  mx-auto bg-white shadow-lg rounded-lg">
+    <div className="p-6 mx-auto bg-white shadow-lg rounded-lg">
       <Typography variant="h4" className="text-center font-bold mb-8">
         Pharmacy Stock Update
       </Typography>

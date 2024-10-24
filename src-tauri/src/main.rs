@@ -1,18 +1,22 @@
-// Prevents additional console window on Windows in release, DO NOT REMOVE!!
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+mod commands;
+mod database;
 
-// Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
+use tauri::{Builder, generate_handler};
+use commands::{initialize_db, insert_medicine, get_medicine, update_medicine, delete_medicine};
 
 fn main() {
-    tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![greet])
+    Builder::default()
+        .invoke_handler(generate_handler![
+            initialize_db,
+            insert_medicine,
+            get_medicine,
+            update_medicine,
+            delete_medicine
+        ])
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .expect("Error while running Tauri application");
 }
+
 
 
 
