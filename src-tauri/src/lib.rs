@@ -1,8 +1,8 @@
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
+// #[tauri::command]
+// fn greet(name: &str) -> String {
+//     format!("Hello, {}! You've been greeted from Rust!", name)
+// }
 
 // async fn get_inventory() -> Vec<Medicine> {
 //     let conn = Connection::open("pharmacy.db").unwrap();

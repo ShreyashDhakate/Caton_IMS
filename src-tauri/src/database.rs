@@ -1,4 +1,4 @@
-use mysql::{Pool, PooledConn, Opts, OptsBuilder};
+use mysql::{Pool, PooledConn, Opts};
 use dotenv::dotenv;
 use std::env;
 

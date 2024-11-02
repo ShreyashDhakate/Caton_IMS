@@ -1,5 +1,5 @@
 use crate::database::get_db_connection; // Assuming you have a db module for the connection
-use mysql::{params, PooledConn};
+use mysql::params;
 use mysql::prelude::Queryable;
 use tauri::command;
 use serde::Serialize;
