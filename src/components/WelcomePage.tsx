@@ -9,7 +9,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ bgImage }) => {
   const navigate = useNavigate();
 
   const handleGetStarted = () => {
-    navigate('/dashboard');
+    navigate('/billing');
   };
 
   return (
