@@ -125,6 +125,8 @@ const PharmacyStockUpdate: React.FC = () => {
             quantity: medicine.quantity,
             purchasePrice: medicine.purchasePrice,
             sellingPrice: medicine.sellingPrice,
+            wholesalerName: purchase.wholesalerName, // Added wholesaler name
+            purchaseDate: purchase.purchaseDate       // Added purchase date
           });
         }
       }
@@ -134,6 +136,7 @@ const PharmacyStockUpdate: React.FC = () => {
       alert("Failed to confirm purchase.");
     }
   };
+  
 
   return (
     <div className="p-6 mx-auto bg-white shadow-lg rounded-lg">

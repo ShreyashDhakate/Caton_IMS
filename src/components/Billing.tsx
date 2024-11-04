@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { searchMedicines } from '../hooks/searchMedicines';
 import { printBill } from '../hooks/printBill';
 import BillingSummary from './BillingSummary';
+import debounce from 'lodash.debounce';
 
 export type MedicineInfo = {
   name: string;
@@ -29,7 +30,13 @@ const Billing = () => {
         setSearchResults([]); // Clear results if query is empty
       }
     };
-    handleSearch();
+  
+    const debouncedSearch = debounce(handleSearch, 300); // Delay of 300ms
+    debouncedSearch();
+  
+    return () => {
+      debouncedSearch.cancel(); // Cleanup the debounce on unmount
+    };
   }, [query]);
 
   // Function to add medicine to the billing list

@@ -1,5 +1,5 @@
 // src-tauri/src/user.rs
-use mongodb::bson::{doc, Document};
+use mongodb::bson::doc;
 use mongodb::Collection;
 use bcrypt::{hash, verify, DEFAULT_COST};
 use crate::model::User;

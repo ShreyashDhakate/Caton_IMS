@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import WelcomePage from './components/WelcomePage';
 import './index.css';
-import Dashboard from './components/Dashboard';
+// import Dashboard from './components/Dashboard';
 import LoginPage from './components/Login';
 import { Toaster } from './components/ui/sonner';
 import { AuthProvider } from './context/AuthContext'; 
@@ -32,6 +32,7 @@ const App: React.FC = () => {
         <Navbar />
         <Routes>
           <Route path="/" element={<LoginPage />} />
+          
           <Route
             path="/welcome"
             element={
@@ -41,7 +42,7 @@ const App: React.FC = () => {
             }
           />
           {/* <Route path="/dashboard" element={<Inventory />} /> */}
-          <Route path="/dashboard" element={<Dashboard />} />
+          {/* <Route path="/dashboard" element={<Dashboard />} /> */}
           <Route path="/history" element={<Component/>} />
           <Route path="/announcement" element={<AnnouncementPage/>} />
           <Route path="/stockupdate" element={<PharmacyStockUpdate/>}/>

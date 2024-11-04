@@ -23,6 +23,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
+    "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.446.0",
     "next-themes": "^0.3.0",
     "react": "^18.2.0",
@@ -36,6 +37,7 @@
   },
   "devDependencies": {
     "@tauri-apps/cli": ">=2.0.0-rc.0",
+    "@types/lodash.debounce": "^4.0.9",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.2.1",
