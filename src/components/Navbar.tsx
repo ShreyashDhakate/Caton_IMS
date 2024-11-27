@@ -1,13 +1,23 @@
 import React, { useState } from 'react';
-import { AppBar, Toolbar, Typography, Button, Box, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
-import { Link, useNavigate } from 'react-router-dom'; 
-import { useAuth } from '../context/AuthContext'; 
-import { toast } from 'sonner'; 
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Box,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+} from '@mui/material';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { toast } from 'sonner';
 
 const Navbar: React.FC = () => {
-  const { isLoggedIn, logout } = useAuth(); 
-  const navigate = useNavigate(); 
-
+  const { isLoggedIn, logout } = useAuth();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false); // State to control dialog visibility
 
   const handleClickOpen = () => {
@@ -19,20 +29,22 @@ const Navbar: React.FC = () => {
   };
 
   const handleLogout = () => {
-    logout(); 
-    toast.success('You are logged out!'); 
-    navigate('/'); 
-    handleClose(); // Close the dialog after logout
+    logout();
+    toast.success('You are logged out!');
+    navigate('/'); // Redirect to login page
+    handleClose();
   };
-  
 
   return (
-    <AppBar position="static" sx={{ width: '100%', backgroundColor: '#057A85' }} className='animate-fade-in'>
+    <AppBar
+      position="static"
+      sx={{ width: '100%', backgroundColor: '#057A85' }}
+      className="animate-fade-in"
+    >
       <Toolbar>
         <Typography
           component={Link}
-          to={isLoggedIn ? 
-          "/welcome":"/"}
+          to={isLoggedIn ? '/welcome' : '/'}
           style={{
             flexGrow: 1,
             textDecoration: 'none',
@@ -45,14 +57,23 @@ const Navbar: React.FC = () => {
         <Box display="flex">
           {isLoggedIn ? (
             <>
-              {/* <Button color="inherit" component={Link} to="/dashboard">Dashboard</Button> */}
-              <Button color="inherit" component={Link} to="/billing">Billing</Button>
-              <Button color="inherit" component={Link} to="/announcement">Announcement</Button>
-              <Button color="inherit" component={Link} to="/stockupdate">Stockupdate</Button>
-              <Button color="inherit" onClick={handleClickOpen}>Logout</Button> {/* Open dialog */}
+              <Button color="inherit" component={Link} to="/billing">
+                Billing
+              </Button>
+              <Button color="inherit" component={Link} to="/announcement">
+                Announcement
+              </Button>
+              <Button color="inherit" component={Link} to="/stockupdate">
+                Stock Update
+              </Button>
+              <Button color="inherit" onClick={handleClickOpen}>
+                Logout
+              </Button>
             </>
           ) : (
-            <Button color="inherit" component={Link} to="/">Login</Button>
+            <Button color="inherit" component={Link} to="/">
+              Login
+            </Button>
           )}
         </Box>
       </Toolbar>
@@ -64,8 +85,12 @@ const Navbar: React.FC = () => {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose} color="primary">Cancel</Button>
-          <Button onClick={handleLogout} color="primary">Logout</Button>
+          <Button onClick={handleClose} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleLogout} color="primary">
+            Logout
+          </Button>
         </DialogActions>
       </Dialog>
     </AppBar>

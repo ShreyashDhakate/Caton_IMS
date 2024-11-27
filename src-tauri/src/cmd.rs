@@ -5,6 +5,15 @@ use crate::user::{signup_user, login_user};
 use crate::model::User;
 use crate::db::DbState; // Import your DbState struct
 use mongodb::bson::doc;
+use chrono::Utc;
+use std::sync::Mutex;
+
+#[derive(Default)]
+pub struct SessionState {
+    pub token: Mutex<Option<String>>,
+    pub expiry: Mutex<Option<i64>>,
+}
+
 
 #[tauri::command]
 pub async fn signup(
@@ -35,3 +44,21 @@ pub async fn login(username: String, password: String, db: State<'_, DbState>) -
     login_user(user_collection, &username, &password).await
 }
 
+
+#[tauri::command]
+pub async fn is_logged_in(state: State<'_, SessionState>) -> Result<bool, String> {
+    let is_logged_in = if let Some(expiry) = *state.expiry.lock().unwrap() {
+        Utc::now().timestamp() < expiry
+    } else {
+        false
+    };
+    Ok(is_logged_in)
+}
+
+
+#[tauri::command]
+pub async fn logout(state: State<'_, SessionState>) -> Result<(), String> {
+    *state.token.lock().unwrap() = None;
+    *state.expiry.lock().unwrap() = None;
+    Ok(())
+}

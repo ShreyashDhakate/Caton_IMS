@@ -7,7 +7,7 @@ use crate::db::DbState;
 use futures::stream::StreamExt;
 use futures::TryStreamExt;
 use mongodb::bson;
-
+use mongodb::options::FindOptions;
 
 #[derive(Serialize, Deserialize)]
 pub struct Medicine {
@@ -125,13 +125,14 @@ pub async fn delete_medicine(id: String) -> Result<String, String> {
 
     Ok("Medicine deleted successfully.".to_string())
 }
+
 #[derive(Serialize, Deserialize)]
 pub struct MedicineInfo {
     pub name: String,
     pub selling_price: Option<f64>, // Optional in case some documents lack this field
 }
 
-#[tauri::command]
+#[command]
 pub async fn search_medicines(
     query: String,
     page: u32,
@@ -142,33 +143,25 @@ pub async fn search_medicines(
     let skip = (page - 1) * limit;
 
     let filter = doc! { "name": { "$regex": query.clone(), "$options": "i" } };
-    let options = mongodb::options::FindOptions::builder()
+    let options = FindOptions::builder()
         .limit(limit as i64)
         .skip(skip as u64)
         .build();
 
-    let mut cursor = medicine_collection.find(filter, options)
+    let mut cursor = medicine_collection
+        .find(filter, options)
         .await
         .map_err(|e| format!("Database error: {}", e))?;
 
     let mut medicines: Vec<MedicineInfo> = Vec::new();
 
-    // Iterate over the cursor
     while let Some(result) = cursor.next().await {
         match result {
-            Ok(doc) => {
-                // Clone the document for logging in case of deserialization failure
-                match bson::from_document::<MedicineInfo>(doc.clone()) {
-                    Ok(medicine) => medicines.push(medicine),
-                    Err(_) => {
-                        println!("Failed to deserialize document: {:?}", doc); // Log the document
-                        return Err("Failed to deserialize medicine document.".to_string());
-                    }
-                }
-            }
-            Err(e) => {
-                return Err(format!("Error retrieving medicine: {}", e));
-            }
+            Ok(doc) => match bson::from_document::<MedicineInfo>(doc.clone()) {
+                Ok(medicine) => medicines.push(medicine),
+                Err(_) => println!("Failed to deserialize document: {:?}", doc),
+            },
+            Err(e) => return Err(format!("Error retrieving medicine: {}", e)),
         }
     }
 
