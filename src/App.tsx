@@ -8,7 +8,7 @@ import LoginPage from './components/Login';
 import { Toaster } from './components/ui/sonner';
 import { AuthProvider } from './context/AuthContext'; 
 // import ProfileComponent from './containers/Profile';
-import AnnouncementPage from './components/Announcement';
+// import AnnouncementPage from './components/Announcement';
 import { Component } from './components/History';
 import PharmacyStockUpdate from './components/StockUpdate';
 import Billing from './components/Billing';
@@ -41,10 +41,7 @@ const App: React.FC = () => {
               />
             }
           />
-          {/* <Route path="/dashboard" element={<Inventory />} /> */}
-          {/* <Route path="/dashboard" element={<Dashboard />} /> */}
           <Route path="/history" element={<Component/>} />
-          <Route path="/announcement" element={<AnnouncementPage/>} />
           <Route path="/stockupdate" element={<PharmacyStockUpdate/>}/>
           <Route path="/billing" element={<Billing/>}/>
         </Routes>
