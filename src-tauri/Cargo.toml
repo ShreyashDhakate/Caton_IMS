@@ -28,3 +28,4 @@ mysql = "23.0.0"  # or the latest version available
 mongodb = { version = "2.5", features = ["tokio-runtime"] }
 futures = "0.3"
 chrono = "0.4"
+regex = "1"

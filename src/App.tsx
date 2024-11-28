@@ -9,9 +9,11 @@ import { Toaster } from './components/ui/sonner';
 import { AuthProvider } from './context/AuthContext'; 
 // import ProfileComponent from './containers/Profile';
 // import AnnouncementPage from './components/Announcement';
-import { Component } from './components/History';
+
 import PharmacyStockUpdate from './components/StockUpdate';
 import Billing from './components/Billing';
+import Appointment from './components/Appointment';
+import Component from './components/History';
 // import Inventory from './components/Inventory';
 
 // Custom festival backgrounds
@@ -41,6 +43,7 @@ const App: React.FC = () => {
               />
             }
           />
+          <Route path="/appointment" element={<Appointment/>} />
           <Route path="/history" element={<Component/>} />
           <Route path="/stockupdate" element={<PharmacyStockUpdate/>}/>
           <Route path="/billing" element={<Billing/>}/>

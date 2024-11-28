@@ -8,11 +8,12 @@ use futures::stream::StreamExt;
 use futures::TryStreamExt;
 use mongodb::bson;
 use mongodb::options::FindOptions;
+use regex::Regex;
 
 #[derive(Serialize, Deserialize)]
 pub struct Medicine {
-    #[serde(rename = "_id")]
-    pub id: Option<ObjectId>, // Using ObjectId for MongoDB ID compatibility
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<ObjectId>, // Use Option<ObjectId> for MongoDB compatibility
     pub name: String,
     pub batch_number: String,
     pub expiry_date: String,
@@ -39,7 +40,15 @@ pub async fn get_medicine() -> Result<Vec<Medicine>, String> {
 
     Ok(medicines)
 }
+// Insert Medicine Function
 
+// Helper Function to Validate Date Format
+fn validate_date_format(date: &str) -> bool {
+    let re = Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap(); // Matches YYYY-MM-DD
+    re.is_match(date)
+}
+
+// Insert Medicine Function
 #[command]
 pub async fn insert_medicine(
     name: String,
@@ -51,9 +60,37 @@ pub async fn insert_medicine(
     wholesaler_name: String,
     purchase_date: String,
 ) -> Result<String, String> {
+    // Validate Mandatory Fields
+    if name.trim().is_empty() {
+        return Err("Medicine name is required.".to_string());
+    }
+    if batch_number.trim().is_empty() {
+        return Err("Batch number is required.".to_string());
+    }
+    if expiry_date.trim().is_empty() || !validate_date_format(&expiry_date) {
+        return Err("Valid expiry date (YYYY-MM-DD) is required.".to_string());
+    }
+    if quantity == 0 {
+        return Err("Quantity must be greater than 0.".to_string());
+    }
+    if purchase_price <= 0.0 {
+        return Err("Purchase price must be greater than 0.".to_string());
+    }
+    if selling_price <= 0.0 {
+        return Err("Selling price must be greater than 0.".to_string());
+    }
+    if wholesaler_name.trim().is_empty() {
+        return Err("Wholesaler name is required.".to_string());
+    }
+    if purchase_date.trim().is_empty() || !validate_date_format(&purchase_date) {
+        return Err("Valid purchase date (YYYY-MM-DD) is required.".to_string());
+    }
+
+    // Establish Database Connection
     let db = get_db_connection().await;
     let collection: Collection<Medicine> = db.collection("medicines");
 
+    // Create a New Medicine Instance
     let new_medicine = Medicine {
         id: None,
         name,
@@ -66,12 +103,15 @@ pub async fn insert_medicine(
         purchase_date,
     };
 
-    collection.insert_one(new_medicine, None)
+    // Insert the Document into the Collection
+    collection
+        .insert_one(new_medicine, None)
         .await
         .map_err(|e| e.to_string())?;
 
     Ok("Medicine inserted successfully.".to_string())
 }
+
 
 #[command]
 pub async fn update_medicine(
