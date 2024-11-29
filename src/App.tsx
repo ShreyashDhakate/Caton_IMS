@@ -14,6 +14,7 @@ import PharmacyStockUpdate from './components/StockUpdate';
 import Billing from './components/Billing';
 import Appointment from './components/Appointment';
 import Component from './components/History';
+import Patients from './components/Patients';
 // import Inventory from './components/Inventory';
 
 // Custom festival backgrounds
@@ -43,6 +44,12 @@ const App: React.FC = () => {
               />
             }
           />
+           
+                  <Route path="/patients" element={
+                        <Patients/>
+                    } />
+           
+          
           <Route path="/appointment" element={<Appointment/>} />
           <Route path="/history" element={<Component/>} />
           <Route path="/stockupdate" element={<PharmacyStockUpdate/>}/>

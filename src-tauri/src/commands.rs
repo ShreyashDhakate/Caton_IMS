@@ -1,6 +1,5 @@
 use crate::database::get_db_connection;
 use mongodb::bson::{doc,  Document, oid::ObjectId};
-use mongodb::Collection;
 use serde::{Deserialize, Serialize};
 use tauri::{command, State};
 use crate::db::DbState;
@@ -9,6 +8,9 @@ use futures::TryStreamExt;
 use mongodb::bson;
 use mongodb::options::FindOptions;
 use regex::Regex;
+use chrono::Utc;
+use mongodb::error::Error;
+use mongodb::{Collection, Cursor};
 
 #[derive(Serialize, Deserialize)]
 pub struct Medicine {
@@ -206,4 +208,92 @@ pub async fn search_medicines(
     }
 
     Ok(medicines)
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MedicineDetail {
+    pub name: String,
+    pub quantity: u32,
+}
+
+// Struct to represent an appointment.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Appointment {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<ObjectId>, // MongoDB ObjectId
+    pub patient_name: String, // Patient's name
+    pub mobile: String,       // Mobile number
+    pub disease: String,      // Disease information
+    pub precautions: String,  // Precautions prescribed
+    pub medicines: Vec<MedicineDetail>, // List of medicines with quantities
+    pub hospital_id: String,  // ID of the hospital
+    pub date_created: String, // Timestamp of creation
+}
+
+// Tauri command to save an appointment.
+#[command]
+pub async fn save_appointment(
+    patient_name: String,
+    mobile: String,
+    disease: String,
+    precautions: String,
+    medicines: Vec<MedicineDetail>,
+    hospital_id: String,
+) -> Result<String, String> {
+    // Validate required fields
+    if patient_name.trim().is_empty() || mobile.trim().is_empty() {
+        return Err("Patient name and mobile number are required.".to_string());
+    }
+
+    // Prepare the database connection
+    let db = get_db_connection().await;
+
+    let collection: Collection<Appointment> = db.collection("appointments");
+
+    // Create the new appointment object
+    let new_appointment = Appointment {
+        id: None,
+        patient_name,
+        mobile,
+        disease,
+        precautions,
+        medicines,
+        hospital_id,
+        date_created: Utc::now().to_rfc3339(), // Generate current timestamp
+    };
+
+    // Insert the appointment into the database
+    collection
+        .insert_one(new_appointment, None)
+        .await
+        .map_err(|e| format!("Database insert error: {}", e))?;
+
+    // Return success message
+    Ok("Appointment saved successfully.".to_string())
+}
+
+async fn get_appointments_collection() -> Result<Collection<Appointment>, Error> {
+    let db = get_db_connection().await; // Replace with your database connection logic
+    Ok(db.collection::<Appointment>("appointments"))
+}
+
+// Fetch all appointments from the database
+#[command]
+pub async fn get_all_appointments() -> Result<Vec<Appointment>, String> {
+    let collection = get_appointments_collection().await.map_err(|e| e.to_string())?;
+
+    // Retrieve all documents from the appointments collection
+    let find_options = FindOptions::builder().sort(doc! { "date_created": -1 }).build(); // Sort by latest
+    let cursor: Cursor<Appointment> = collection
+        .find(None, find_options)
+        .await
+        .map_err(|e| format!("Database query error: {}", e))?;
+
+    // Collect the documents into a vector
+    let appointments: Vec<Appointment> = cursor
+        .try_collect()
+        .await
+        .map_err(|e| format!("Error parsing appointments: {}", e))?;
+
+    Ok(appointments)
 }

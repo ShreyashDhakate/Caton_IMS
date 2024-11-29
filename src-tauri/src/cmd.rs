@@ -1,4 +1,3 @@
-// src-tauri/src/cmd.rs
 use tauri::State;
 use mongodb::Collection;
 use crate::user::{signup_user, login_user};
@@ -13,7 +12,6 @@ pub struct SessionState {
     pub token: Mutex<Option<String>>,
     pub expiry: Mutex<Option<i64>>,
 }
-
 
 #[tauri::command]
 pub async fn signup(
@@ -31,19 +29,24 @@ pub async fn signup(
         .map_err(|e| format!("Database error: {}", e))?;
 
     if existing_user.is_some() {
-        // Return an error if a user with the same email already exists
         return Err("Email already in use".to_string());
     }
 
-    // Call the signup function if email is unique
+    // Proceed with user signup if the email is unique
     signup_user(user_collection, &username, &password, &email).await
 }
+
 #[tauri::command]
-pub async fn login(username: String, password: String, db: State<'_, DbState>) -> Result<(), String> {
+pub async fn login(
+    username: String,
+    password: String,
+    db: State<'_, DbState>,
+) -> Result<String, String> {
     let user_collection: &Collection<User> = &db.db.collection("users");
+    
+    // Call the login function and return the result
     login_user(user_collection, &username, &password).await
 }
-
 
 #[tauri::command]
 pub async fn is_logged_in(state: State<'_, SessionState>) -> Result<bool, String> {
@@ -54,7 +57,6 @@ pub async fn is_logged_in(state: State<'_, SessionState>) -> Result<bool, String
     };
     Ok(is_logged_in)
 }
-
 
 #[tauri::command]
 pub async fn logout(state: State<'_, SessionState>) -> Result<(), String> {

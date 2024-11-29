@@ -37,10 +37,11 @@ const Appointment: React.FC = () => {
     }
   };
 
-  const handleQuantityChange = (
-    medicine: string,
-    quantity: number
-  ) => {
+  const handleQuantityChange = (medicine: string, quantity: number) => {
+    if (quantity < 1) {
+      toast.error('Quantity must be at least 1');
+      return;
+    }
     setSelectedMedicines((prev) =>
       prev.map((item) =>
         item.name === medicine ? { ...item, quantity } : item
@@ -50,25 +51,44 @@ const Appointment: React.FC = () => {
 
   const handleSaveAppointment = async () => {
     try {
-      const appointmentData = {
-        patient,
-        medicines: selectedMedicines,
-      };
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        toast.error('User ID is missing. Please log in again.');
+        return;
+      }
 
-      await invoke('save_appointment', { data: appointmentData });
+      if (!patient.name || !patient.mobile) {
+        toast.error('Patient name and mobile number are required.');
+        return;
+      }
+
+      if (selectedMedicines.length === 0) {
+        toast.error('Please select at least one medicine.');
+        return;
+      }
+
+      await invoke('save_appointment', {
+        patientName: patient.name,
+        mobile: patient.mobile,
+        disease: patient.disease || null,
+        precautions: patient.precautions || null,
+        medicines: selectedMedicines.map(({ name, quantity }) => [name, quantity]),
+        hospitalId: userId,
+      });
 
       toast.success('Appointment saved successfully!');
       setPatient({ name: '', mobile: '', disease: '', precautions: '' });
       setSelectedMedicines([]);
       setMedicineSearch('');
       setMedicineList([]);
-    } catch (error) {
-      toast.error('Failed to save appointment. Please try again.');
+    } catch (error: any) {
+      toast.error(`Failed to save appointment: ${error.message}`);
+      console.error('Error saving appointment:', error);
     }
   };
 
   return (
-    <div className="flex flex-wrap items-center justify-between bg-gray-100  p-5 h-[70vh]">
+    <div className="flex flex-wrap items-center justify-between bg-gray-100 p-5 h-[70vh]">
       {/* Patient Details Section */}
       <Box
         className="flex flex-col justify-between w-[50%] h-[70vh] bg-white p-6 shadow-lg rounded-lg"
