@@ -70,21 +70,27 @@ const LoginPage: React.FC = () => {
         </Typography>
         <form noValidate>
           <Grid container spacing={2}>
-            <Grid item xs={12} style={{ textAlign: "center" }}>
-            <ToggleButtonGroup
-                value={role}
-                exclusive
-                onChange={(event, newRole) => newRole && setRole(newRole)}
-                aria-label="Role selection"
-              >
-                <ToggleButton value="Doctor" aria-label="Doctor" color="primary">
-                  Doctor
-                </ToggleButton>
-                <ToggleButton value="Pharmacist" aria-label="Pharmacist" color="primary">
-                  Pharmacist
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </Grid>
+          {!isSignup && 
+          
+          <Grid item xs={12} style={{ textAlign: "center" }}>
+          <ToggleButtonGroup
+              value={role}
+              exclusive
+              onChange={(event, newRole) => newRole && setRole(newRole)}
+              aria-label="Role selection"
+            >
+              <ToggleButton value="Doctor" aria-label="Doctor" color="primary">
+                Doctor
+              </ToggleButton>
+              <ToggleButton value="Pharmacist" aria-label="Pharmacist" color="primary">
+                Pharmacist
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Grid>
+          
+          
+          }
+            
             {isSignup && (
               <Grid item xs={12}>
                 <TextField

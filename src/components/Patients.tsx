@@ -24,8 +24,10 @@ const Patients: React.FC = () => {
   // Fetch appointments from the backend
   const fetchAppointments = async () => {
     try {
-        const userId = localStorage.getItem('userId');
-      const data = (await invoke("get_all_appointments")) as Appointment[];
+      const userId = localStorage.getItem('userId');
+      const data = (await invoke("get_all_appointments",{
+        hospitalId:userId
+      })) as Appointment[];
 
       
       // Trigger notification only if there are new patients

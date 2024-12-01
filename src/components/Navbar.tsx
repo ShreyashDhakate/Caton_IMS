@@ -71,7 +71,7 @@ const Navbar: React.FC = () => {
               }
               
               <Button color="inherit" component={Link} to="/history">
-                ANALYTICS
+                Analyatics
               </Button>
               <Button color="inherit" component={Link} to="/patients">
                 Patients

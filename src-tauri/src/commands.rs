@@ -279,13 +279,16 @@ async fn get_appointments_collection() -> Result<Collection<Appointment>, Error>
 
 // Fetch all appointments from the database
 #[command]
-pub async fn get_all_appointments() -> Result<Vec<Appointment>, String> {
+pub async fn get_all_appointments(hospital_id: &str) -> Result<Vec<Appointment>, String> {
     let collection = get_appointments_collection().await.map_err(|e| e.to_string())?;
 
-    // Retrieve all documents from the appointments collection
-    let find_options = FindOptions::builder().sort(doc! { "date_created": -1 }).build(); // Sort by latest
+    // Create a filter to fetch only the appointments that match the given hospital_id
+    let filter = doc! { "hospital_id": hospital_id };
+
+    // Retrieve documents from the appointments collection with the filter and sort by latest (date_created)
+    let find_options = FindOptions::builder().sort(doc! { "date_created": -1 }).build();
     let cursor: Cursor<Appointment> = collection
-        .find(None, find_options)
+        .find(filter, find_options)
         .await
         .map_err(|e| format!("Database query error: {}", e))?;
 
