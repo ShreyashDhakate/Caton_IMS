@@ -16,28 +16,39 @@ pub struct SessionState {
 #[tauri::command]
 pub async fn signup(
     username: String,
-    password: String,
+    password_doc: String,
+    password_pharma: String,
     email: String,
     db: State<'_, DbState>,
 ) -> Result<(), String> {
     let user_collection: &Collection<User> = &db.db.collection("users");
 
     // Check if email already exists
-    let existing_user = user_collection
+    let existing_email = user_collection
         .find_one(doc! { "email": &email }, None)
         .await
         .map_err(|e| format!("Database error: {}", e))?;
 
-    if existing_user.is_some() {
+    if existing_email.is_some() {
         return Err("Email already in use".to_string());
+    }
+    
+    let existing_user = user_collection
+        .find_one(doc! { "username": &username }, None)
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+
+    if existing_user.is_some() {
+        return Err("Username is  already in taken".to_string());
     }
 
     // Proceed with user signup if the email is unique
-    signup_user(user_collection, &username, &password, &email).await
+    signup_user(user_collection, &username, &password_doc,&password_pharma, &email).await
 }
 
 #[tauri::command]
 pub async fn login(
+    role:String,
     username: String,
     password: String,
     db: State<'_, DbState>,
@@ -45,7 +56,7 @@ pub async fn login(
     let user_collection: &Collection<User> = &db.db.collection("users");
     
     // Call the login function and return the result
-    login_user(user_collection, &username, &password).await
+    login_user(user_collection, &username, &password, &role).await
 }
 
 #[tauri::command]

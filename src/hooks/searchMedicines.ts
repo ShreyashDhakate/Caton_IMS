@@ -14,7 +14,7 @@ export const searchMedicines = async (query: string): Promise<MedicineInfo[]> =>
   try {
     const results: MedicineInfo[] = await invoke('search_medicines', {
       query,
-      page: 1, // For now, single-page search
+      page: 1, 
       limit,
     });
     return results;

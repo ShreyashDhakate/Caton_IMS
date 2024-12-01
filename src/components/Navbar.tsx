@@ -19,7 +19,7 @@ const Navbar: React.FC = () => {
   const { isLoggedIn, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false); // State to control dialog visibility
-
+  const role: string = localStorage.getItem('role') || ''; 
   const handleClickOpen = () => {
     setOpen(true); // Open the confirmation dialog
   };
@@ -30,8 +30,10 @@ const Navbar: React.FC = () => {
 
   const handleLogout = () => {
     logout();
+    localStorage.removeItem("UserId");// Store userId in localStorage
+    localStorage.removeItem("role");
     toast.success('You are logged out!');
-    navigate('/'); // Redirect to login page
+    navigate('/login'); // Redirect to login page
     handleClose();
   };
 
@@ -44,7 +46,7 @@ const Navbar: React.FC = () => {
       <Toolbar>
         <Typography
           component={Link}
-          to={isLoggedIn ? '/welcome' : '/'}
+          to='/'
           style={{
             flexGrow: 1,
             textDecoration: 'none',
@@ -57,21 +59,29 @@ const Navbar: React.FC = () => {
         <Box display="flex">
           {isLoggedIn ? (
             <>
+            {role === 'Pharmacist' && 
               <Button color="inherit" component={Link} to="/billing">
-                Billing
+                  Billing
               </Button>
+            }
+              {role === 'Doctor' && 
               <Button color="inherit" component={Link} to="/appointment">
-                Appointment
-              </Button>
+              Appointment
+            </Button>
+              }
+              
               <Button color="inherit" component={Link} to="/history">
                 ANALYTICS
               </Button>
               <Button color="inherit" component={Link} to="/patients">
                 Patients
               </Button>
-              <Button color="inherit" component={Link} to="/stockupdate">
+              {role === 'Pharmacist' && 
+                <Button color="inherit" component={Link} to="/stockupdate">
                 Stock Update
               </Button>
+              }
+              
               <Button color="inherit" onClick={handleClickOpen}>
                 Logout
               </Button>

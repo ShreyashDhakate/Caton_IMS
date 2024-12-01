@@ -9,7 +9,10 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ bgImage }) => {
   const navigate = useNavigate();
 
   const handleGetStarted = () => {
-    navigate('/billing');
+    const role: string = localStorage.getItem('role') || '';
+    {role=='Pharmacist' && navigate('/billing');}
+    {role=='Doctor' && navigate('/appointment');}
+    
   };
 
   return (
