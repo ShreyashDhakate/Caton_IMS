@@ -16,6 +16,9 @@ pub struct SessionState {
 #[tauri::command]
 pub async fn signup(
     username: String,
+    name:String,
+    mobile:String,
+    address:String,
     password_doc: String,
     password_pharma: String,
     email: String,
@@ -43,7 +46,7 @@ pub async fn signup(
     }
 
     // Proceed with user signup if the email is unique
-    signup_user(user_collection, &username, &password_doc,&password_pharma, &email).await
+    signup_user(user_collection, &username, &name, &mobile, &address, &password_doc,&password_pharma, &email).await
 }
 
 #[tauri::command]

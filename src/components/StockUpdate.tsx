@@ -147,7 +147,7 @@ const PharmacyStockUpdate: React.FC = () => {
   return (
     <div className="p-6 mx-auto bg-white shadow-lg rounded-lg">
       <Typography variant="h4" className="text-center font-bold mb-8">
-        Pharmacy Stock Update
+        Add New Stock
       </Typography>
 
       {purchases.map((purchase) => (

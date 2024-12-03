@@ -8,6 +8,9 @@ use mongodb::bson::oid::ObjectId;
 pub async fn signup_user(
     user_collection: &Collection<User>,
     username: &str,
+    name:&str,
+    mobile:&str,
+    address:&str,
     password_doc: &str,
     password_pharma: &str,
     email: &str,
@@ -19,6 +22,9 @@ pub async fn signup_user(
     let user = User {
         id: None, // No need to specify id, MongoDB will assign it
         username: username.to_string(),
+        name: name.to_string(),
+        mobile: mobile.to_string(),
+        address: address.to_string(),
         password_hash_doc,
         password_hash_pharma,
         email: email.to_string(),

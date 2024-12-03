@@ -8,7 +8,10 @@ pub struct User {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,  // Add the ObjectId field
     pub username: String,
+    pub name:String,
+    pub mobile:String,
+    pub address:String,
     pub password_hash_doc: String,
-    pub password_hash_pharma:String,
+    pub password_hash_pharma: String,
     pub email: String,
 }

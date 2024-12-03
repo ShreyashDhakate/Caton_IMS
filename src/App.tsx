@@ -1,15 +1,16 @@
 import React from "react";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import WelcomePage from "./components/WelcomePage";
 import "./index.css";
 import LoginPage from "./components/Login";
+import SignupPage from "./components/SignupPage";
 import { Toaster } from "./components/ui/sonner";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import PharmacyStockUpdate from "./components/StockUpdate";
 import Billing from "./components/Billing";
 import Appointment from "./components/Appointment";
-import Component from "./components/History";
+import History from "./components/History";
 import Patients from "./components/Patients";
 
 // Custom festival backgrounds
@@ -21,56 +22,53 @@ const festivalBackgrounds = {
 };
 
 const App: React.FC = () => {
-  const currentFestival = "default"; // You can dynamically set this value
-  
-  const role: string | null = localStorage.getItem("role"); // Handle null role gracefully
-
   return (
     <AuthProvider>
       <Router>
         <Toaster />
         <Navbar />
         <Routes>
-          {/* Public Routes */}
-
           <Route path="/login" element={<LoginPage />} />
-
-          {role !== null ? (
-            <Route
-              path="/"
-              element={
-                <WelcomePage
-                  bgImage={
-                    festivalBackgrounds[currentFestival] ||
-                    festivalBackgrounds.default
-                  }
-                />
-              }
-            />
-          ) : (
-            <Route path="/" element={<LoginPage />} />
-          )}
-          {/* Doctor Routes */}
-          {role === "Doctor" && (
-            <>
-              <Route path="/appointment" element={<Appointment />} />
-            </>
-          )}
-
-          {/* Pharmacist Routes */}
-          {role === "Pharmacist" && (
-            <>
-              <Route path="/stockupdate" element={<PharmacyStockUpdate />} />
-              <Route path="/billing" element={<Billing />} />
-            </>
-          )}
-
-          {/* Shared Routes */}
-          <Route path="/history" element={<Component />} />
-          <Route path="/patients" element={<Patients />} />
+          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/*" element={<ProtectedRoutes />} />
         </Routes>
       </Router>
     </AuthProvider>
+  );
+};
+
+const ProtectedRoutes: React.FC = () => {
+  const { isLoggedIn } = useAuth(); // Safe to call here because it's within AuthProvider
+  const role = localStorage.getItem("role"); // Retrieve the role from localStorage
+  const currentFestival = "default"; // Replace with dynamic logic as needed
+
+  if (!isLoggedIn) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <WelcomePage
+            bgImage={
+              festivalBackgrounds[currentFestival] || festivalBackgrounds.default
+            }
+          />
+        }
+      />
+      {role === "Doctor" && <Route path="/appointment" element={<Appointment />} />}
+      {role === "Pharmacist" && (
+        <>
+          <Route path="/stockadd" element={<PharmacyStockUpdate />} />
+          <Route path="/billing" element={<Billing />} />
+        </>
+      )}
+      <Route path="/history" element={<History />} />
+      <Route path="/patients" element={<Patients />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 };
 
