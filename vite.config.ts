@@ -18,14 +18,27 @@ export default defineConfig(async () => ({
     },
   },
 
+  build: {
+    // Increase the chunk size warning limit
+    chunkSizeWarningLimit: 1000,
+
+    // Manual chunking to split vendor code
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            return "vendor";
+          }
+        },
+      },
+    },
+  },
+
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
-  //
-  // 1. prevent vite from obscuring rust errors
   clearScreen: false,
   
-  // 2. tauri expects a fixed port, fail if that port is not available
   server: {
-    port: 1420,
+    port: 1421,
     strictPort: true,
     host: host || false,
     hmr: host
@@ -36,7 +49,7 @@ export default defineConfig(async () => ({
         }
       : undefined,
     watch: {
-      // 3. tell vite to ignore watching `src-tauri`
+      // Ignore `src-tauri` to avoid unnecessary rebuilds
       ignored: ["**/src-tauri/**"],
     },
   },

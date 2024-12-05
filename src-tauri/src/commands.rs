@@ -1,18 +1,21 @@
 use crate::database::get_db_connection;
 use mongodb::bson::{doc,  Document, oid::ObjectId};
-use mongodb::Collection;
 use serde::{Deserialize, Serialize};
 use tauri::{command, State};
 use crate::db::DbState;
 use futures::stream::StreamExt;
 use futures::TryStreamExt;
 use mongodb::bson;
-
+use mongodb::options::FindOptions;
+use regex::Regex;
+use chrono::Utc;
+use mongodb::error::Error;
+use mongodb::{Collection, Cursor};
 
 #[derive(Serialize, Deserialize)]
 pub struct Medicine {
-    #[serde(rename = "_id")]
-    pub id: Option<ObjectId>, // Using ObjectId for MongoDB ID compatibility
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<ObjectId>, // Use Option<ObjectId> for MongoDB compatibility
     pub name: String,
     pub batch_number: String,
     pub expiry_date: String,
@@ -39,7 +42,15 @@ pub async fn get_medicine() -> Result<Vec<Medicine>, String> {
 
     Ok(medicines)
 }
+// Insert Medicine Function
 
+// Helper Function to Validate Date Format
+fn validate_date_format(date: &str) -> bool {
+    let re = Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap(); // Matches YYYY-MM-DD
+    re.is_match(date)
+}
+
+// Insert Medicine Function
 #[command]
 pub async fn insert_medicine(
     name: String,
@@ -51,9 +62,37 @@ pub async fn insert_medicine(
     wholesaler_name: String,
     purchase_date: String,
 ) -> Result<String, String> {
+    // Validate Mandatory Fields
+    if name.trim().is_empty() {
+        return Err("Medicine name is required.".to_string());
+    }
+    if batch_number.trim().is_empty() {
+        return Err("Batch number is required.".to_string());
+    }
+    if expiry_date.trim().is_empty() || !validate_date_format(&expiry_date) {
+        return Err("Valid expiry date (YYYY-MM-DD) is required.".to_string());
+    }
+    if quantity == 0 {
+        return Err("Quantity must be greater than 0.".to_string());
+    }
+    if purchase_price <= 0.0 {
+        return Err("Purchase price must be greater than 0.".to_string());
+    }
+    if selling_price <= 0.0 {
+        return Err("Selling price must be greater than 0.".to_string());
+    }
+    if wholesaler_name.trim().is_empty() {
+        return Err("Wholesaler name is required.".to_string());
+    }
+    if purchase_date.trim().is_empty() || !validate_date_format(&purchase_date) {
+        return Err("Valid purchase date (YYYY-MM-DD) is required.".to_string());
+    }
+
+    // Establish Database Connection
     let db = get_db_connection().await;
     let collection: Collection<Medicine> = db.collection("medicines");
 
+    // Create a New Medicine Instance
     let new_medicine = Medicine {
         id: None,
         name,
@@ -66,12 +105,15 @@ pub async fn insert_medicine(
         purchase_date,
     };
 
-    collection.insert_one(new_medicine, None)
+    // Insert the Document into the Collection
+    collection
+        .insert_one(new_medicine, None)
         .await
         .map_err(|e| e.to_string())?;
 
     Ok("Medicine inserted successfully.".to_string())
 }
+
 
 #[command]
 pub async fn update_medicine(
@@ -125,13 +167,14 @@ pub async fn delete_medicine(id: String) -> Result<String, String> {
 
     Ok("Medicine deleted successfully.".to_string())
 }
+
 #[derive(Serialize, Deserialize)]
 pub struct MedicineInfo {
     pub name: String,
     pub selling_price: Option<f64>, // Optional in case some documents lack this field
 }
 
-#[tauri::command]
+#[command]
 pub async fn search_medicines(
     query: String,
     page: u32,
@@ -142,35 +185,118 @@ pub async fn search_medicines(
     let skip = (page - 1) * limit;
 
     let filter = doc! { "name": { "$regex": query.clone(), "$options": "i" } };
-    let options = mongodb::options::FindOptions::builder()
+    let options = FindOptions::builder()
         .limit(limit as i64)
         .skip(skip as u64)
         .build();
 
-    let mut cursor = medicine_collection.find(filter, options)
+    let mut cursor = medicine_collection
+        .find(filter, options)
         .await
         .map_err(|e| format!("Database error: {}", e))?;
 
     let mut medicines: Vec<MedicineInfo> = Vec::new();
 
-    // Iterate over the cursor
     while let Some(result) = cursor.next().await {
         match result {
-            Ok(doc) => {
-                // Clone the document for logging in case of deserialization failure
-                match bson::from_document::<MedicineInfo>(doc.clone()) {
-                    Ok(medicine) => medicines.push(medicine),
-                    Err(_) => {
-                        println!("Failed to deserialize document: {:?}", doc); // Log the document
-                        return Err("Failed to deserialize medicine document.".to_string());
-                    }
-                }
-            }
-            Err(e) => {
-                return Err(format!("Error retrieving medicine: {}", e));
-            }
+            Ok(doc) => match bson::from_document::<MedicineInfo>(doc.clone()) {
+                Ok(medicine) => medicines.push(medicine),
+                Err(_) => println!("Failed to deserialize document: {:?}", doc),
+            },
+            Err(e) => return Err(format!("Error retrieving medicine: {}", e)),
         }
     }
 
     Ok(medicines)
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MedicineDetail {
+    pub name: String,
+    pub quantity: u32,
+}
+
+// Struct to represent an appointment.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Appointment {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<ObjectId>, // MongoDB ObjectId
+    pub patient_name: String, // Patient's name
+    pub mobile: String,       // Mobile number
+    pub disease: String,      // Disease information
+    pub precautions: String,  // Precautions prescribed
+    pub medicines: Vec<MedicineDetail>, // List of medicines with quantities
+    pub hospital_id: String,  // ID of the hospital
+    pub date_created: String, // Timestamp of creation
+}
+
+// Tauri command to save an appointment.
+#[command]
+pub async fn save_appointment(
+    patient_name: String,
+    mobile: String,
+    disease: String,
+    precautions: String,
+    medicines: Vec<MedicineDetail>,
+    hospital_id: String,
+) -> Result<String, String> {
+    // Validate required fields
+    if patient_name.trim().is_empty() || mobile.trim().is_empty() {
+        return Err("Patient name and mobile number are required.".to_string());
+    }
+
+    // Prepare the database connection
+    let db = get_db_connection().await;
+
+    let collection: Collection<Appointment> = db.collection("appointments");
+
+    // Create the new appointment object
+    let new_appointment = Appointment {
+        id: None,
+        patient_name,
+        mobile,
+        disease,
+        precautions,
+        medicines,
+        hospital_id,
+        date_created: Utc::now().to_rfc3339(), // Generate current timestamp
+    };
+
+    // Insert the appointment into the database
+    collection
+        .insert_one(new_appointment, None)
+        .await
+        .map_err(|e| format!("Database insert error: {}", e))?;
+
+    // Return success message
+    Ok("Appointment saved successfully.".to_string())
+}
+
+async fn get_appointments_collection() -> Result<Collection<Appointment>, Error> {
+    let db = get_db_connection().await; // Replace with your database connection logic
+    Ok(db.collection::<Appointment>("appointments"))
+}
+
+// Fetch all appointments from the database
+#[command]
+pub async fn get_all_appointments(hospital_id: &str) -> Result<Vec<Appointment>, String> {
+    let collection = get_appointments_collection().await.map_err(|e| e.to_string())?;
+
+    // Create a filter to fetch only the appointments that match the given hospital_id
+    let filter = doc! { "hospital_id": hospital_id };
+
+    // Retrieve documents from the appointments collection with the filter and sort by latest (date_created)
+    let find_options = FindOptions::builder().sort(doc! { "date_created": -1 }).build();
+    let cursor: Cursor<Appointment> = collection
+        .find(filter, find_options)
+        .await
+        .map_err(|e| format!("Database query error: {}", e))?;
+
+    // Collect the documents into a vector
+    let appointments: Vec<Appointment> = cursor
+        .try_collect()
+        .await
+        .map_err(|e| format!("Error parsing appointments: {}", e))?;
+
+    Ok(appointments)
 }

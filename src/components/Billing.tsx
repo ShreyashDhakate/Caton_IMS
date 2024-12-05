@@ -39,6 +39,8 @@ const Billing = () => {
     };
   }, [query]);
 
+
+  
   // Function to add medicine to the billing list
   const addMedicineToBilling = (medicine: MedicineInfo) => {
     const existing = selectedMedicines.find(item => item.medicine.name === medicine.name);

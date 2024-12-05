@@ -3,7 +3,7 @@ import { TextField, Button, IconButton, Typography, Divider } from "@mui/materia
 import { AddCircleOutline, DeleteOutline } from "@mui/icons-material";
 import dayjs from "dayjs";
 import { invoke } from "@tauri-apps/api/core";
-import { useInitializeDatabase } from "../hooks/useInitializeDatabase.ts";
+import { useInitializeDatabase } from "../hooks/useInitializeDatabase.ts.ts";
 import { toast } from 'sonner';
 
 interface Medicine {
@@ -23,25 +23,21 @@ interface WholesalerPurchase {
   medicines: Medicine[];
 }
 
-const PharmacyStockUpdate: React.FC = () => {
-  const [purchases, setPurchases] = useState<WholesalerPurchase[]>([
-    {
-      id: 1,
-      wholesalerName: "",
-      purchaseDate: dayjs().format("YYYY-MM-DD"),
-      medicines: [
-        {
-          id: Date.now(),
-          name: "",
-          batchNumber: "",
-          expiryDate: "",
-          quantity: 0,
-          purchasePrice: 0,
-          sellingPrice: 0,
-        },
-      ],
-    },
-  ]);
+const StockAdd: React.FC = () => {
+  const [purchases, setPurchases] = useState<WholesalerPurchase[]>([{
+    id: 1,
+    wholesalerName: "",
+    purchaseDate: dayjs().format("YYYY-MM-DD"),
+    medicines: [{
+      id: Date.now(),
+      name: "",
+      batchNumber: "",
+      expiryDate: "",
+      quantity: 0,
+      purchasePrice: 0,
+      sellingPrice: 0,
+    }],
+  }]);
 
   const { initializeDatabase } = useInitializeDatabase();
 
@@ -49,14 +45,23 @@ const PharmacyStockUpdate: React.FC = () => {
     initializeDatabase();
   }, [initializeDatabase]);
 
-  // Handle input change for wholesaler or purchase date
+  const validateMedicineFields = (medicine: Medicine) => {
+    return (
+      medicine.name.trim() !== "" &&
+      medicine.batchNumber.trim() !== "" &&
+      medicine.expiryDate.trim() !== "" &&
+      medicine.quantity > 0 &&
+      medicine.purchasePrice > 0 &&
+      medicine.sellingPrice > 0
+    );
+  };
+
   const handlePurchaseChange = (id: number, field: keyof WholesalerPurchase, value: string) => {
     setPurchases((prev) =>
       prev.map((purchase) => (purchase.id === id ? { ...purchase, [field]: value } : purchase))
     );
   };
 
-  // Handle input change for medicines inside a purchase
   const handleMedicineChange = (
     purchaseId: number,
     medicineId: number,
@@ -77,7 +82,6 @@ const PharmacyStockUpdate: React.FC = () => {
     );
   };
 
-  // Add a new medicine row inside a purchase
   const addMedicine = (purchaseId: number) => {
     setPurchases((prev) =>
       prev.map((purchase) =>
@@ -102,7 +106,6 @@ const PharmacyStockUpdate: React.FC = () => {
     );
   };
 
-  // Remove a medicine row from a purchase
   const removeMedicine = (purchaseId: number, medicineId: number) => {
     setPurchases((prev) =>
       prev.map((purchase) =>
@@ -113,11 +116,15 @@ const PharmacyStockUpdate: React.FC = () => {
     );
   };
 
-  // Handle submit to add medicines to the database
   const handleSubmit = async () => {
     try {
       for (const purchase of purchases) {
         for (const medicine of purchase.medicines) {
+          if (!validateMedicineFields(medicine)) {
+            toast.error("Please fill in all the compulsory fields for each medicine.");
+            return;
+          }
+
           await invoke("insert_medicine", {
             name: medicine.name,
             batchNumber: medicine.batchNumber,
@@ -125,28 +132,26 @@ const PharmacyStockUpdate: React.FC = () => {
             quantity: medicine.quantity,
             purchasePrice: medicine.purchasePrice,
             sellingPrice: medicine.sellingPrice,
-            wholesalerName: purchase.wholesalerName, // Added wholesaler name
-            purchaseDate: purchase.purchaseDate       // Added purchase date
+            wholesalerName: purchase.wholesalerName,
+            purchaseDate: purchase.purchaseDate,
           });
         }
       }
-      toast.success('Purchase confirmed and medicines added successfully!');
+      toast.success("Purchase confirmed and medicines added successfully!");
     } catch (error) {
       console.error("Error adding medicines:", error);
-      alert("Failed to confirm purchase.");
+      toast.error("Failed to confirm purchase.");
     }
   };
-  
 
   return (
     <div className="p-6 mx-auto bg-white shadow-lg rounded-lg">
       <Typography variant="h4" className="text-center font-bold mb-8">
-        Pharmacy Stock Update
+        Add New Stock
       </Typography>
 
       {purchases.map((purchase) => (
         <div key={purchase.id} className="mb-10">
-          {/* Wholesaler Information */}
           <div className="grid grid-cols-2 gap-4 mb-6">
             <TextField
               label="Wholesaler Name"
@@ -166,7 +171,6 @@ const PharmacyStockUpdate: React.FC = () => {
             />
           </div>
 
-          {/* Medicine Table */}
           <Typography variant="h6" className="font-semibold mb-4">
             Medicines List
           </Typography>
@@ -175,26 +179,20 @@ const PharmacyStockUpdate: React.FC = () => {
               <TextField
                 label="Medicine Name"
                 value={medicine.name}
-                onChange={(e) =>
-                  handleMedicineChange(purchase.id, medicine.id, "name", e.target.value)
-                }
+                onChange={(e) => handleMedicineChange(purchase.id, medicine.id, "name", e.target.value)}
                 size="small"
               />
               <TextField
                 label="Batch Number"
                 value={medicine.batchNumber}
-                onChange={(e) =>
-                  handleMedicineChange(purchase.id, medicine.id, "batchNumber", e.target.value)
-                }
+                onChange={(e) => handleMedicineChange(purchase.id, medicine.id, "batchNumber", e.target.value)}
                 size="small"
               />
               <TextField
                 label="Expiry Date"
                 type="date"
                 value={medicine.expiryDate}
-                onChange={(e) =>
-                  handleMedicineChange(purchase.id, medicine.id, "expiryDate", e.target.value)
-                }
+                onChange={(e) => handleMedicineChange(purchase.id, medicine.id, "expiryDate", e.target.value)}
                 InputLabelProps={{ shrink: true }}
                 size="small"
               />
@@ -202,27 +200,21 @@ const PharmacyStockUpdate: React.FC = () => {
                 label="Quantity"
                 type="number"
                 value={medicine.quantity}
-                onChange={(e) =>
-                  handleMedicineChange(purchase.id, medicine.id, "quantity", +e.target.value)
-                }
+                onChange={(e) => handleMedicineChange(purchase.id, medicine.id, "quantity", +e.target.value)}
                 size="small"
               />
               <TextField
                 label="Purchase Price"
                 type="number"
                 value={medicine.purchasePrice}
-                onChange={(e) =>
-                  handleMedicineChange(purchase.id, medicine.id, "purchasePrice", +e.target.value)
-                }
+                onChange={(e) => handleMedicineChange(purchase.id, medicine.id, "purchasePrice", +e.target.value)}
                 size="small"
               />
               <TextField
                 label="Selling Price"
                 type="number"
                 value={medicine.sellingPrice}
-                onChange={(e) =>
-                  handleMedicineChange(purchase.id, medicine.id, "sellingPrice", +e.target.value)
-                }
+                onChange={(e) => handleMedicineChange(purchase.id, medicine.id, "sellingPrice", +e.target.value)}
                 size="small"
               />
               <IconButton onClick={() => removeMedicine(purchase.id, medicine.id)} color="error">
@@ -232,29 +224,24 @@ const PharmacyStockUpdate: React.FC = () => {
           ))}
 
           <Button
-            variant="contained"
             startIcon={<AddCircleOutline />}
+            variant="outlined"
+            size="small"
             onClick={() => addMedicine(purchase.id)}
             className="mb-4"
           >
             Add Medicine
           </Button>
-
-          <Divider className="my-6" />
         </div>
       ))}
 
-      <Button
-        variant="contained"
-        color="primary"
-        fullWidth
-        onClick={handleSubmit}
-        className="mt-6"
-      >
+      <Divider className="mb-6" />
+
+      <Button variant="contained" onClick={handleSubmit} color="primary" fullWidth>
         Confirm Purchase
       </Button>
     </div>
   );
 };
 
-export default PharmacyStockUpdate;
+export default StockAdd;
