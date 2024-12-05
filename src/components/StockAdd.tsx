@@ -3,7 +3,7 @@ import { TextField, Button, IconButton, Typography, Divider } from "@mui/materia
 import { AddCircleOutline, DeleteOutline } from "@mui/icons-material";
 import dayjs from "dayjs";
 import { invoke } from "@tauri-apps/api/core";
-import { useInitializeDatabase } from "../hooks/useInitializeDatabase.ts";
+import { useInitializeDatabase } from "../hooks/useInitializeDatabase.ts.ts";
 import { toast } from 'sonner';
 
 interface Medicine {
@@ -23,7 +23,7 @@ interface WholesalerPurchase {
   medicines: Medicine[];
 }
 
-const PharmacyStockUpdate: React.FC = () => {
+const StockAdd: React.FC = () => {
   const [purchases, setPurchases] = useState<WholesalerPurchase[]>([{
     id: 1,
     wholesalerName: "",
@@ -244,4 +244,4 @@ const PharmacyStockUpdate: React.FC = () => {
   );
 };
 
-export default PharmacyStockUpdate;
+export default StockAdd;

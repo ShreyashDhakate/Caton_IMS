@@ -7,7 +7,7 @@ import LoginPage from "./components/Login";
 import SignupPage from "./components/SignupPage";
 import { Toaster } from "./components/ui/sonner";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import PharmacyStockUpdate from "./components/StockUpdate";
+import StockAdd from "./components/StockAdd";
 import Billing from "./components/Billing";
 import Appointment from "./components/Appointment";
 import History from "./components/History";
@@ -61,7 +61,7 @@ const ProtectedRoutes: React.FC = () => {
       {role === "Doctor" && <Route path="/appointment" element={<Appointment />} />}
       {role === "Pharmacist" && (
         <>
-          <Route path="/stockadd" element={<PharmacyStockUpdate />} />
+          <Route path="/stockadd" element={<StockAdd />} />
           <Route path="/billing" element={<Billing />} />
         </>
       )}

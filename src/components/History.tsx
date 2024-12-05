@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "./ui/card";
 import salesData from "./salesData.json"; // Import the sales data
-import { chartConfig } from "./chartConfig"; // Import the chart configuration
+import { chartConfig } from "./chartConfig.ts"; // Import the chart configuration
 
 // Utility to aggregate data by month and year
 const aggregateData = (data: any[], mode: "daily" | "monthly" | "annually") => {
