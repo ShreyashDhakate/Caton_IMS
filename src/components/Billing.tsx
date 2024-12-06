@@ -10,12 +10,19 @@ export type MedicineInfo = {
   selling_price: number;
 };
 
-const Billing = () => {
+interface BillingProps {
+  hospitalName: string;
+  hospitalAddress: string;
+  hospitalPhone: string;
+}
+
+const Billing = ({ hospitalName, hospitalAddress, hospitalPhone }: BillingProps) => {
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<MedicineInfo[]>([]);
-  const [selectedMedicines, setSelectedMedicines] = useState<
-    { medicine: MedicineInfo; quantity: number }[]
-  >([]);
+  const [selectedMedicines, setSelectedMedicines] = useState<{
+    medicine: MedicineInfo;
+    quantity: number;
+  }[]>([]);
   const [customerName, setCustomerName] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [billingId] = useState(Math.floor(Math.random() * 100000)); // Generate random billing ID
@@ -30,17 +37,15 @@ const Billing = () => {
         setSearchResults([]); // Clear results if query is empty
       }
     };
-  
+
     const debouncedSearch = debounce(handleSearch, 300); // Delay of 300ms
     debouncedSearch();
-  
+
     return () => {
       debouncedSearch.cancel(); // Cleanup the debounce on unmount
     };
   }, [query]);
 
-
-  
   // Function to add medicine to the billing list
   const addMedicineToBilling = (medicine: MedicineInfo) => {
     const existing = selectedMedicines.find(item => item.medicine.name === medicine.name);
@@ -57,15 +62,25 @@ const Billing = () => {
 
   // Function to handle confirm purchase
   const handleConfirmPurchase = () => {
+    if (!selectedMedicines.length) {
+      toast.error('At least one medicine must be selected!');
+      return;
+    }
+    if (!customerName) {
+      toast.error('Customer name is required!');
+      return;
+    }
+
     setOpenDialog(false);
     printBill(selectedMedicines, customerName, billingId); // Pass selected medicines, customer name, and billing ID
   };
 
   return (
     <div className="mx-auto p-4 border border-gray-300 rounded-lg h-full relative">
-      <div className='font-bold text-2xl'>
-        ABC Pharmacy and Hospital
-      </div>
+      <div className="font-bold text-2xl">{hospitalName}</div>
+      <div className="text-sm text-gray-600">{hospitalAddress}</div>
+      <div className="text-sm text-gray-600">{hospitalPhone}</div>
+      
       <div className="mb-4 mt-5">
         <input
           type="text"
@@ -90,7 +105,7 @@ const Billing = () => {
           </ul>
         )}
       </div>
-      
+
       {/* Customer Details Section */}
       <div className="flex mt-[2rem] justify-between mb-4">
         <input
