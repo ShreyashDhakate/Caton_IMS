@@ -17,7 +17,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ bgImage }) => {
 
   return (
     <div
-      className="relative h-[91.9vh] w-full bg-cover bg-center animate-fade-in"
+      className="relative h-[92.4vh] w-full bg-cover bg-center animate-fade-in"
       style={{ backgroundImage: `url(${bgImage})` }}
     >
       {/* Overlay for better readability */}

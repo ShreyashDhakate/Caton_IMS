@@ -124,7 +124,7 @@ const Navbar: React.FC = () => {
                   >
                     <MenuItem
                       component={Link}
-                      to="/edit-medicine"
+                      to="/editmedicine"
                       onClick={handleMedicineMenuClose}
                     >
                       Edit Medicine Details
@@ -181,13 +181,6 @@ const Navbar: React.FC = () => {
                   >
                     <MenuItem
                       component={Link}
-                      to="/update-stock"
-                      onClick={handleStockMenuClose}
-                    >
-                      Update Stock
-                    </MenuItem>
-                    <MenuItem
-                      component={Link}
                       to="/stockadd"
                       onClick={handleStockMenuClose}
                     >
@@ -195,10 +188,10 @@ const Navbar: React.FC = () => {
                     </MenuItem>
                     <MenuItem
                       component={Link}
-                      to="/remove-stock"
+                      to="/stockmanager"
                       onClick={handleStockMenuClose}
                     >
-                      Remove Stock
+                      Stock Manager
                     </MenuItem>
                     <MenuItem
                       component={Link}

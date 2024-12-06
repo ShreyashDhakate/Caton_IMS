@@ -10,12 +10,19 @@ export type MedicineInfo = {
   selling_price: number;
 };
 
-const Billing = () => {
+interface BillingProps {
+  hospitalName: string;
+  hospitalAddress: string;
+  hospitalPhone: string;
+}
+
+const Billing = ({ hospitalName, hospitalAddress, hospitalPhone }: BillingProps) => {
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<MedicineInfo[]>([]);
-  const [selectedMedicines, setSelectedMedicines] = useState<
-    { medicine: MedicineInfo; quantity: number }[]
-  >([]);
+  const [selectedMedicines, setSelectedMedicines] = useState<{
+    medicine: MedicineInfo;
+    quantity: number;
+  }[]>([]);
   const [customerName, setCustomerName] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [billingId] = useState(Math.floor(Math.random() * 100000)); // Generate random billing ID
@@ -30,17 +37,15 @@ const Billing = () => {
         setSearchResults([]); // Clear results if query is empty
       }
     };
-  
+
     const debouncedSearch = debounce(handleSearch, 300); // Delay of 300ms
     debouncedSearch();
-  
+
     return () => {
       debouncedSearch.cancel(); // Cleanup the debounce on unmount
     };
   }, [query]);
 
-
-  
   // Function to add medicine to the billing list
   const addMedicineToBilling = (medicine: MedicineInfo) => {
     const existing = selectedMedicines.find(item => item.medicine.name === medicine.name);
@@ -57,15 +62,36 @@ const Billing = () => {
 
   // Function to handle confirm purchase
   const handleConfirmPurchase = () => {
-    setOpenDialog(false);
+    // Check if required fields are missing (customer name or medicines)
+    if (!selectedMedicines.length) {
+      toast.error('At least one medicine must be selected!');
+      return;
+    }
+    if (!customerName) {
+      toast.error('Customer name is required!');
+      return;
+    }
+
+    // If everything is valid, open the confirmation dialog
+    setOpenDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false); // Close the dialog
+  };
+
+  const handlePrintBill = () => {
+    // Proceed with printing the bill after confirmation
     printBill(selectedMedicines, customerName, billingId); // Pass selected medicines, customer name, and billing ID
+    setOpenDialog(false); // Close the dialog after printing
   };
 
   return (
     <div className="mx-auto p-4 border border-gray-300 rounded-lg h-full relative">
-      <div className='font-bold text-2xl'>
-        ABC Pharmacy and Hospital
-      </div>
+      <div className="font-bold text-2xl">{hospitalName}</div>
+      <div className="text-sm text-gray-600">{hospitalAddress}</div>
+      <div className="text-sm text-gray-600">{hospitalPhone}</div>
+      
       <div className="mb-4 mt-5">
         <input
           type="text"
@@ -90,7 +116,7 @@ const Billing = () => {
           </ul>
         )}
       </div>
-      
+
       {/* Customer Details Section */}
       <div className="flex mt-[2rem] justify-between mb-4">
         <input
@@ -111,7 +137,7 @@ const Billing = () => {
       {/* Total Cost and Confirm Purchase Button Section */}
       <div className="flex items-center justify-center mt-4">
         <button
-          onClick={() => setOpenDialog(true)}
+          onClick={handleConfirmPurchase} // Trigger validation and dialog opening
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
           Confirm Purchase
@@ -122,17 +148,17 @@ const Billing = () => {
       {openDialog && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
           <div className="bg-white rounded p-4">
-            <h4 className="font-bold ">Confirm Purchase</h4>
+            <h4 className="font-bold">Confirm Purchase</h4>
             <p>Are you sure you want to print the bill?</p>
             <div className="flex justify-end mt-4">
               <button
-                onClick={() => setOpenDialog(false)}
+                onClick={handleCloseDialog}
                 className="mr-2 bg-gray-200 px-4 py-2 rounded"
               >
                 Cancel
               </button>
               <button
-                onClick={handleConfirmPurchase}
+                onClick={handlePrintBill}
                 className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
               >
                 Print Bill

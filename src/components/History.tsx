@@ -58,7 +58,7 @@ const Component: React.FC = () => {
             style={{
               marginRight: "0.5rem",
               padding: "0.5rem 1rem",
-              backgroundColor: viewMode === "daily" ? "#007bff" : "#f0f0f0",
+              backgroundColor: viewMode === "daily" ? "#1B1833" : "#f0f0f0",
               color: viewMode === "daily" ? "#fff" : "#000",
               border: "none",
               borderRadius: "4px",
@@ -72,7 +72,7 @@ const Component: React.FC = () => {
             style={{
               marginRight: "0.5rem",
               padding: "0.5rem 1rem",
-              backgroundColor: viewMode === "monthly" ? "#007bff" : "#f0f0f0",
+              backgroundColor: viewMode === "monthly" ? "#1B1833" : "#f0f0f0",
               color: viewMode === "monthly" ? "#fff" : "#000",
               border: "none",
               borderRadius: "4px",
@@ -86,7 +86,7 @@ const Component: React.FC = () => {
             style={{
               marginRight: "0.5rem",
               padding: "0.5rem 1rem",
-              backgroundColor: viewMode === "annually" ? "#007bff" : "#f0f0f0",
+              backgroundColor: viewMode === "annually" ? "#1B1833" : "#f0f0f0",
               color: viewMode === "annually" ? "#fff" : "#000",
               border: "none",
               borderRadius: "4px",
@@ -98,7 +98,7 @@ const Component: React.FC = () => {
         </div>
 
         {/* Bar Chart */}
-        <BarChart width={1500} height={300} data={filteredData}>
+        <BarChart width={1500} height={300}  data={filteredData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="date" />
           <Tooltip formatter={(value: number) => `₹${value.toLocaleString()}`} />

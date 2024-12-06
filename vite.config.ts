@@ -38,14 +38,14 @@ export default defineConfig(async () => ({
   clearScreen: false,
   
   server: {
-    port: 1421,
+    port: 1422,
     strictPort: true,
     host: host || false,
     hmr: host
       ? {
           protocol: "ws",
           host,
-          port: 1421,
+          port: 1422,
         }
       : undefined,
     watch: {

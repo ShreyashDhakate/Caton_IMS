@@ -1,6 +1,6 @@
 export const chartConfig = {
     sales: {
-      color: "#F29F58",
+      color: "#640D5F",
       label: "Sales",
     },
   };

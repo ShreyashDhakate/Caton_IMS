@@ -8,11 +8,12 @@ import SignupPage from "./components/SignupPage";
 import { Toaster } from "./components/ui/sonner";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import StockAdd from "./components/StockAdd";
-import Billing from "./components/Billing";
 import Appointment from "./components/Appointment";
 import History from "./components/History";
 import Patients from "./components/Patients";
-
+import StockManager from "./components/StockManager";
+import ComingSoonPage from "./components/CommingSoon";
+import BillingParent from "./components/BillingParent";
 // Custom festival backgrounds
 const festivalBackgrounds = {
   diwali: "https://example.com/diwali-bg.jpg",
@@ -58,16 +59,19 @@ const ProtectedRoutes: React.FC = () => {
           />
         }
       />
+      
       {role === "Doctor" && <Route path="/appointment" element={<Appointment />} />}
       {role === "Pharmacist" && (
         <>
           <Route path="/stockadd" element={<StockAdd />} />
-          <Route path="/billing" element={<Billing />} />
+          <Route path="/billing" element={<BillingParent />} />
+          <Route path="/stockmanager" element={<StockManager/>} />
+          
         </>
       )}
       <Route path="/history" element={<History />} />
       <Route path="/patients" element={<Patients />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<ComingSoonPage />} />
     </Routes>
   );
 };

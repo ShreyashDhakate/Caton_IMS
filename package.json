@@ -25,6 +25,7 @@
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
     "lodash.debounce": "^4.0.8",
+    "lottie-react": "^2.4.0",
     "lucide-react": "^0.446.0",
     "next-themes": "^0.3.0",
     "react": "^18.2.0",
