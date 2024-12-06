@@ -21,7 +21,7 @@ const ComingSoonPage = () => {
           mb: 4,
         }}
       >
-        <Lottie animationData={comingSoonAnimation} loop={true} />
+        <Lottie animationData={comingSoonAnimation} loop={false} />
       </Box>
       <Typography variant="h4" color="primary" gutterBottom>
         Coming Soon
