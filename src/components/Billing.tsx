@@ -62,6 +62,7 @@ const Billing = ({ hospitalName, hospitalAddress, hospitalPhone }: BillingProps)
 
   // Function to handle confirm purchase
   const handleConfirmPurchase = () => {
+    // Check if required fields are missing (customer name or medicines)
     if (!selectedMedicines.length) {
       toast.error('At least one medicine must be selected!');
       return;
@@ -71,8 +72,18 @@ const Billing = ({ hospitalName, hospitalAddress, hospitalPhone }: BillingProps)
       return;
     }
 
-    setOpenDialog(false);
+    // If everything is valid, open the confirmation dialog
+    setOpenDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false); // Close the dialog
+  };
+
+  const handlePrintBill = () => {
+    // Proceed with printing the bill after confirmation
     printBill(selectedMedicines, customerName, billingId); // Pass selected medicines, customer name, and billing ID
+    setOpenDialog(false); // Close the dialog after printing
   };
 
   return (
@@ -126,7 +137,7 @@ const Billing = ({ hospitalName, hospitalAddress, hospitalPhone }: BillingProps)
       {/* Total Cost and Confirm Purchase Button Section */}
       <div className="flex items-center justify-center mt-4">
         <button
-          onClick={() => setOpenDialog(true)}
+          onClick={handleConfirmPurchase} // Trigger validation and dialog opening
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
           Confirm Purchase
@@ -137,17 +148,17 @@ const Billing = ({ hospitalName, hospitalAddress, hospitalPhone }: BillingProps)
       {openDialog && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
           <div className="bg-white rounded p-4">
-            <h4 className="font-bold ">Confirm Purchase</h4>
+            <h4 className="font-bold">Confirm Purchase</h4>
             <p>Are you sure you want to print the bill?</p>
             <div className="flex justify-end mt-4">
               <button
-                onClick={() => setOpenDialog(false)}
+                onClick={handleCloseDialog}
                 className="mr-2 bg-gray-200 px-4 py-2 rounded"
               >
                 Cancel
               </button>
               <button
-                onClick={handleConfirmPurchase}
+                onClick={handlePrintBill}
                 className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
               >
                 Print Bill
