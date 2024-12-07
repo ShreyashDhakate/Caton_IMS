@@ -19,6 +19,7 @@ pub async fn signup(
     name:String,
     mobile:String,
     address:String,
+    hospital:String,
     password_doc: String,
     password_pharma: String,
     email: String,
@@ -46,7 +47,7 @@ pub async fn signup(
     }
 
     // Proceed with user signup if the email is unique
-    signup_user(user_collection, &username, &name, &mobile, &address, &password_doc,&password_pharma, &email).await
+    signup_user(user_collection, &username, &name, &mobile, &hospital,&address, &password_doc,&password_pharma, &email).await
 }
 
 #[tauri::command]
