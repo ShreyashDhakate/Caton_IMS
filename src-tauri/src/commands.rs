@@ -1,5 +1,4 @@
 use crate::database::get_db_connection;
-use mongodb::bson::{doc,  Document, oid::ObjectId};
 use serde::{Deserialize, Serialize};
 use tauri::{command, State};
 use crate::db::DbState;
@@ -11,11 +10,48 @@ use regex::Regex;
 use chrono::Utc;
 use mongodb::error::Error;
 use mongodb::{Collection, Cursor};
+use mongodb::bson::{to_bson,doc, Document, Bson , oid::ObjectId};
 
-#[derive(Serialize, Deserialize)]
+
+
+
+
+#[command]
+pub async fn initialize_db() -> Result<String, String> {
+    let db = get_db_connection().await;
+    let collection: Collection<Medicine> = db.collection("medicines");
+    Ok("Medicines collection initialized successfully.".to_string())
+}
+
+
+
+// #[derive(Debug, Serialize, Deserialize)]
+// pub struct Medicine {
+//     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+//     pub id: Option<ObjectId>, // Medicine ID
+//     pub user_id: String,      // User who owns this medicine
+//     pub name: String,         // Name of the medicine
+
+//     // Collection of batches for the medicine
+//     pub batches: Vec<Batch>,  // Nested batches for the medicine
+// }
+
+// #[derive(Debug, Serialize, Deserialize)]
+// pub struct Batch {
+//     pub batch_number: String,     // Batch number
+//     pub expiry_date: String,      // Expiry date for this batch
+//     pub quantity: u32,            // Quantity for this batch
+//     pub purchase_price: f64,      // Purchase price for this batch
+//     pub selling_price: f64,       // Selling price for this batch
+//     pub wholesaler_name: String,  // Wholesaler name for this batch
+//     pub purchase_date: String,    // Purchase date for this batch
+// }
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Medicine {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>, // Use Option<ObjectId> for MongoDB compatibility
+    pub id: Option<ObjectId>,
+    pub user_id: String,
     pub name: String,
     pub batch_number: String,
     pub expiry_date: String,
@@ -27,31 +63,6 @@ pub struct Medicine {
 }
 
 #[command]
-pub async fn initialize_db(db: State<'_, DbState>) -> Result<String, String> {
-    let _medicine_collection: Collection<Document> = db.db.collection("medicines");
-    Ok("Medicines collection ready.".to_string())
-}
-
-#[command]
-pub async fn get_medicine() -> Result<Vec<Medicine>, String> {
-    let db = get_db_connection().await;
-    let collection: Collection<Medicine> = db.collection("medicines");
-
-    let cursor = collection.find(None, None).await.map_err(|e| e.to_string())?;
-    let medicines: Vec<Medicine> = cursor.try_collect().await.map_err(|e| e.to_string())?;
-
-    Ok(medicines)
-}
-// Insert Medicine Function
-
-// Helper Function to Validate Date Format
-fn validate_date_format(date: &str) -> bool {
-    let re = Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap(); // Matches YYYY-MM-DD
-    re.is_match(date)
-}
-
-// Insert Medicine Function
-#[command]
 pub async fn insert_medicine(
     name: String,
     batch_number: String,
@@ -61,40 +72,25 @@ pub async fn insert_medicine(
     selling_price: f64,
     wholesaler_name: String,
     purchase_date: String,
+    hospital_id: String,
 ) -> Result<String, String> {
-    // Validate Mandatory Fields
-    if name.trim().is_empty() {
-        return Err("Medicine name is required.".to_string());
-    }
-    if batch_number.trim().is_empty() {
-        return Err("Batch number is required.".to_string());
-    }
-    if expiry_date.trim().is_empty() || !validate_date_format(&expiry_date) {
-        return Err("Valid expiry date (YYYY-MM-DD) is required.".to_string());
-    }
-    if quantity == 0 {
-        return Err("Quantity must be greater than 0.".to_string());
-    }
-    if purchase_price <= 0.0 {
-        return Err("Purchase price must be greater than 0.".to_string());
-    }
-    if selling_price <= 0.0 {
-        return Err("Selling price must be greater than 0.".to_string());
-    }
-    if wholesaler_name.trim().is_empty() {
-        return Err("Wholesaler name is required.".to_string());
-    }
-    if purchase_date.trim().is_empty() || !validate_date_format(&purchase_date) {
-        return Err("Valid purchase date (YYYY-MM-DD) is required.".to_string());
-    }
-
-    // Establish Database Connection
+    println!("1");
     let db = get_db_connection().await;
     let collection: Collection<Medicine> = db.collection("medicines");
 
-    // Create a New Medicine Instance
+    // let initial_batch = Batch {
+    //     batch_number,
+    //     expiry_date,
+    //     quantity,
+    //     purchase_price,
+    //     selling_price,
+    //     wholesaler_name,
+    //     purchase_date,
+    // };
+
     let new_medicine = Medicine {
         id: None,
+        user_id: hospital_id,
         name,
         batch_number,
         expiry_date,
@@ -105,110 +101,155 @@ pub async fn insert_medicine(
         purchase_date,
     };
 
-    // Insert the Document into the Collection
-    collection
-        .insert_one(new_medicine, None)
-        .await
-        .map_err(|e| e.to_string())?;
-
+    collection.insert_one(new_medicine, None).await.map_err(|e| e.to_string())?;
     Ok("Medicine inserted successfully.".to_string())
 }
 
+// #[command]
+// pub async fn add_batch(
+//     medicine_id: String,
+//     batch_number: String,
+//     expiry_date: String,
+//     quantity: u32,
+//     purchase_price: f64,
+//     selling_price: f64,
+//     wholesaler_name: String,
+//     purchase_date: String,
+//     hospital_id: String,
+// ) -> Result<String, String> {
+//     println!("2");
+//     // let user_id = get_user_id(session.user_id.clone()).await?;
+//     let db = get_db_connection().await;
+//     let collection: Collection<Medicine> = db.collection("medicines");
+
+//     let filter = doc! {
+//         "_id": ObjectId::parse_str(&medicine_id).map_err(|_| "Invalid medicine ID".to_string())?,
+//         "user_id": hospital_id,
+//     };
+
+//     let new_batch = Batch {
+//         batch_number,
+//         expiry_date,
+//         quantity,
+//         purchase_price,
+//         selling_price,
+//         wholesaler_name,
+//         purchase_date,
+//     };
+
+//     let new_batch_bson = to_bson(&new_batch).map_err(|e| e.to_string())?; // Convert the Batch struct to Bson
+
+// let update = doc! {
+//     "$push": { "batches": new_batch_bson } // Add the new batch to the batches array
+// };
+
+//     collection.update_one(filter, update, None).await.map_err(|e| e.to_string())?;
+//     Ok("Batch added successfully.".to_string())
+// }
 
 #[command]
-pub async fn update_medicine(
-    id: String,
-    name: String,
+pub async fn update_batch(
+    medicine_id: String,
     batch_number: String,
-    expiry_date: String,
-    quantity: u32,
-    purchase_price: f64,
-    selling_price: f64,
-    wholesaler_name: String,
-    purchase_date: String,
+    quantity: Option<u32>,
+    expiry_date: Option<String>,
+    purchase_price: Option<f64>,
+    selling_price: Option<f64>,
+    wholesaler_name: Option<String>,
+    purchase_date: Option<String>,
+    hospital_id: String,
 ) -> Result<String, String> {
+    // let user_id = get_user_id(session.user_id.clone()).await?;
     let db = get_db_connection().await;
     let collection: Collection<Medicine> = db.collection("medicines");
 
-    // Convert id to ObjectId for MongoDB filter
-    let object_id = ObjectId::parse_str(&id).map_err(|e| e.to_string())?;
-    let filter = doc! { "_id": object_id };
-
-    let update = doc! {
-        "$set": {
-            "name": name,
-            "batch_number": batch_number,
-            "expiry_date": expiry_date,
-            "quantity": quantity,
-            "purchase_price": purchase_price,
-            "selling_price": selling_price,
-            "wholesaler_name": wholesaler_name,
-            "purchase_date": purchase_date
-        }
+    let filter = doc! {
+        "_id": ObjectId::parse_str(&medicine_id).map_err(|_| "Invalid medicine ID".to_string())?,
+        "user_id": hospital_id,
+        "batch_number": batch_number.clone(),
     };
 
-    collection.update_one(filter, update, None)
-        .await
-        .map_err(|e| e.to_string())?;
+    let mut update_doc = doc! {};
+    if let Some(qty) = quantity {
+        update_doc.insert("quantity", qty);
+    }
+    if let Some(pp) = purchase_price {
+        update_doc.insert("purchase_price", pp);
+    }
+    if let Some(sp) = selling_price {
+        update_doc.insert("selling_price", sp);
+    }
 
-    Ok("Medicine updated successfully.".to_string())
+    if update_doc.is_empty() {
+        return Err("No fields to update.".to_string());
+    }
+
+    let update = doc! { "$set": update_doc };
+
+    collection.update_one(filter, update, None).await.map_err(|e| e.to_string())?;
+    Ok("Batch updated successfully.".to_string())
 }
 
 #[command]
-pub async fn delete_medicine(id: String) -> Result<String, String> {
+pub async fn delete_batch(
+    medicine_id: String,
+    batch_number: String, // Specify the batch to delete
+    hospital_id: String,
+) -> Result<String, String> {
+    // let user_id = get_user_id(session.user_id.clone()).await?;
     let db = get_db_connection().await;
     let collection: Collection<Medicine> = db.collection("medicines");
 
-    // Convert id to ObjectId for MongoDB filter
-    let object_id = ObjectId::parse_str(&id).map_err(|e| e.to_string())?;
-    collection.delete_one(doc! { "_id": object_id }, None)
-        .await
-        .map_err(|e| e.to_string())?;
+    // Filter to find the medicine by ID and user ID
+    let filter = doc! {
+        "_id": ObjectId::parse_str(&medicine_id).map_err(|_| "Invalid medicine ID".to_string())?,
+        "user_id": hospital_id,
+    };
 
-    Ok("Medicine deleted successfully.".to_string())
-}
+    // Update to pull the specific batch from the batches array
+    let update = doc! {
+        "$pull": { "batches": { "batch_number": batch_number } }
+    };
 
-#[derive(Serialize, Deserialize)]
-pub struct MedicineInfo {
-    pub name: String,
-    pub selling_price: Option<f64>, // Optional in case some documents lack this field
+    // Apply the update
+    let result = collection.update_one(filter, update, None).await.map_err(|e| e.to_string())?;
+
+    // If no batches remain, delete the entire medicine document
+    if result.matched_count > 0 {
+        let remaining_batches_filter = doc! {
+            "_id": ObjectId::parse_str(&medicine_id).unwrap(),
+            "batches": { "$size": 0 }
+        };
+
+        collection.delete_one(remaining_batches_filter, None).await.map_err(|e| e.to_string())?;
+    }
+
+    Ok("Batch deleted successfully.".to_string())
 }
 
 #[command]
 pub async fn search_medicines(
     query: String,
-    page: u32,
-    limit: u32,
-    db: State<'_, DbState>,
-) -> Result<Vec<MedicineInfo>, String> {
-    let medicine_collection: Collection<Document> = db.db.collection("medicines");
-    let skip = (page - 1) * limit;
+    hospital_id: String,
+) -> Result<Vec<Medicine>, String> {
+    // let user_id = get_user_id(session.user_id.clone()).await?;
+    let db = get_db_connection().await;
+    let collection: Collection<Medicine> = db.collection("medicines");
+    let filter = doc! {
+        "user_id": hospital_id,
+        "name": { "$regex": &query, "$options": "i" }, // Case-insensitive search
+    };
 
-    let filter = doc! { "name": { "$regex": query.clone(), "$options": "i" } };
-    let options = FindOptions::builder()
-        .limit(limit as i64)
-        .skip(skip as u64)
-        .build();
+    let mut cursor = collection.find(filter, None).await.map_err(|e| e.to_string())?;
+    let mut medicines = Vec::new();
 
-    let mut cursor = medicine_collection
-        .find(filter, options)
-        .await
-        .map_err(|e| format!("Database error: {}", e))?;
-
-    let mut medicines: Vec<MedicineInfo> = Vec::new();
-
-    while let Some(result) = cursor.next().await {
-        match result {
-            Ok(doc) => match bson::from_document::<MedicineInfo>(doc.clone()) {
-                Ok(medicine) => medicines.push(medicine),
-                Err(_) => println!("Failed to deserialize document: {:?}", doc),
-            },
-            Err(e) => return Err(format!("Error retrieving medicine: {}", e)),
-        }
+    while let Some(doc) = cursor.try_next().await.map_err(|e| e.to_string())? {
+        println!("Fetched document: {:?}", doc); // Log the document
+        medicines.push(doc);
     }
-
     Ok(medicines)
 }
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MedicineDetail {
