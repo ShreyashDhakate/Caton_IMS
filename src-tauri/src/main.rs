@@ -6,7 +6,7 @@ mod model;
 mod commands;
 use crate::db::init_db;
 use crate::cmd::{SessionState, login, signup, logout, is_logged_in};
-use commands::{initialize_db, insert_medicine, get_medicine, update_medicine, delete_medicine, search_medicines,save_appointment,get_all_appointments};
+use commands::{initialize_db, insert_medicine, update_batch, delete_batch, search_medicines,save_appointment,get_all_appointments};
 
 use std::env;
 use tauri::{Builder, generate_handler};
@@ -27,9 +27,8 @@ fn main() {
         .invoke_handler(generate_handler![
             initialize_db,
             insert_medicine,
-            get_medicine,
-            update_medicine,
-            delete_medicine,
+            update_batch,
+            delete_batch,
             search_medicines,
             signup,
             login,
