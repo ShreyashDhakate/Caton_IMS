@@ -23,6 +23,7 @@ const SignupPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
   const [address, setAddress] = useState("");
+  const [hospital, setHospital] = useState("");
   const [passwordDoc, setPasswordDoc] = useState("");
   const [passwordDocConfirm, setPasswordDocConfirm] = useState("");
   const [passwordPharma, setPasswordPharma] = useState("");
@@ -65,7 +66,7 @@ const SignupPage: React.FC = () => {
       toast.error("Please fill out all fields.");
       return;
     }
-
+    
     if (
       passwordDoc !== passwordDocConfirm ||
       passwordPharma !== passwordPharmaConfirm
@@ -80,6 +81,7 @@ const SignupPage: React.FC = () => {
         name,
         email,
         mobile,
+        hospital,
         address,
         passwordDoc,
         passwordPharma,
@@ -243,6 +245,15 @@ const SignupPage: React.FC = () => {
                   Step 3: Personal Details
                 </Typography>
                 <Grid container spacing={2}>
+                <Grid item xs={12}>
+                    <TextField
+                      variant="outlined"
+                      label="Pharmacy/Hospital Name"
+                      fullWidth
+                      value={hospital}
+                      onChange={(e) => setHospital(e.target.value)}
+                    />
+                  </Grid>
                   <Grid item xs={12}>
                     <TextField
                       variant="outlined"

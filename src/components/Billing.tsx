@@ -11,12 +11,14 @@ export type MedicineInfo = {
 };
 
 interface BillingProps {
-  hospitalName: string;
-  hospitalAddress: string;
-  hospitalPhone: string;
+  precautions: string;
+  disease: string;
 }
 
-const Billing = ({ hospitalName, hospitalAddress, hospitalPhone }: BillingProps) => {
+const Billing = ({
+  precautions,
+  disease,
+}: BillingProps) => {
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState<MedicineInfo[]>([]);
   const [selectedMedicines, setSelectedMedicines] = useState<{
@@ -25,65 +27,78 @@ const Billing = ({ hospitalName, hospitalAddress, hospitalPhone }: BillingProps)
   }[]>([]);
   const [customerName, setCustomerName] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
-  const [billingId] = useState(Math.floor(Math.random() * 100000)); // Generate random billing ID
+  const [billingId] = useState(Math.floor(Math.random() * 100000));
 
-  // Effect to trigger search on query change
+
+
+  const  hospitalName: string  = localStorage.getItem('hospital') ?? "";
+  console.log(hospitalName);
+  const  hospitalPhone: string  = localStorage.getItem('phone') ?? "";
+  const  hospitalAddress: string  = localStorage.getItem('address') ?? "";
   useEffect(() => {
     const handleSearch = async () => {
       if (query) {
         const results = await searchMedicines(query);
         setSearchResults(results);
       } else {
-        setSearchResults([]); // Clear results if query is empty
+        setSearchResults([]);
       }
     };
 
-    const debouncedSearch = debounce(handleSearch, 300); // Delay of 300ms
+    const debouncedSearch = debounce(handleSearch, 300);
     debouncedSearch();
 
     return () => {
-      debouncedSearch.cancel(); // Cleanup the debounce on unmount
+      debouncedSearch.cancel();
     };
   }, [query]);
 
-  // Function to add medicine to the billing list
   const addMedicineToBilling = (medicine: MedicineInfo) => {
-    const existing = selectedMedicines.find(item => item.medicine.name === medicine.name);
+    const existing = selectedMedicines.find(
+      (item) => item.medicine.name === medicine.name
+    );
     if (existing) {
-      existing.quantity += 1; // Increase quantity if already added
+      existing.quantity += 1;
       setSelectedMedicines([...selectedMedicines]);
     } else {
-      setSelectedMedicines([...selectedMedicines, { medicine, quantity: 1 }]);
+      setSelectedMedicines([
+        ...selectedMedicines,
+        { medicine, quantity: 1 },
+      ]);
       toast.success('Medicine added for billing!');
     }
-    setSearchResults([]); // Clear search results after selection
-    setQuery(''); // Clear the input after selection
+    setSearchResults([]);
+    setQuery('');
   };
 
-  // Function to handle confirm purchase
   const handleConfirmPurchase = () => {
-    // Check if required fields are missing (customer name or medicines)
-    if (!selectedMedicines.length) {
-      toast.error('At least one medicine must be selected!');
-      return;
-    }
     if (!customerName) {
       toast.error('Customer name is required!');
       return;
     }
 
-    // If everything is valid, open the confirmation dialog
     setOpenDialog(true);
   };
 
   const handleCloseDialog = () => {
-    setOpenDialog(false); // Close the dialog
+    setOpenDialog(false);
   };
 
   const handlePrintBill = () => {
-    // Proceed with printing the bill after confirmation
-    printBill(selectedMedicines, customerName, billingId); // Pass selected medicines, customer name, and billing ID
-    setOpenDialog(false); // Close the dialog after printing
+    const today = new Date();
+    const billingDate = today.toLocaleDateString('en-US');
+    printBill(
+      selectedMedicines,
+      customerName,
+      billingId,
+      billingDate,
+      disease,
+      precautions,
+      hospitalName,
+      hospitalAddress,
+      hospitalPhone
+    );
+    setOpenDialog(false);
   };
 
   return (
@@ -91,7 +106,7 @@ const Billing = ({ hospitalName, hospitalAddress, hospitalPhone }: BillingProps)
       <div className="font-bold text-2xl">{hospitalName}</div>
       <div className="text-sm text-gray-600">{hospitalAddress}</div>
       <div className="text-sm text-gray-600">{hospitalPhone}</div>
-      
+
       <div className="mb-4 mt-5">
         <input
           type="text"
@@ -100,7 +115,6 @@ const Billing = ({ hospitalName, hospitalAddress, hospitalPhone }: BillingProps)
           onChange={(e) => setQuery(e.target.value)}
           className="border border-gray-300 rounded p-2 w-full text-sm"
         />
-        {/* Suggestions List */}
         {searchResults.length > 0 && (
           <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded mt-1">
             {searchResults.map((medicine, index) => (
@@ -110,14 +124,13 @@ const Billing = ({ hospitalName, hospitalAddress, hospitalPhone }: BillingProps)
                 onClick={() => addMedicineToBilling(medicine)}
               >
                 <div className="font-bold">{medicine.name}</div>
-                <div>${medicine.selling_price.toFixed(2)}</div>
+                <div>₹{medicine.selling_price.toFixed(2)}</div>
               </li>
             ))}
           </ul>
         )}
       </div>
 
-      {/* Customer Details Section */}
       <div className="flex mt-[2rem] justify-between mb-4">
         <input
           type="text"
@@ -128,23 +141,20 @@ const Billing = ({ hospitalName, hospitalAddress, hospitalPhone }: BillingProps)
         />
       </div>
 
-      {/* Pass selectedMedicines to BillingSummary */}
       <BillingSummary
         selectedMedicines={selectedMedicines}
         setSelectedMedicines={setSelectedMedicines}
       />
 
-      {/* Total Cost and Confirm Purchase Button Section */}
       <div className="flex items-center justify-center mt-4">
         <button
-          onClick={handleConfirmPurchase} // Trigger validation and dialog opening
+          onClick={handleConfirmPurchase}
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
           Confirm Purchase
         </button>
       </div>
 
-      {/* Confirmation Dialog for Print Bill */}
       {openDialog && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
           <div className="bg-white rounded p-4">
@@ -153,15 +163,15 @@ const Billing = ({ hospitalName, hospitalAddress, hospitalPhone }: BillingProps)
             <div className="flex justify-end mt-4">
               <button
                 onClick={handleCloseDialog}
-                className="mr-2 bg-gray-200 px-4 py-2 rounded"
+                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 mr-2"
               >
                 Cancel
               </button>
               <button
                 onClick={handlePrintBill}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
               >
-                Print Bill
+                Yes, Print
               </button>
             </div>
           </div>

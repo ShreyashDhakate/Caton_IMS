@@ -14,6 +14,15 @@ import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
 import { useAuth } from "../context/AuthContext";
 
+interface LoginResponse {
+  userId: string;
+  hospital: string;
+  address:string;
+  phone:string;
+  // Add other fields if needed
+}
+
+
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -23,14 +32,25 @@ const LoginPage: React.FC = () => {
 
   const handleLogin = async () => {
     try {
-      const userId = await invoke<string>("login", {
+      const rawResponse = await invoke<string>("login", {
         username,
         password,
         role,
       });
       login(); // Update auth context
-      localStorage.setItem("userId", userId);
-      localStorage.setItem("role", role);
+      
+      console.log("Raw Response (string):",rawResponse);
+    console.log("Type of response:", typeof rawResponse);
+    const response: LoginResponse = JSON.parse(rawResponse);
+
+    console.log("Parsed Response (object):", response);
+    console.log("Hospital:", response.hospital);
+
+    localStorage.setItem("userId", response.userId);
+    localStorage.setItem("hospital", response.hospital);
+    localStorage.setItem("phone", response.phone);
+    localStorage.setItem("address", response.address);
+    localStorage.setItem("role", role);
       toast.success("You are successfully logged in!");
       navigate("/"); // Redirect to homepage
     } catch (error) {

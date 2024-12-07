@@ -10,6 +10,7 @@ pub struct User {
     pub username: String,
     pub name:String,
     pub mobile:String,
+    pub hospital:String,
     pub address:String,
     pub password_hash_doc: String,
     pub password_hash_pharma: String,
