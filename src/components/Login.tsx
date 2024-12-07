@@ -70,7 +70,7 @@ const LoginPage: React.FC = () => {
               <ToggleButtonGroup
                 value={role}
                 exclusive
-                onChange={(event, newRole) => newRole && setRole(newRole)}
+                onChange={(_event, newRole) => newRole && setRole(newRole)}
                 aria-label="Role selection"
               >
                 <ToggleButton value="Doctor" aria-label="Doctor" color="primary">
