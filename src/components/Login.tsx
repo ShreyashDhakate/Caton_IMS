@@ -1,66 +1,90 @@
-import React, { useState } from 'react';
-import { Button, TextField, Typography, Container, Paper, Grid } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { invoke } from '@tauri-apps/api/core';
-import { useAuth } from '../context/AuthContext'; // Import the useAuth hook
+import React, { useState } from "react";
+import {
+  Button,
+  TextField,
+  Typography,
+  Container,
+  Paper,
+  Grid,
+  ToggleButton,
+  ToggleButtonGroup,
+} from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { invoke } from "@tauri-apps/api/core";
+import { useAuth } from "../context/AuthContext";
+
+interface LoginResponse {
+  userId: string;
+  hospital: string;
+  address:string;
+  phone:string;
+  // Add other fields if needed
+}
+
 
 const LoginPage: React.FC = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [email, setEmail] = useState(''); // For signup functionality
-  const [isSignup, setIsSignup] = useState(false); // Toggle between login and signup
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"Doctor" | "Pharmacist">("Doctor");
   const navigate = useNavigate();
-  const { login } = useAuth(); // Get the login function from context
+  const { login } = useAuth(); // Use the login context
 
   const handleLogin = async () => {
     try {
-      // Call Tauri backend login command
-      await invoke('login', { username, password });
-      login(); // Update auth context on successful login
-      toast.success('You are successfully logged in!');
-      navigate('/welcome'); // Navigate to the welcome page
-    } catch (error) {
-      toast.error('Invalid username or password');
-    }
-  };
+      const rawResponse = await invoke<string>("login", {
+        username,
+        password,
+        role,
+      });
+      login(); // Update auth context
+      
+      console.log("Raw Response (string):",rawResponse);
+    console.log("Type of response:", typeof rawResponse);
+    const response: LoginResponse = JSON.parse(rawResponse);
 
-  const handleSignup = async () => {
-    try {
-      // Call Tauri backend signup command
-      await invoke('signup', { username, password, email });
-      toast.success('Account created successfully! You can now log in.');
-      setIsSignup(false); // Switch back to login mode
-    } catch (error) {
-      toast.error('Signup failed: ' + error);
-    }
-  };
+    console.log("Parsed Response (object):", response);
+    console.log("Hospital:", response.hospital);
 
-  const handleSubmit = () => {
-    if (isSignup) {
-      handleSignup();
-    } else {
-      handleLogin();
+    localStorage.setItem("userId", response.userId);
+    localStorage.setItem("hospital", response.hospital);
+    localStorage.setItem("phone", response.phone);
+    localStorage.setItem("address", response.address);
+    localStorage.setItem("role", role);
+      toast.success("You are successfully logged in!");
+      navigate("/"); // Redirect to homepage
+    } catch (error) {
+      toast.error("Invalid username or password.");
     }
   };
 
   return (
-    <Container component="main" maxWidth="xs" className='animate-fade-in'>
-      <Paper elevation={3} style={{ padding: '20px', marginTop: '100px' }}>
-        <Typography variant="h5" align="center">{isSignup ? 'Sign Up' : 'Login'}</Typography>
+    <Container component="main" maxWidth="xs" className="animate-fade-in">
+      <Paper elevation={3} style={{ padding: "20px", marginTop: "100px" }}>
+        <Typography variant="h5" align="center">
+          Login
+        </Typography>
         <form noValidate>
           <Grid container spacing={2}>
-            {isSignup && (
-              <Grid item xs={12}>
-                <TextField
-                  variant="outlined"
-                  label="Email"
-                  fullWidth
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </Grid>
-            )}
+            <Grid item xs={12} style={{ textAlign: "center" }}>
+              <ToggleButtonGroup
+                value={role}
+                exclusive
+                onChange={(_event, newRole) => newRole && setRole(newRole)}
+                aria-label="Role selection"
+              >
+                <ToggleButton value="Doctor" aria-label="Doctor" color="primary">
+                  Doctor
+                </ToggleButton>
+                <ToggleButton
+                  value="Pharmacist"
+                  aria-label="Pharmacist"
+                  color="primary"
+                >
+                  Pharmacist
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Grid>
             <Grid item xs={12}>
               <TextField
                 variant="outlined"
@@ -81,23 +105,24 @@ const LoginPage: React.FC = () => {
               />
             </Grid>
             <Grid item xs={12}>
-              <Button variant="contained" color="primary" fullWidth onClick={handleSubmit}>
-                {isSignup ? 'Sign Up' : 'Login'}
+              <Button
+                variant="contained"
+                color="primary"
+                fullWidth
+                onClick={handleLogin}
+              >
+                Login
               </Button>
             </Grid>
             <Grid item xs={12}>
               <Typography variant="body2" align="center">
-                {isSignup ? (
-                  <>
-                    Already have an account?{' '}
-                    <Button color="primary" onClick={() => setIsSignup(false)}>Login here</Button>
-                  </>
-                ) : (
-                  <>
-                    Don't have an account?{' '}
-                    <Button color="primary" onClick={() => setIsSignup(true)}>Sign up here</Button>
-                  </>
-                )}
+                Don't have an account?{" "}
+                <Button
+                  color="primary"
+                  onClick={() => navigate("/signup")}
+                >
+                  Sign up here
+                </Button>
               </Typography>
             </Grid>
           </Grid>
