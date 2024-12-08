@@ -1,0 +1,149 @@
+[
+    {
+      "id": 1,
+      "wholesalerName": "Wholesaler A",
+      "purchaseDate": "2024-11-20",
+      "medicines": [
+        {
+          "id": 101,
+          "name": "Paracetamol",
+          "batchNumber": "B001",
+          "expiryDate": "2025-05-15",
+          "quantity": 200,
+          "purchasePrice": 10,
+          "sellingPrice": 15
+        },
+        {
+          "id": 102,
+          "name": "Ibuprofen",
+          "batchNumber": "B002",
+          "expiryDate": "2025-07-20",
+          "quantity": 150,
+          "purchasePrice": 12,
+          "sellingPrice": 18
+        },
+        {
+          "id": 103,
+          "name": "Cetirizine",
+          "batchNumber": "B003",
+          "expiryDate": "2026-01-05",
+          "quantity": 120,
+          "purchasePrice": 5,
+          "sellingPrice": 8
+        },
+        {
+          "id": 104,
+          "name": "Metformin",
+          "batchNumber": "B004",
+          "expiryDate": "2025-12-25",
+          "quantity": 180,
+          "purchasePrice": 15,
+          "sellingPrice": 22
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "wholesalerName": "Wholesaler B",
+      "purchaseDate": "2024-11-15",
+      "medicines": [
+        {
+          "id": 201,
+          "name": "Aspirin",
+          "batchNumber": "B010",
+          "expiryDate": "2025-06-10",
+          "quantity": 300,
+          "purchasePrice": 8,
+          "sellingPrice": 12
+        },
+        {
+          "id": 202,
+          "name": "Amoxicillin",
+          "batchNumber": "B011",
+          "expiryDate": "2025-09-30",
+          "quantity": 100,
+          "purchasePrice": 20,
+          "sellingPrice": 30
+        },
+        {
+          "id": 203,
+          "name": "Ciprofloxacin",
+          "batchNumber": "B012",
+          "expiryDate": "2026-03-10",
+          "quantity": 250,
+          "purchasePrice": 18,
+          "sellingPrice": 25
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "wholesalerName": "Wholesaler C",
+      "purchaseDate": "2024-11-10",
+      "medicines": [
+        {
+          "id": 301,
+          "name": "Atorvastatin",
+          "batchNumber": "B020",
+          "expiryDate": "2025-08-01",
+          "quantity": 120,
+          "purchasePrice": 25,
+          "sellingPrice": 40
+        },
+        {
+          "id": 302,
+          "name": "Azithromycin",
+          "batchNumber": "B021",
+          "expiryDate": "2025-10-15",
+          "quantity": 200,
+          "purchasePrice": 15,
+          "sellingPrice": 22
+        },
+        {
+          "id": 303,
+          "name": "Pantoprazole",
+          "batchNumber": "B022",
+          "expiryDate": "2026-01-20",
+          "quantity": 150,
+          "purchasePrice": 12,
+          "sellingPrice": 18
+        }
+      ]
+    },
+    
+    {
+      "id": 26,
+      "wholesalerName": "Wholesaler Z",
+      "purchaseDate": "2024-10-01",
+      "medicines": [
+        {
+          "id": 2601,
+          "name": "Furosemide",
+          "batchNumber": "B300",
+          "expiryDate": "2025-09-12",
+          "quantity": 150,
+          "purchasePrice": 10,
+          "sellingPrice": 18
+        },
+        {
+          "id": 2602,
+          "name": "Doxycycline",
+          "batchNumber": "B301",
+          "expiryDate": "2025-11-18",
+          "quantity": 180,
+          "purchasePrice": 12,
+          "sellingPrice": 22
+        },
+        {
+          "id": 2603,
+          "name": "Clopidogrel",
+          "batchNumber": "B302",
+          "expiryDate": "2026-02-28",
+          "quantity": 220,
+          "purchasePrice": 15,
+          "sellingPrice": 25
+        }
+      ]
+    }
+  ]
+  
