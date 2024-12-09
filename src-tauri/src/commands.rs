@@ -137,6 +137,10 @@ pub async fn delete_medicine(medicine_id: &str, hospital_id: &str) -> Result<Str
         Err("No matching medicine found.".to_string())
     }
 }
+
+
+
+
 #[command]
 pub async fn update_stock(
     medicine_id: String,
@@ -158,12 +162,17 @@ pub async fn update_stock(
     println!("Filter: {:?}", filter);
 
     // Check if the document exists
-    if let Ok(Some(_)) = collection.find_one(filter.clone(), None).await {
-        // Document exists, proceed with the update
-    } else {
+    let existing_doc = collection.find_one(filter.clone(), None).await.map_err(|e| {
+        println!("Error finding document: {:?}", e);
+        "Error finding document.".to_string()
+    })?;
+    println!("Existing Document: {:?}", existing_doc);
+
+    if existing_doc.is_none() {
         return Err("No matching document found.".to_string());
+    } else {
+        println!("Found document, proceeding with update.");
     }
-    
 
     // Construct the update document
     let mut update_doc = doc! {};
@@ -173,6 +182,7 @@ pub async fn update_stock(
     if let Some(pp) = purchase_price {
         update_doc.insert("purchase_price", pp);
     }
+    println!("Selling price: {:?}", selling_price);  // Log selling price
     if let Some(sp) = selling_price {
         update_doc.insert("selling_price", sp);
     }
@@ -188,15 +198,28 @@ pub async fn update_stock(
         return Err("No fields to update.".to_string());
     }
 
-    // Perform update
+    // Perform the update
     let update = doc! { "$set": update_doc };
     let result = collection.update_one(filter, update, None).await;
-    println!("Update Result: {:?}", result);
 
-    result.map_err(|e| e.to_string())?;
+    match result {
+        Ok(res) => {
+            println!("Matched Count: {}", res.matched_count);
+            println!("Modified Count: {}", res.modified_count);
+
+            if res.modified_count == 0 {
+                return Err("No changes were made (value may be the same).".to_string());
+            }
+        },
+        Err(e) => {
+            println!("Error during update: {:?}", e);
+            return Err("Error during update.".to_string());
+        }
+    }
 
     Ok("Stock updated successfully.".to_string())
 }
+
 
 
 #[command]

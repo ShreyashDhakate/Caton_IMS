@@ -81,10 +81,11 @@ const StockManager: React.FC = () => {
   const handleRemoveStock = async () => {
     if (selectedWholesaler && medicineToRemove !== null) {
       try {
-        await invoke("remove_medicine", {
-          wholesalerId: selectedWholesaler.id,
+        const result = await invoke("delete_medicine", {
+          hospitalId: selectedWholesaler.id,
           medicineId: medicineToRemove,
         });
+        console.log(result);
         updateWholesalerState();
         setOpenDialog(false);
       } catch (error) {
