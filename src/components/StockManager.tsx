@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import stockData from "./stocks.json";
+import React, { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogActions,
@@ -10,9 +11,8 @@ import {
   Button,
 } from "@mui/material";
 
-// Define types for stock data
 interface Medicine {
-  id: number;
+  id: string;
   name: string;
   batchNumber: string;
   expiryDate: string;
@@ -22,96 +22,147 @@ interface Medicine {
 }
 
 interface Wholesaler {
-  id: number;
+  id: string;
   wholesalerName: string;
   purchaseDate: string;
   medicines: Medicine[];
 }
 
 const StockManager: React.FC = () => {
-  const [wholesalers, setWholesalers] = useState<Wholesaler[]>(stockData as Wholesaler[]);
-  const [selectedWholesaler, setSelectedWholesaler] = useState<Wholesaler | null>(null);
+  const [wholesalers, setWholesalers] = useState<Wholesaler[]>([]);
+  const [selectedWholesaler, setSelectedWholesaler] =
+    useState<Wholesaler | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
-  const [openDeletePurchaseDialog, setOpenDeletePurchaseDialog] = useState(false);
-  const [medicineToRemove, setMedicineToRemove] = useState<number | null>(null);
+  const [openDeletePurchaseDialog, setOpenDeletePurchaseDialog] =
+    useState(false);
+  const [medicineToRemove, setMedicineToRemove] = useState<string | null>(null);
   const [medicineToEdit, setMedicineToEdit] = useState<Medicine | null>(null);
 
-  const handleViewStock = (id: number) => {
-    setSelectedWholesaler(wholesalers.find((item) => item.id === id) || null);
+  const hospitalId = localStorage.getItem("userId");
+
+  useEffect(() => {
+    const fetchWholesalers = async () => {
+      try {
+        if (!hospitalId) throw new Error("Invalid hospital ID");
+        const rawResult = await invoke("get_stock", { hospitalId });
+        console.log(rawResult);
+        const wholesalers: Wholesaler[] = Array.isArray(rawResult)
+  ? rawResult.map((wholesaler) => ({
+      id: wholesaler.wholesaler_id,
+      wholesalerName: wholesaler.wholesaler_name,
+      purchaseDate: wholesaler.purchase_date,
+      medicines: wholesaler.medicines.map((med: any) => ({
+        id: med._id.$oid,
+        name: med.name,
+        batchNumber: med.batch_number,
+        expiryDate: med.expiry_date,
+        quantity: med.quantity,
+        purchasePrice: med.purchase_price,
+        sellingPrice: med.selling_price,
+      })),
+    }))
+  : [];
+
+        console.log(wholesalers);
+        setWholesalers(
+          wholesalers.sort((a, b) =>
+            a.wholesalerName.localeCompare(b.wholesalerName)
+          )
+        );
+      } catch (error) {
+        console.error("Error fetching stock:", error);
+      }
+    };
+
+    fetchWholesalers();
+  }, [hospitalId]);
+
+  const handleRemoveStock = async () => {
+    if (selectedWholesaler && medicineToRemove !== null) {
+      try {
+        await invoke("remove_medicine", {
+          wholesalerId: selectedWholesaler.id,
+          medicineId: medicineToRemove,
+        });
+        updateWholesalerState();
+        setOpenDialog(false);
+      } catch (error) {
+        console.error("Error removing stock:", error);
+      }
+    }
   };
 
-  const handleRemoveStock = (medicineId: number) => {
-    setMedicineToRemove(medicineId);
-    setOpenDialog(true);
+  const handleEditStock = async () => {
+    console.log(medicineToEdit?.id);
+    if (!medicineToEdit || !medicineToEdit.id) {
+      console.error("Invalid medicine ID");
+      return;
+    }
+  
+  
+    if (selectedWholesaler) {
+      console.log("Medicine to edit:", medicineToEdit);
+      console.log("Updating stock with:", {
+        hospitalId,
+        medicineId: medicineToEdit?.id,
+        quantity: medicineToEdit?.quantity,
+        purchase_price: medicineToEdit?.purchasePrice,
+        selling_price: medicineToEdit?.sellingPrice,
+        batch_number: medicineToEdit?.batchNumber,
+        expiry_date: medicineToEdit?.expiryDate,
+      });
+      
+      try {
+        await invoke("update_stock", {
+          hospitalId,
+          medicineId: medicineToEdit.id,
+          quantity: medicineToEdit.quantity,
+          purchase_price: medicineToEdit.purchasePrice,
+          selling_price: medicineToEdit.sellingPrice,
+          batch_number: medicineToEdit.batchNumber,
+          expiry_date: medicineToEdit.expiryDate,
+        });
+        updateWholesalerState();
+        setOpenEditDialog(false);
+        toast.success("Edited Medicine Successfully!");
+      } catch (error) {
+        console.error("Error editing stock:", error);
+      }
+    }
+  };
+  
+  
+
+  const handleDeletePurchase = async () => {
+    if (selectedWholesaler) {
+      try {
+        await invoke("delete_purchase", {
+          wholesalerId: selectedWholesaler.id,
+        });
+        setWholesalers((prev) =>
+          prev.filter((w) => w.id !== selectedWholesaler.id)
+        );
+        setSelectedWholesaler(null);
+        setOpenDeletePurchaseDialog(false);
+      } catch (error) {
+        console.error("Error deleting purchase:", error);
+      }
+    }
   };
 
-  const confirmRemoveStock = () => {
-    if (!selectedWholesaler || medicineToRemove === null) return;
-    const updatedMedicines = selectedWholesaler.medicines.filter(
-      (medicine) => medicine.id !== medicineToRemove
+  const updateWholesalerState = (updatedMedicines?: Medicine[]) => {
+    setSelectedWholesaler((prev) =>
+      prev ? { ...prev, medicines: updatedMedicines || prev.medicines } : null
     );
-    updateWholesalerState(updatedMedicines);
-    setOpenDialog(false);
-  };
-
-  const handleEditStock = (medicine: Medicine) => {
-    setMedicineToEdit({ ...medicine });
-    setOpenEditDialog(true);
-  };
-
-  const confirmEditStock = () => {
-    if (!selectedWholesaler || !medicineToEdit) return;
-    const updatedMedicines = selectedWholesaler.medicines.map((medicine) =>
-      medicine.id === medicineToEdit.id ? medicineToEdit : medicine
-    );
-    updateWholesalerState(updatedMedicines);
-    setOpenEditDialog(false);
-  };
-
-  const handleDeletePurchase = () => setOpenDeletePurchaseDialog(true);
-
-  const confirmDeletePurchase = () => {
-    if (!selectedWholesaler) return;
-    setWholesalers((prev) => prev.filter((wholesaler) => wholesaler.id !== selectedWholesaler.id));
-    setSelectedWholesaler(null);
-    setOpenDeletePurchaseDialog(false);
-  };
-
-  const updateWholesalerState = (updatedMedicines: Medicine[]) => {
-    setSelectedWholesaler((prev) => (prev ? { ...prev, medicines: updatedMedicines } : null));
     setWholesalers((prev) =>
       prev.map((wholesaler) =>
         wholesaler.id === selectedWholesaler?.id
-          ? { ...wholesaler, medicines: updatedMedicines }
+          ? { ...wholesaler, medicines: updatedMedicines || wholesaler.medicines }
           : wholesaler
       )
     );
   };
-
-  const cancelDialog = (dialogSetter: React.Dispatch<React.SetStateAction<boolean>>) =>
-    dialogSetter(false);
-
-  const renderTextField = (
-    label: string,
-    value: string | number,
-    onChange: (value: string | number) => void,
-    type = "text"
-  ) => (
-    <TextField
-      label={label}
-      type={type}
-      value={value}
-      fullWidth
-      onChange={(e) =>
-        onChange(type === "number" ? parseFloat(e.target.value) : e.target.value)
-      }
-      margin="dense"
-    />
-  );
-
-  const handleStringInput = (value: string | number) =>
-    typeof value === "string" ? value : String(value); // Ensure it's a string
 
   return (
     <div className="container mx-auto mt-10 p-4">
@@ -119,12 +170,19 @@ const StockManager: React.FC = () => {
       {!selectedWholesaler ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {wholesalers.map((wholesaler) => (
-            <div key={wholesaler.id} className="border p-4 rounded shadow hover:shadow-lg">
-              <h2 className="text-xl font-semibold mb-2">{wholesaler.wholesalerName}</h2>
-              <p className="text-sm">Purchase Date: {wholesaler.purchaseDate}</p>
+            <div
+              key={wholesaler.id}
+              className="border p-4 rounded shadow hover:shadow-lg"
+            >
+              <h2 className="text-xl font-semibold mb-2">
+                {wholesaler.wholesalerName}
+              </h2>
+              <p className="text-sm">
+                Purchase Date: {wholesaler.purchaseDate}
+              </p>
               <button
                 className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                onClick={() => handleViewStock(wholesaler.id)}
+                onClick={() => setSelectedWholesaler(wholesaler)}
               >
                 View Stock
               </button>
@@ -142,7 +200,7 @@ const StockManager: React.FC = () => {
             </button>
             <button
               className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-              onClick={handleDeletePurchase}
+              onClick={() => setOpenDeletePurchaseDialog(true)}
             >
               Delete Purchase
             </button>
@@ -153,95 +211,187 @@ const StockManager: React.FC = () => {
           <table className="table-auto w-full border-collapse border border-gray-300">
             <thead>
               <tr className="bg-gray-100">
-                {["id", "Name", "Batch", "Expiry", "Quantity", "Purchase Price", "Selling Price", "Actions"].map(
-                  (header) => (
-                    <th key={header} className="border border-gray-300 px-4 py-2">
-                      {header}
-                    </th>
-                  )
-                )}
+                {[
+                  "Name",
+                  "Batch",
+                  "Expiry",
+                  "Quantity",
+                  "Purchase Price",
+                  "Selling Price",
+                  "Actions",
+                ].map((header) => (
+                  <th key={header} className="border border-gray-300 px-4 py-2">
+                    {header}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {selectedWholesaler.medicines.map((medicine) => (
-                <tr key={medicine.id}>
-                  {Object.values(medicine).map((value, idx) => (
-                    <td key={idx} className="border border-gray-300 px-4 py-2">
-                      {handleStringInput(value)} {/* Ensures value is a string */}
-                    </td>
-                  ))}
-                  <td className="border border-gray-300 px-4 py-2">
-                    <button
-                      className="px-2 py-1 mr-2 bg-red-600 text-white rounded hover:bg-red-700"
-                      onClick={() => handleRemoveStock(medicine.id)}
-                    >
-                      Remove
-                    </button>
-                    <button
-                      className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                      onClick={() => handleEditStock(medicine)}
-                    >
-                      Edit
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+  {selectedWholesaler.medicines.map((medicine) => (
+    <tr key={medicine.id}>
+      
+      <td className="border border-gray-300 px-4 py-2">
+        {medicine.name}
+      </td>
+      <td className="border border-gray-300 px-4 py-2">
+        {medicine.batchNumber}
+      </td>
+      <td className="border border-gray-300 px-4 py-2">
+        {medicine.expiryDate}
+      </td>
+      <td className="border border-gray-300 px-4 py-2">
+        {medicine.quantity}
+      </td>
+      <td className="border border-gray-300 px-4 py-2">
+        {medicine.purchasePrice}
+      </td>
+      <td className="border border-gray-300 px-4 py-2">
+        {medicine.sellingPrice}
+      </td>
+      <td className="border border-gray-300 px-4 py-2">
+        <button
+          className="px-2 py-1 mr-2 bg-red-600 text-white rounded hover:bg-red-700"
+          onClick={() => {
+            setMedicineToRemove(medicine.id);
+            setOpenDialog(true);
+          }}
+        >
+          Remove
+        </button>
+        <button
+          className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+          onClick={() => {
+            setMedicineToEdit(medicine);
+            setOpenEditDialog(true);
+          }}
+        >
+          Edit
+        </button>
+      </td>
+    </tr>
+  ))}
+</tbody>
+
           </table>
         </div>
       )}
-      <Dialog open={openDialog} onClose={() => cancelDialog(setOpenDialog)}>
-        <DialogTitle>Confirmation</DialogTitle>
+
+      {/* Remove Medicine Dialog */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
+        <DialogTitle>Remove Medicine</DialogTitle>
         <DialogContent>
-          <DialogContentText>Are you sure you want to remove this stock?</DialogContentText>
+          <DialogContentText>
+            Are you sure you want to remove this medicine from the stock?
+          </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => cancelDialog(setOpenDialog)} color="primary">
+          <Button onClick={() => setOpenDialog(false)} color="primary">
             Cancel
           </Button>
-          <Button onClick={confirmRemoveStock} color="primary">
+          <Button onClick={handleRemoveStock} color="secondary">
             Confirm
           </Button>
         </DialogActions>
       </Dialog>
-      <Dialog open={openEditDialog} onClose={() => cancelDialog(setOpenEditDialog)}>
+
+      {/* Edit Medicine Dialog */}
+      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)}>
         <DialogTitle>Edit Medicine</DialogTitle>
         <DialogContent>
-          {medicineToEdit &&
-            [
-              ["Medicine Name", medicineToEdit.name, "text"],
-              ["Batch Number", medicineToEdit.batchNumber, "text"],
-              ["Expiry Date", medicineToEdit.expiryDate, "date"],
-              ["Quantity", medicineToEdit.quantity, "number"],
-              ["Purchase Price", medicineToEdit.purchasePrice, "number"],
-              ["Selling Price", medicineToEdit.sellingPrice, "number"],
-            ].map(([label, value]) =>
-              renderTextField(label as string, value as string , (newValue) =>
-                setMedicineToEdit((prev) =>
-                  prev ? { ...prev, [typeof label === 'string' ? label.toLowerCase().replace(/ /g, "") : label]: newValue } : prev
-                )
-              )
-            )}
+          <TextField
+            label="Quantity"
+            value={medicineToEdit?.quantity || ""}
+            onChange={(e) =>
+              setMedicineToEdit((prev) => ({
+                ...prev!,
+                quantity: Number(e.target.value),
+              }))
+            }
+            fullWidth
+            margin="normal"
+            type="number"
+          />
+          <TextField
+            label="Purchase Price"
+            value={medicineToEdit?.purchasePrice || ""}
+            onChange={(e) =>
+              setMedicineToEdit((prev) => ({
+                ...prev!,
+                purchasePrice: Number(e.target.value),
+              }))
+            }
+            fullWidth
+            margin="normal"
+            type="number"
+          />
+          <TextField
+            label="Selling Price"
+            value={medicineToEdit?.sellingPrice || ""}
+            onChange={(e) =>
+              setMedicineToEdit((prev) => ({
+                ...prev!,
+                sellingPrice: Number(e.target.value),
+              }))
+            }
+            fullWidth
+            margin="normal"
+            type="number"
+          />
+          <TextField
+            label="Batch Number"
+            value={medicineToEdit?.batchNumber || ""}
+            onChange={(e) =>
+              setMedicineToEdit((prev) => ({
+                ...prev!,
+                batchNumber: e.target.value,
+              }))
+            }
+            fullWidth
+            margin="normal"
+          />
+          <TextField
+            label="Expiry Date"
+            value={medicineToEdit?.expiryDate || ""}
+            onChange={(e) =>
+              setMedicineToEdit((prev) => ({
+                ...prev!,
+                expiryDate: e.target.value,
+              }))
+            }
+            fullWidth
+            margin="normal"
+            type="date"
+          />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => cancelDialog(setOpenEditDialog)} color="primary">
+          <Button onClick={() => setOpenEditDialog(false)} color="primary">
             Cancel
           </Button>
-          <Button onClick={confirmEditStock} color="primary">
-            Save
+          <Button onClick={handleEditStock} color="secondary">
+            Save Changes
           </Button>
         </DialogActions>
       </Dialog>
-      <Dialog open={openDeletePurchaseDialog} onClose={() => cancelDialog(setOpenDeletePurchaseDialog)}>
-        <DialogTitle>Confirmation</DialogTitle>
+
+      {/* Delete Purchase Dialog */}
+      <Dialog
+        open={openDeletePurchaseDialog}
+        onClose={() => setOpenDeletePurchaseDialog(false)}
+      >
+        <DialogTitle>Delete Purchase</DialogTitle>
         <DialogContent>
-          <DialogContentText>Are you sure you want to delete this purchase?</DialogContentText>
+          <DialogContentText>
+            Are you sure you want to delete this purchase record?
+          </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => cancelDialog(setOpenDeletePurchaseDialog)} color="primary">
+          <Button
+            onClick={() => setOpenDeletePurchaseDialog(false)}
+            color="primary"
+          >
             Cancel
           </Button>
-          <Button onClick={confirmDeletePurchase} color="primary">
+          <Button onClick={handleDeletePurchase} color="secondary">
             Confirm
           </Button>
         </DialogActions>
