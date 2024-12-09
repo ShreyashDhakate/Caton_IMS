@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
+import { v4 as uuidv4 } from 'uuid';
 import {
   Dialog,
   DialogActions,
@@ -36,6 +37,7 @@ const StockManager: React.FC = () => {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeletePurchaseDialog, setOpenDeletePurchaseDialog] =
     useState(false);
+    
   const [medicineToRemove, setMedicineToRemove] = useState<string | null>(null);
   const [medicineToEdit, setMedicineToEdit] = useState<Medicine | null>(null);
 
@@ -49,7 +51,7 @@ const StockManager: React.FC = () => {
         console.log(rawResult);
         const wholesalers: Wholesaler[] = Array.isArray(rawResult)
   ? rawResult.map((wholesaler) => ({
-      id: wholesaler.wholesaler_id,
+      id: uuidv4(),
       wholesalerName: wholesaler.wholesaler_name,
       purchaseDate: wholesaler.purchase_date,
       medicines: wholesaler.medicines.map((med: any) => ({
@@ -82,17 +84,42 @@ const StockManager: React.FC = () => {
     if (selectedWholesaler && medicineToRemove !== null) {
       try {
         const result = await invoke("delete_medicine", {
-          hospitalId: selectedWholesaler.id,
+          hospitalId,
           medicineId: medicineToRemove,
         });
         console.log(result);
-        updateWholesalerState();
+  
+        // Remove the medicine from the selected wholesaler's medicines
+        const updatedMedicines = selectedWholesaler.medicines.filter(
+          (medicine) => medicine.id !== medicineToRemove
+        );
+  
+        // Update the state for selected wholesaler
+        updateWholesalerMedState(updatedMedicines);
+  
+        // Close the dialog after successful deletion
         setOpenDialog(false);
+        toast.success("Medicine removed successfully!");
       } catch (error) {
         console.error("Error removing stock:", error);
+        toast.error("Error removing medicine!");
       }
     }
   };
+  
+  const updateWholesalerMedState = (updatedMedicines: Medicine[]) => {
+    setSelectedWholesaler((prev) =>
+      prev ? { ...prev, medicines: updatedMedicines } : null
+    );
+    setWholesalers((prev) =>
+      prev.map((wholesaler) =>
+        wholesaler.id === selectedWholesaler?.id
+          ? { ...wholesaler, medicines: updatedMedicines }
+          : wholesaler
+      )
+    );
+  };
+  
 
   const handleEditStock = async () => {
     console.log(medicineToEdit?.id);
@@ -169,113 +196,109 @@ const StockManager: React.FC = () => {
     <div className="container mx-auto mt-10 p-4">
       <h1 className="text-3xl font-bold mb-5 text-center">Stock Manager</h1>
       {!selectedWholesaler ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {wholesalers.map((wholesaler) => (
-            <div
-              key={wholesaler.id}
-              className="border p-4 rounded shadow hover:shadow-lg"
-            >
-              <h2 className="text-xl font-semibold mb-2">
-                {wholesaler.wholesalerName}
-              </h2>
-              <p className="text-sm">
-                Purchase Date: {wholesaler.purchaseDate}
-              </p>
-              <button
-                className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                onClick={() => setSelectedWholesaler(wholesaler)}
-              >
-                View Stock
-              </button>
-            </div>
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {wholesalers.map((wholesaler) => (
+      <div
+        key={wholesaler.id}
+        className="border p-4 rounded shadow hover:shadow-lg"
+      >
+        <h2 className="text-xl font-semibold mb-2">
+          {wholesaler.wholesalerName}
+        </h2>
+        <p className="text-sm">Purchase Date: {wholesaler.purchaseDate}</p>
+        <button
+          className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          onClick={() => setSelectedWholesaler(wholesaler)}
+        >
+          View Stock
+        </button>
+      </div>
+    ))}
+  </div>
+) : (
+  <div>
+    <div className="flex justify-between items-center mb-5">
+      <button
+        className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+        onClick={() => setSelectedWholesaler(null)}
+      >
+        Back to Wholesalers
+      </button>
+      <button
+        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+        onClick={() => setOpenDeletePurchaseDialog(true)}
+      >
+        Delete Purchase
+      </button>
+    </div>
+    <h2 className="text-2xl font-semibold mb-3">
+      Stock for {selectedWholesaler.wholesalerName}
+    </h2>
+    <table className="table-auto w-full border-collapse border border-gray-300">
+      <thead>
+        <tr className="bg-gray-100">
+          {[
+            "Name",
+            "Batch",
+            "Expiry",
+            "Quantity",
+            "Purchase Price",
+            "Selling Price",
+            "Actions",
+          ].map((header) => (
+            <th key={header} className="border border-gray-300 px-4 py-2">
+              {header}
+            </th>
           ))}
-        </div>
-      ) : (
-        <div>
-          <div className="flex justify-between items-center mb-5">
-            <button
-              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-              onClick={() => setSelectedWholesaler(null)}
-            >
-              Back to Wholesalers
-            </button>
-            <button
-              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-              onClick={() => setOpenDeletePurchaseDialog(true)}
-            >
-              Delete Purchase
-            </button>
-          </div>
-          <h2 className="text-2xl font-semibold mb-3">
-            Stock for {selectedWholesaler.wholesalerName}
-          </h2>
-          <table className="table-auto w-full border-collapse border border-gray-300">
-            <thead>
-              <tr className="bg-gray-100">
-                {[
-                  "Name",
-                  "Batch",
-                  "Expiry",
-                  "Quantity",
-                  "Purchase Price",
-                  "Selling Price",
-                  "Actions",
-                ].map((header) => (
-                  <th key={header} className="border border-gray-300 px-4 py-2">
-                    {header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-  {selectedWholesaler.medicines.map((medicine) => (
-    <tr key={medicine.id}>
-      
-      <td className="border border-gray-300 px-4 py-2">
-        {medicine.name}
-      </td>
-      <td className="border border-gray-300 px-4 py-2">
-        {medicine.batchNumber}
-      </td>
-      <td className="border border-gray-300 px-4 py-2">
-        {medicine.expiryDate}
-      </td>
-      <td className="border border-gray-300 px-4 py-2">
-        {medicine.quantity}
-      </td>
-      <td className="border border-gray-300 px-4 py-2">
-        {medicine.purchasePrice}
-      </td>
-      <td className="border border-gray-300 px-4 py-2">
-        {medicine.sellingPrice}
-      </td>
-      <td className="border border-gray-300 px-4 py-2">
-        <button
-          className="px-2 py-1 mr-2 bg-red-600 text-white rounded hover:bg-red-700"
-          onClick={() => {
-            setMedicineToRemove(medicine.id);
-            setOpenDialog(true);
-          }}
-        >
-          Remove
-        </button>
-        <button
-          className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-          onClick={() => {
-            setMedicineToEdit(medicine);
-            setOpenEditDialog(true);
-          }}
-        >
-          Edit
-        </button>
-      </td>
-    </tr>
-  ))}
-</tbody>
-
-          </table>
-        </div>
-      )}
+        </tr>
+      </thead>
+      <tbody>
+        {selectedWholesaler.medicines.map((medicine) => (
+          <tr key={medicine.id}>
+            <td className="border border-gray-300 px-4 py-2">
+              {medicine.name}
+            </td>
+            <td className="border border-gray-300 px-4 py-2">
+              {medicine.batchNumber}
+            </td>
+            <td className="border border-gray-300 px-4 py-2">
+              {medicine.expiryDate}
+            </td>
+            <td className="border border-gray-300 px-4 py-2">
+              {medicine.quantity}
+            </td>
+            <td className="border border-gray-300 px-4 py-2">
+              {medicine.purchasePrice}
+            </td>
+            <td className="border border-gray-300 px-4 py-2">
+              {medicine.sellingPrice}
+            </td>
+            <td className="border border-gray-300 px-4 py-2">
+              <button
+                className="px-2 py-1 mr-2 bg-red-600 text-white rounded hover:bg-red-700"
+                onClick={() => {
+                  setMedicineToRemove(medicine.id);
+                  setOpenDialog(true);
+                }}
+              >
+                Remove
+              </button>
+              <button
+                className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                onClick={() => {
+                  setMedicineToEdit(medicine);
+                  setOpenEditDialog(true);
+                }}
+              >
+                Edit
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
 
       {/* Remove Medicine Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
