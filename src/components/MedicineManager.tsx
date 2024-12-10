@@ -4,7 +4,7 @@ import loader from "./animations/loader.json"
 import Lottie from "react-lottie";
 // Define the Medicine type to match the backend structure
 type Medicine = {
-  id?: { $oid: string }; // Optional, matches `Option<ObjectId>` in Rust
+  id?: string; // Optional, matches `Option<ObjectId>` in Rust
   user_id: string;
   name: string;
   batch_number: string;
@@ -39,20 +39,25 @@ const MedicineManager: React.FC = () => {
     const hospitalId = localStorage.getItem("userId");
     setLoading(true);
     try {
-        
-      const result = await invoke<Medicine[]>("fetch_medicine", { hospitalId });
-      console.log(result);
-      setMedicines(result);
-
-      {medicines.map((medicine) => (
-        console.log(medicine.id?.$oid)
-      ))}
+      const result = await invoke<{ id: string; user_id: string; name: string; batch_number: string; expiry_date: string; quantity: number; purchase_price: number; selling_price: number; wholesaler_name: string; purchase_date: string; }[]>(
+        "fetch_medicine",
+        { hospitalId }
+      );
+  
+      const transformedResult: Medicine[] = result.map((medicine) => ({
+        ...medicine,
+        id: medicine.id, // Transform `id` into `{ $oid: string }`
+      }));
+  
+      setMedicines(transformedResult);
     } catch (error) {
       console.error("Error fetching medicines:", error);
-    }finally {
-        setLoading(false); // Stop loading
-      }
+    } finally {
+      setLoading(false);
+    }
   };
+  
+  
 
   // Update stock of a medicine
   const updateStock = async (updatedMedicine: Medicine) => {
@@ -115,8 +120,8 @@ const MedicineManager: React.FC = () => {
           </thead>
           <tbody>
             {medicines.map((medicine) => (
-              <tr key={medicine.id?.$oid} className="hover:bg-gray-100">
-                <td className="border border-gray-300 px-4 py-2">{medicine.name}</td>
+              <tr key={medicine.id} className="hover:bg-gray-100">
+                <td className="border border-gray-300 px-4 py-2">{medicine.id}</td>
                 <td className="border border-gray-300 px-4 py-2">{medicine.batch_number}</td>
                 <td className="border border-gray-300 px-4 py-2">{medicine.expiry_date}</td>
                 <td className="border border-gray-300 px-4 py-2">{medicine.quantity}</td>
@@ -128,11 +133,11 @@ const MedicineManager: React.FC = () => {
                   <button
                     className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
                     onClick={() => {
-                      setMedicineToRemove(medicine.id?.$oid!);
+                      setMedicineToRemove(medicine.id!);
                       setIsRemoveDialogOpen(true);
                     }}
                   >
-                    Remove
+                    Remove{medicine.id}
                   </button>
                   <button
                     className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
