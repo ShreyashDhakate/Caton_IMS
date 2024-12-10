@@ -14,6 +14,7 @@ import Patients from "./components/Patients";
 import StockManager from "./components/StockManager";
 import ComingSoonPage from "./components/CommingSoon";
 import BillingParent from "./components/BillingParent";
+import MedicineManager from "./components/MedicineManager";
 // Custom festival backgrounds
 const festivalBackgrounds = {
   diwali: "https://example.com/diwali-bg.jpg",
@@ -66,7 +67,7 @@ const ProtectedRoutes: React.FC = () => {
           <Route path="/stockadd" element={<StockAdd />} />
           <Route path="/billing" element={<BillingParent />} />
           <Route path="/stockmanager" element={<StockManager/>} />
-          
+          <Route path="/medmanager" element={<MedicineManager/>} />
         </>
       )}
       <Route path="/history" element={<History />} />

@@ -131,10 +131,10 @@ const Navbar: React.FC = () => {
                     </MenuItem>
                     <MenuItem
                       component={Link}
-                      to="/expiring-medicines"
+                      to="/medmanager"
                       onClick={handleMedicineMenuClose}
                     >
-                      Expiring Medicines
+                      Medicine Stock
                     </MenuItem>
                     <MenuItem
                       component={Link}

@@ -138,6 +138,28 @@ pub async fn delete_medicine(medicine_id: &str, hospital_id: &str) -> Result<Str
     }
 }
 
+#[command]
+pub async fn fetch_medicine(hospital_id: &str) -> Result<Vec<Medicine>, String> {
+    let db = get_db_connection().await;
+    let collection: Collection<Medicine> = db.collection("medicines");
+
+    // Filter to match the specific hospital_id
+    let filter = doc! { "user_id": hospital_id };
+
+    // Fetch all medicines matching the filter
+    let cursor = collection
+        .find(filter, None)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // Collect the results into a Vec<Medicine>
+    let medicines: Vec<Medicine> = cursor
+        .try_collect()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(medicines)
+}
 
 
 
