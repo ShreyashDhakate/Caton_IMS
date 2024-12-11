@@ -1,20 +1,39 @@
-import React, { useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { TextField, Button, Box, Typography } from '@mui/material';
-import { toast } from 'sonner';
+import React, { useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { TextField, Button, Box, Typography } from "@mui/material";
+import { toast } from "sonner";
+
+interface BackendMedicine {
+  _id?: { $oid: string };
+  name: string;
+  batch_number: string;
+  expiry_date: string;
+  quantity: number;
+  purchase_price: number;
+  selling_price: number;
+}
+
+interface MedicineInfo {
+  id: string; // Added ID field
+  name: string;
+  batchNumber: string;
+  quantity: number;
+  sellingPrice: number;
+  expiryDate: string;
+}
 
 const Appointment: React.FC = () => {
   const [patient, setPatient] = useState({
-    name: '',
-    mobile: '',
-    disease: '',
-    precautions: '',
+    name: "",
+    mobile: "",
+    disease: "",
+    precautions: "",
   });
 
-  const [medicineSearch, setMedicineSearch] = useState('');
-  const [medicineList, setMedicineList] = useState<string[]>([]);
+  const [medicineSearch, setMedicineSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<MedicineInfo[]>([]);
   const [selectedMedicines, setSelectedMedicines] = useState<
-    { name: string; quantity: number }[]
+    MedicineInfo[]
   >([]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -22,77 +41,112 @@ const Appointment: React.FC = () => {
     setPatient((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleMedicineSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setMedicineSearch(e.target.value);
-    if (e.target.value.length > 2) {
-      setMedicineList(['Paracetamol', 'Ibuprofen', 'Cough Syrup']);
+  const handleSearchMedicine = async (query: string) => {
+    try {
+      if (!query.trim()) {
+        setSearchResults([]);
+        return;
+      }
+
+      const userId = localStorage.getItem("userId");
+      const results: BackendMedicine[] = await invoke("search_medicines", {
+        query,
+        hospitalId: userId,
+      });
+
+      const mappedResults: MedicineInfo[] = results.map((medicine) => ({
+        id: medicine._id?.$oid || "", // Extracting the ID
+        name: medicine.name,
+        batchNumber: medicine.batch_number,
+        quantity: medicine.quantity,
+        sellingPrice: medicine.selling_price,
+        expiryDate: medicine.expiry_date,
+      }));
+
+      setSearchResults(mappedResults);
+    } catch (error) {
+      console.error("Error searching medicines:", error);
+      toast.error("Failed to fetch search results.");
+    }
+  };
+
+  const handleMedicineSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setMedicineSearch(query);
+
+    if (query.length > 2) {
+      handleSearchMedicine(query);
     } else {
-      setMedicineList([]);
+      setSearchResults([]);
     }
   };
 
-  const handleAddMedicine = (medicine: string) => {
-    if (!selectedMedicines.find((item) => item.name === medicine)) {
-      setSelectedMedicines((prev) => [...prev, { name: medicine, quantity: 1 }]);
+  const handleAddMedicine = (medicine: MedicineInfo) => {
+    if (!selectedMedicines.find((item) => item.id === medicine.id)) {
+      setSelectedMedicines((prev) => [...prev, medicine]);
     }
   };
 
-  const handleQuantityChange = (medicine: string, quantity: number) => {
+  const handleRemoveMedicine = (index: number) => {
+    setSelectedMedicines((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleQuantityChange = (id: string, quantity: number) => {
     if (quantity < 1) {
-      toast.error('Quantity must be at least 1');
+      toast.error("Quantity must be at least 1");
       return;
     }
+
     setSelectedMedicines((prev) =>
-      prev.map((item) =>
-        item.name === medicine ? { ...item, quantity } : item
-      )
+      prev.map((item) => (item.id === id ? { ...item, quantity } : item))
     );
   };
 
   const handleSaveAppointment = async () => {
     try {
-      const userId = localStorage.getItem('userId');
+      const userId = localStorage.getItem("userId");
       if (!userId) {
-        toast.error('User ID is missing. Please log in again.');
+        toast.error("User ID is missing. Please log in again.");
         return;
       }
 
       if (!patient.name || !patient.mobile) {
-        toast.error('Patient name and mobile number are required.');
+        toast.error("Patient name and mobile number are required.");
         return;
       }
 
       if (selectedMedicines.length === 0) {
-        toast.error('Please select at least one medicine.');
+        toast.error("Please select at least one medicine.");
         return;
       }
 
-      await invoke('save_appointment', {
+      await invoke("save_appointment", {
         patientName: patient.name,
         mobile: patient.mobile,
         disease: patient.disease || null,
         precautions: patient.precautions || null,
-        medicines: selectedMedicines.map(({ name, quantity }) => [name, quantity]),
+        medicines: selectedMedicines.map(({ id, quantity }) => ({
+          id,
+          quantity,
+        })), // Saving only ID and quantity
         hospitalId: userId,
       });
 
-      toast.success('Appointment saved successfully!');
-      setPatient({ name: '', mobile: '', disease: '', precautions: '' });
+      toast.success("Appointment saved successfully!");
+      setPatient({ name: "", mobile: "", disease: "", precautions: "" });
       setSelectedMedicines([]);
-      setMedicineSearch('');
-      setMedicineList([]);
+      setMedicineSearch("");
+      setSearchResults([]);
     } catch (error: any) {
       toast.error(`Failed to save appointment: ${error.message}`);
-      console.error('Error saving appointment:', error);
+      console.error("Error saving appointment:", error);
     }
   };
 
   return (
     <div className="flex flex-wrap items-center justify-between bg-gray-100 p-5 h-[70vh]">
       {/* Patient Details Section */}
-      <Box
-        className="flex flex-col justify-between w-[50%] h-[70vh] bg-white p-6 shadow-lg rounded-lg"
-      >
+      <Box className="flex flex-col justify-between w-[50%] h-[70vh] bg-white p-6 shadow-lg rounded-lg">
         <Typography variant="h5" className="mb-6 font-semibold">
           Patient Details
         </Typography>
@@ -137,9 +191,7 @@ const Appointment: React.FC = () => {
       </Box>
 
       {/* Medicine Search Section */}
-      <Box
-        className="flex flex-col w-[48%] h-[70vh] bg-white p-6 shadow-lg rounded-lg"
-      >
+      <Box className="flex flex-col w-[48%] h-[70vh] bg-white p-6 shadow-lg rounded-lg">
         <Typography variant="h5" className="mb-6 font-semibold">
           Search Medicines
         </Typography>
@@ -147,20 +199,23 @@ const Appointment: React.FC = () => {
           label="Search for Medicines"
           variant="outlined"
           value={medicineSearch}
-          onChange={handleMedicineSearch}
+          onChange={handleMedicineSearchChange}
           className="mb-4"
           fullWidth
         />
-        <Box>
-          {medicineList.map((medicine) => (
-            <Button
-              key={medicine}
-              variant="outlined"
+        <Box className="mb-4">
+          {searchResults.map((medicine, index) => (
+            <Box
+              key={index}
+              className="flex items-center justify-between border-b py-2 cursor-pointer hover:bg-gray-200"
               onClick={() => handleAddMedicine(medicine)}
-              className="mr-2 mb-2"
             >
-              {medicine}
-            </Button>
+              <Typography variant="body2" className="flex-1">
+                {medicine.name} | Batch: {medicine.batchNumber} | Qty:{" "}
+                {medicine.quantity} | Price: ₹{medicine.sellingPrice} | Exp:{" "}
+                {medicine.expiryDate}
+              </Typography>
+            </Box>
           ))}
         </Box>
         <Box>
@@ -169,21 +224,33 @@ const Appointment: React.FC = () => {
           </Typography>
           <ul>
             {selectedMedicines.map((medicine, index) => (
-              <li key={index} className="flex items-center justify-between">
-                <span>{medicine.name}</span>
-                <TextField
-                  type="number"
-                  variant="outlined"
-                  size="small"
-                  value={medicine.quantity}
-                  onChange={(e) =>
-                    handleQuantityChange(
-                      medicine.name,
-                      parseInt(e.target.value) || 1
-                    )
-                  }
-                  className="w-20 ml-4"
-                />
+              <li key={index} className="flex items-center justify-between mb-2">
+                <span>
+                  {medicine.name} (Batch: {medicine.batchNumber})
+                </span>
+                <Box className="flex items-center">
+                  <TextField
+                    type="number"
+                    variant="outlined"
+                    size="small"
+                    value={medicine.quantity}
+                    onChange={(e) =>
+                      handleQuantityChange(
+                        medicine.id,
+                        parseInt(e.target.value) || 1
+                      )
+                    }
+                    className="w-20 mr-4"
+                  />
+                  <Button
+                    variant="contained"
+                    color="secondary"
+                    size="small"
+                    onClick={() => handleRemoveMedicine(index)}
+                  >
+                    Remove
+                  </Button>
+                </Box>
               </li>
             ))}
           </ul>

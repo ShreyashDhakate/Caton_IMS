@@ -1,5 +1,14 @@
 import CloseIcon from '@mui/icons-material/Close';
-import { MedicineInfo } from './Billing';
+// import { MedicineInfo } from './Billing';
+
+type MedicineInfo = {
+  id: string;
+  name: string;
+  sellingPrice: number;
+  batchNumber: string; // Added field
+  expiryDate: string;  // Added field
+  quantity: number;    // Added field
+};
 
 type BillingSummaryProps = {
   selectedMedicines: { medicine: MedicineInfo; quantity: number }[];
@@ -23,7 +32,7 @@ const BillingSummary = ({ selectedMedicines, setSelectedMedicines }: BillingSumm
 
   // Function to calculate total cost
   const calculateTotal = () => {
-    return selectedMedicines.reduce((total, item) => total + item.medicine.selling_price * item.quantity, 0);
+    return selectedMedicines.reduce((total, item) => total + item.medicine.sellingPrice * item.quantity, 0);
   };
 
   return (
@@ -50,7 +59,7 @@ const BillingSummary = ({ selectedMedicines, setSelectedMedicines }: BillingSumm
               className="w-16 border border-gray-300 rounded p-1 text-sm text-start"
             />
             <div className="text-center col-span-2">
-              ${(item.medicine.selling_price * item.quantity).toFixed(2)}
+              ${(item.medicine.sellingPrice * item.quantity).toFixed(2)}
             </div>
             <button
               onClick={() => removeMedicineFromBilling(item.medicine)}

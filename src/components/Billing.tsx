@@ -185,16 +185,33 @@
 
 
 import { useState, useEffect } from "react";
+import { Location } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
 import debounce from "lodash.debounce";
 import BillingSummary from "./BillingSummary";
 import { printBill } from "../hooks/printBill";
 
+interface Props {
+  location: Location & {
+    state: { appointmentId?: string };
+  };
+}
+
 export type MedicineInfo = {
+  id: string;
   name: string;
-  sellingPrice: number; // Adjusted to camelCase for consistency
+  sellingPrice: number;
+  batchNumber: string;
+  expiryDate: string;
+  quantity: number;
 };
+
+interface MedicineDetail {
+  id: string; // Medicine ID
+  quantity: number;
+}
 
 interface BackendMedicine {
   _id?: { $oid: string };
@@ -206,19 +223,14 @@ interface BackendMedicine {
   selling_price: number;
 }
 
-interface BillingProps {
-  precautions: string;
-  disease: string;
-}
 
-const Billing = ({ precautions, disease }: BillingProps) => {
+const Billing: React.FC<Props> = ({ location }) => {  // const location = useLocation();
+  const navigate = useNavigate();
+
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<MedicineInfo[]>([]);
   const [selectedMedicines, setSelectedMedicines] = useState<
-    {
-      medicine: MedicineInfo;
-      quantity: number;
-    }[]
+    { medicine: MedicineInfo; quantity: number }[]
   >([]);
   const [customerName, setCustomerName] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
@@ -228,7 +240,73 @@ const Billing = ({ precautions, disease }: BillingProps) => {
   const hospitalPhone: string = localStorage.getItem("phone") ?? "";
   const hospitalAddress: string = localStorage.getItem("address") ?? "";
 
-  // Search medicines using the provided handleSearchMedicine function
+  // Store patient details if redirected from Patients page
+  const [patientDetails, setPatientDetails] = useState<{
+    patient_name: string;
+    disease: string;
+    precautions: string;
+    medicines: MedicineDetail[];
+  } | null>(null);
+
+  useEffect(() => {
+    const appointmentId = location?.state?.appointmentId;
+    console.log("Appointment ID:", appointmentId);  // const appointmentId = location.state?.appointmentId;
+    const fetchMedicineDetails = async (medicines: MedicineDetail[]) => {
+      try {
+        const fetchedMedicines = await Promise.all(
+          medicines.map(async (medicine) => {
+            // Fetch the backend medicine details
+            const details: BackendMedicine = await invoke("get_medicine_by_id", {
+              medicineId: medicine.id,
+            });
+    
+            // Map BackendMedicine to MedicineInfo
+            const mappedMedicine: MedicineInfo = {
+              id: details._id ? details._id.$oid : "", // Extract $oid or provide a fallback
+              name: details.name,
+              sellingPrice: details.selling_price,
+              batchNumber: details.batch_number,
+              expiryDate: details.expiry_date,
+              quantity: details.quantity,
+            };
+    
+            // Return the mapped medicine with quantity
+            return {
+              medicine: mappedMedicine,
+              quantity: medicine.quantity, // Use the quantity from the input
+            };
+          })
+        );
+        // console.log("fetched medicines: ",fetchedMedicines);
+        
+
+        setSelectedMedicines(fetchedMedicines);
+      } catch (error) {
+        console.error("Error fetching medicine details:", error);
+        toast.error("Failed to fetch medicine details. Redirecting...");
+        navigate("/patients");
+      }
+    };
+
+    // const appointmentId = location.state?.appointmentId;
+    if (appointmentId) {
+      const appointmentKey = `appointment_${appointmentId}`;
+      const storedDetails = localStorage.getItem(appointmentKey);
+
+      if (storedDetails) {
+        const details = JSON.parse(storedDetails);
+        setPatientDetails(details);
+
+        setCustomerName(details.patient_name);
+        fetchMedicineDetails(details.medicines);
+      } else {
+        toast.error("Patient details not found. Redirecting...");
+        navigate("/patients");
+      }
+    }
+  }, [location.state, navigate]);
+
+  // Search for medicines
   const handleSearchMedicine = async (query: string) => {
     try {
       if (!query.trim()) {
@@ -242,13 +320,14 @@ const Billing = ({ precautions, disease }: BillingProps) => {
         hospitalId: userId,
       });
 
-      // Map backend keys (snake_case) to frontend keys (camelCase)
       const mappedResults: MedicineInfo[] = results.map((medicine) => ({
+        id: medicine._id ? medicine._id.$oid : "", // Extract $oid or provide a fallback
         name: medicine.name,
         sellingPrice: medicine.selling_price,
+        batchNumber: medicine.batch_number,
+        expiryDate: medicine.expiry_date,
+        quantity: medicine.quantity,
       }));
-
-      console.log("Mapped Results:", mappedResults);
 
       setSearchResults(mappedResults);
     } catch (error) {
@@ -266,12 +345,11 @@ const Billing = ({ precautions, disease }: BillingProps) => {
     };
   }, [query]);
 
+  // Add medicine to billing
   const addMedicineToBilling = (medicine: MedicineInfo) => {
     const existing = selectedMedicines.find(
-      (item) => item.medicine.name === medicine.name
+      (item) => item.medicine.id === medicine.id
     );
-
-      console.log(medicine.sellingPrice);
 
     if (existing) {
       existing.quantity += 1;
@@ -287,34 +365,52 @@ const Billing = ({ precautions, disease }: BillingProps) => {
     setQuery("");
   };
 
-  const handleConfirmPurchase = () => {
+  // Confirm purchase and reduce inventory
+  const handleConfirmPurchase = async () => {
     if (!customerName) {
       toast.error("Customer name is required!");
       return;
     }
 
-    setOpenDialog(true);
+    try {
+      for (const item of selectedMedicines) {
+        await invoke("reduce_batch", {
+          id: item.medicine.id,
+          batchNumber: item.medicine.batchNumber,
+          quantity: item.quantity,
+        });
+      }
+
+      toast.success("Purchase confirmed, and inventory updated!");
+      setOpenDialog(true);
+      setSelectedMedicines([]); // Clear after successful update
+    } catch (error) {
+      console.error("Error updating inventory:", error);
+      toast.error("Failed to update inventory. Please try again.");
+    }
   };
 
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-  };
-
+  // Print the bill
   const handlePrintBill = () => {
     const today = new Date();
     const billingDate = today.toLocaleDateString("en-US");
-    // Ensure `printBill` implementation matches the expected arguments
+
     printBill(
       selectedMedicines,
       customerName,
       billingId,
       billingDate,
-      disease,
-      precautions,
+      patientDetails?.disease || "",
+      patientDetails?.precautions || "",
       hospitalName,
       hospitalAddress,
       hospitalPhone
     );
+
+    setOpenDialog(false);
+  };
+
+  const handleCloseDialog = () => {
     setOpenDialog(false);
   };
 
@@ -324,7 +420,22 @@ const Billing = ({ precautions, disease }: BillingProps) => {
       <div className="text-sm text-gray-600">{hospitalAddress}</div>
       <div className="text-sm text-gray-600">{hospitalPhone}</div>
 
-      <div className="mb-4 mt-5">
+      {patientDetails && (
+        <div className="mt-4">
+          <h3>Patient Details</h3>
+          <p>
+            <strong>Name:</strong> {patientDetails.patient_name}
+          </p>
+          <p>
+            <strong>Disease:</strong> {patientDetails.disease}
+          </p>
+          <p>
+            <strong>Precautions:</strong> {patientDetails.precautions}
+          </p>
+        </div>
+      )}
+
+      <div className="mt-5 mb-4">
         <input
           type="text"
           placeholder="Search medicine..."
@@ -337,10 +448,10 @@ const Billing = ({ precautions, disease }: BillingProps) => {
             {searchResults.map((medicine, index) => (
               <li
                 key={index}
-                className="p-2 cursor-pointer hover:bg-gray-200"
+                className="p-2 cursor-pointer hover:bg-gray-200 flex justify-between items-center space-x-4"
                 onClick={() => addMedicineToBilling(medicine)}
               >
-                <div className="font-bold">{medicine.name}</div>
+                <div>{medicine.name}</div>
                 <div>₹{medicine.sellingPrice.toFixed(2)}</div>
               </li>
             ))}
@@ -348,13 +459,13 @@ const Billing = ({ precautions, disease }: BillingProps) => {
         )}
       </div>
 
-      <div className="flex mt-[2rem] justify-between mb-4">
+      <div className="mb-4">
         <input
           type="text"
           placeholder="Customer Name"
           value={customerName}
           onChange={(e) => setCustomerName(e.target.value)}
-          className="border border-gray-300 rounded p-2 w-1/2 mr-2 text-sm"
+          className="border border-gray-300 rounded p-2 w-full text-sm"
         />
       </div>
 
@@ -399,4 +510,3 @@ const Billing = ({ precautions, disease }: BillingProps) => {
 };
 
 export default Billing;
-

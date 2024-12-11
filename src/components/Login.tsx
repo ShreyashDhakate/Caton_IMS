@@ -39,12 +39,12 @@ const LoginPage: React.FC = () => {
       });
       login(); // Update auth context
       
-      console.log("Raw Response (string):",rawResponse);
-    console.log("Type of response:", typeof rawResponse);
+    //   console.log("Raw Response (string):",rawResponse);
+    // console.log("Type of response:", typeof rawResponse);
     const response: LoginResponse = JSON.parse(rawResponse);
 
-    console.log("Parsed Response (object):", response);
-    console.log("Hospital:", response.hospital);
+    // console.log("Parsed Response (object):", response);
+    // console.log("Hospital:", response.hospital);
 
     localStorage.setItem("userId", response.userId);
     localStorage.setItem("hospital", response.hospital);
