@@ -76,7 +76,7 @@ pub async fn insert_medicine(
     purchase_date: String,
     hospital_id: String,
 ) -> Result<String, String> {
-    println!("1");
+    // println!("1");
     let db = get_db_connection().await;
     let collection: Collection<Medicine> = db.collection("medicines");
 
@@ -99,19 +99,20 @@ pub async fn insert_medicine(
 
 #[tauri::command]
 pub async fn reduce_batch(
-    name: String,
+    id: String,
     batch_number: String,
     quantity: u32,
-    hospital_id: String,
 ) -> Result<String, String> {
     let db = get_db_connection().await;
     let collection: Collection<Medicine> = db.collection("medicines");
 
-    // Filter by name, batch_number, and hospital_id
+    // Convert the string ID to ObjectId
+    let object_id = ObjectId::parse_str(&id).map_err(|_| "Invalid ID format")?;
+
+    // Filter by ID and batch_number
     let filter = doc! {
-        "name": name,
+        "_id": object_id,
         "batch_number": batch_number,
-        "user_id": hospital_id
     };
 
     // Reduce the quantity
@@ -130,6 +131,8 @@ pub async fn reduce_batch(
         Err(e) => Err(format!("Database update error: {}", e)),
     }
 }
+
+
 
 // #[command]
 // pub async fn add_batch(
@@ -408,7 +411,7 @@ pub async fn get_all_appointments(hospital_id: &str) -> Result<Vec<AppointmentRe
 
 #[command]
 pub async fn get_medicine_by_id(medicine_id: String) -> Result<Medicine, String> {
-    println!("0");
+    // println!("0");
     // Step 1: Establish a database connection
     let db = get_db_connection().await;
     let collection: Collection<Medicine> = db.collection("medicines");

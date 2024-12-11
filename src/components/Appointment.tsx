@@ -32,9 +32,7 @@ const Appointment: React.FC = () => {
 
   const [medicineSearch, setMedicineSearch] = useState("");
   const [searchResults, setSearchResults] = useState<MedicineInfo[]>([]);
-  const [selectedMedicines, setSelectedMedicines] = useState<
-    MedicineInfo[]
-  >([]);
+  const [selectedMedicines, setSelectedMedicines] = useState<MedicineInfo[]>([]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -83,7 +81,7 @@ const Appointment: React.FC = () => {
 
   const handleAddMedicine = (medicine: MedicineInfo) => {
     if (!selectedMedicines.find((item) => item.id === medicine.id)) {
-      setSelectedMedicines((prev) => [...prev, medicine]);
+      setSelectedMedicines((prev) => [...prev, { ...medicine, quantity: 1 }]);
     }
   };
 
@@ -91,16 +89,34 @@ const Appointment: React.FC = () => {
     setSelectedMedicines((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleQuantityChange = (id: string, quantity: number) => {
-    if (quantity < 1) {
-      toast.error("Quantity must be at least 1");
+  const handleQuantityChange = (id: string, newQuantity: number) => {
+    if (newQuantity < 1) {
+      toast.error("Quantity must be at least 1.");
       return;
     }
-
+  
+    // Find the original medicine in the search results
+    const originalMedicine = searchResults.find((medicine) => medicine.id === id);
+  
+    if (!originalMedicine) {
+      toast.error("Medicine not found in search results.");
+      return;
+    }
+  
+    if (newQuantity > originalMedicine.quantity) {
+      toast.error(
+        `Entered quantity (${newQuantity}) exceeds available stock (${originalMedicine.quantity}).`
+      );
+      return;
+    }
+  
     setSelectedMedicines((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, quantity } : item))
+      prev.map((item) =>
+        item.id === id ? { ...item, quantity: newQuantity } : item
+      )
     );
   };
+  
 
   const handleSaveAppointment = async () => {
     try {

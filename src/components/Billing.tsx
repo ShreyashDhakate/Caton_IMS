@@ -192,6 +192,7 @@ import { invoke } from "@tauri-apps/api/core";
 import debounce from "lodash.debounce";
 import BillingSummary from "./BillingSummary";
 import { printBill } from "../hooks/printBill";
+import { Typography } from "@mui/material";
 
 interface Props {
   location: Location & {
@@ -380,10 +381,11 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
           quantity: item.quantity,
         });
       }
+      console.log("selected Medicines: ", selectedMedicines);
 
       toast.success("Purchase confirmed, and inventory updated!");
       setOpenDialog(true);
-      setSelectedMedicines([]); // Clear after successful update
+      // setSelectedMedicines([]); // Clear after successful update
     } catch (error) {
       console.error("Error updating inventory:", error);
       toast.error("Failed to update inventory. Please try again.");
@@ -394,6 +396,8 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
   const handlePrintBill = () => {
     const today = new Date();
     const billingDate = today.toLocaleDateString("en-US");
+
+    console.log("selected Medicines: ", selectedMedicines);
 
     printBill(
       selectedMedicines,
@@ -406,8 +410,11 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
       hospitalAddress,
       hospitalPhone
     );
-
-    setOpenDialog(false);
+    setSelectedMedicines([]);
+  setCustomerName(""); // Clear customer name
+  setPatientDetails(null); // Clear patient details including disease and precautions
+  setOpenDialog(false); // Close the dialog
+  toast.success("Bill printed successfully!");
   };
 
   const handleCloseDialog = () => {
@@ -444,19 +451,25 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
           className="border border-gray-300 rounded p-2 w-full text-sm"
         />
         {searchResults.length > 0 && (
-          <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded mt-1">
-            {searchResults.map((medicine, index) => (
-              <li
-                key={index}
-                className="p-2 cursor-pointer hover:bg-gray-200 flex justify-between items-center space-x-4"
-                onClick={() => addMedicineToBilling(medicine)}
-              >
-                <div>{medicine.name}</div>
-                <div>₹{medicine.sellingPrice.toFixed(2)}</div>
-              </li>
-            ))}
-          </ul>
-        )}
+  <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded mt-1 shadow-lg">
+    {searchResults.map((medicine, index) => (
+      <li
+        key={index}
+        className="p-3 cursor-pointer hover:bg-gray-200 flex flex-col space-y-2"
+        onClick={() => addMedicineToBilling(medicine)}
+      >
+        <Typography variant="body2" className="text-gray-800">
+          <strong>{medicine.name}</strong>
+        </Typography>
+        <Typography variant="body2" className="text-gray-600">
+          Batch: {medicine.batchNumber} | Qty: {medicine.quantity} | Price: ₹{medicine.sellingPrice.toFixed(2)} | Exp:{" "}
+          {medicine.expiryDate}
+        </Typography>
+      </li>
+    ))}
+  </ul>
+)}
+
       </div>
 
       <div className="mb-4">
