@@ -366,6 +366,14 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
     setQuery("");
   };
 
+  const handleResetForm = () => {
+    setCustomerName("");
+    setPatientDetails(null);
+    setSelectedMedicines([]);
+    setQuery("");
+    toast.success("Form reset successfully!");
+  };
+
   // Confirm purchase and reduce inventory
   const handleConfirmPurchase = async () => {
     if (!customerName) {
@@ -487,12 +495,18 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
         setSelectedMedicines={setSelectedMedicines}
       />
 
-      <div className="flex items-center justify-center mt-4">
+      <div className="flex items-center justify-center mt-4 space-x-4">
         <button
           onClick={handleConfirmPurchase}
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
           Confirm Purchase
+        </button>
+        <button
+          onClick={handleResetForm}
+          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+        >
+          Reset
         </button>
       </div>
 

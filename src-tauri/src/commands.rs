@@ -408,6 +408,32 @@ pub async fn get_all_appointments(hospital_id: &str) -> Result<Vec<AppointmentRe
     Ok(appointments)
 }
 
+#[command]
+pub async fn delete_appointments_older_than_one_hour() -> Result<String, String> {
+    let collection = get_appointments_collection().await.map_err(|e| e.to_string())?;
+
+    // Calculate the timestamp for 1 hour ago
+    let cutoff_date = chrono::Utc::now() - chrono::Duration::hours(1);
+
+    // Delete appointments older than the cutoff date
+    let filter = doc! {
+        "date_created": {
+            "$lt": cutoff_date.to_rfc3339()
+        }
+    };
+
+    let delete_result = collection
+        .delete_many(filter, None)
+        .await
+        .map_err(|e| format!("Error deleting old appointments: {}", e))?;
+
+    Ok(format!(
+        "Deleted {} appointments older than 1 hour.",
+        delete_result.deleted_count
+    ))
+}
+
+
 
 #[command]
 pub async fn get_medicine_by_id(medicine_id: String) -> Result<Medicine, String> {
