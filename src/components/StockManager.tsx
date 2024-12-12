@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
-import { v4 as uuidv4 } from 'uuid';
-import Lottie from "react-lottie";
-import loader from "./animations/loader.json";
+import { v4 as uuidv4 } from "uuid";
 import {
   Dialog,
   DialogActions,
@@ -13,6 +11,8 @@ import {
   TextField,
   Button,
 } from "@mui/material";
+import { fetchAndGroupMedicines } from "../lib/stockdb";
+import { db } from "../lib/db";
 
 interface Medicine {
   id: string;
@@ -39,93 +39,84 @@ const StockManager: React.FC = () => {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeletePurchaseDialog, setOpenDeletePurchaseDialog] =
     useState(false);
-    const [loading, setLoading] = useState(false);
+
   const [medicineToRemove, setMedicineToRemove] = useState<string | null>(null);
   const [medicineToEdit, setMedicineToEdit] = useState<Medicine | null>(null);
 
   const hospitalId = localStorage.getItem("userId");
+  const fetchWholesalers = async () => {
+    const groupedData = await fetchAndGroupMedicines();
+    setWholesalers(groupedData);
+    try {
+      if (!hospitalId) throw new Error("Invalid hospital ID");
+      const rawResult = await invoke("get_stock", { hospitalId });
+      console.log(rawResult);
+      const wholesalers: Wholesaler[] = Array.isArray(rawResult)
+        ? rawResult.map((wholesaler) => ({
+            id: uuidv4(),
+            wholesalerName: wholesaler.wholesaler_name,
+            purchaseDate: wholesaler.purchase_date,
+            medicines: wholesaler.medicines.map((med: any) => ({
+              id: med._id.$oid,
+              name: med.name,
+              batchNumber: med.batch_number,
+              expiryDate: med.expiry_date,
+              quantity: med.quantity,
+              purchasePrice: med.purchase_price,
+              sellingPrice: med.selling_price,
+            })),
+          }))
+        : [];
 
+      console.log(wholesalers);
 
-
-  const loaderOptions = {
-    loop: true,
-    autoplay: true,
-    animationData: loader,
-    rendererSettings: {
-      preserveAspectRatio: "xMidYMid slice",
-    },
+      setWholesalers(
+        wholesalers.sort((a, b) =>
+          a.wholesalerName.localeCompare(b.wholesalerName)
+        )
+      );
+    } catch (error) {
+      console.error("Error fetching stock:", error);
+    }
   };
 
   useEffect(() => {
-    const fetchWholesalers = async () => {
-      setLoading(true);
-      try {
-        if (!hospitalId) throw new Error("Invalid hospital ID");
-        const rawResult = await invoke("get_stock", { hospitalId });
-        console.log(rawResult);
-        const wholesalers: Wholesaler[] = Array.isArray(rawResult)
-  ? rawResult.map((wholesaler) => ({
-      id: uuidv4(),
-      wholesalerName: wholesaler.wholesaler_name,
-      purchaseDate: wholesaler.purchase_date,
-      medicines: wholesaler.medicines.map((med: any) => ({
-        id: med._id.$oid,
-        name: med.name,
-        batchNumber: med.batch_number,
-        expiryDate: med.expiry_date,
-        quantity: med.quantity,
-        purchasePrice: med.purchase_price,
-        sellingPrice: med.selling_price,
-      })),
-    }))
-  : [];
-
-        console.log(wholesalers);
-        setWholesalers(
-          wholesalers.sort((a, b) =>
-            a.wholesalerName.localeCompare(b.wholesalerName)
-          )
-
-        );
-        setLoading(false);
-      } catch (error) {
-        setLoading(false);
-        console.error("Error fetching stock:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchWholesalers();
   }, [hospitalId]);
 
   const handleRemoveStock = async () => {
     if (selectedWholesaler && medicineToRemove !== null) {
+      await db.medicines.delete(medicineToRemove);
+
+      setOpenDialog(false);
+      fetchWholesalers();
+      toast.success("Medicine removed successfully!");
       try {
+        await db.medicines.delete(medicineToRemove);
         const result = await invoke("delete_medicine", {
           hospitalId,
           medicineId: medicineToRemove,
         });
         console.log(result);
-  
+
         // Remove the medicine from the selected wholesaler's medicines
         const updatedMedicines = selectedWholesaler.medicines.filter(
           (medicine) => medicine.id !== medicineToRemove
         );
-  
+
         // Update the state for selected wholesaler
         updateWholesalerMedState(updatedMedicines);
-  
+
         // Close the dialog after successful deletion
         setOpenDialog(false);
-        toast.success("Medicine removed successfully!");
+        // toast.success("Medicine removed successfully!");
       } catch (error) {
         console.error("Error removing stock:", error);
         toast.error("Error removing medicine!");
       }
     }
   };
-  
+
   const updateWholesalerMedState = (updatedMedicines: Medicine[]) => {
     setSelectedWholesaler((prev) =>
       prev ? { ...prev, medicines: updatedMedicines } : null
@@ -138,7 +129,6 @@ const StockManager: React.FC = () => {
       )
     );
   };
-  
 
   const handleEditStock = async () => {
     console.log(medicineToEdit?.id);
@@ -146,8 +136,7 @@ const StockManager: React.FC = () => {
       console.error("Invalid medicine ID");
       return;
     }
-  
-  
+
     if (selectedWholesaler) {
       console.log("Medicine to edit:", medicineToEdit);
       console.log("Updating stock with:", {
@@ -159,7 +148,7 @@ const StockManager: React.FC = () => {
         batch_number: medicineToEdit?.batchNumber,
         expiry_date: medicineToEdit?.expiryDate,
       });
-      
+
       try {
         await invoke("update_stock", {
           hospitalId,
@@ -178,8 +167,6 @@ const StockManager: React.FC = () => {
       }
     }
   };
-  
-  
 
   const handleDeletePurchase = async () => {
     if (selectedWholesaler) {
@@ -205,126 +192,124 @@ const StockManager: React.FC = () => {
     setWholesalers((prev) =>
       prev.map((wholesaler) =>
         wholesaler.id === selectedWholesaler?.id
-          ? { ...wholesaler, medicines: updatedMedicines || wholesaler.medicines }
+          ? {
+              ...wholesaler,
+              medicines: updatedMedicines || wholesaler.medicines,
+            }
           : wholesaler
       )
     );
   };
-  
+
   return (
     <div className="container mx-auto mt-10 p-4">
       <h1 className="text-3xl font-bold mb-5 text-center">Stock Manager</h1>
-      {loading && (
-        // Render loader when loading
-        <div className="flex justify-center items-center h-64">
-          <Lottie options={loaderOptions} height={150} width={150} />
-        </div>
-      ) }
       {!selectedWholesaler ? (
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-    {wholesalers.map((wholesaler) => (
-      <div
-        key={wholesaler.id}
-        className="border p-4 rounded shadow hover:shadow-lg"
-      >
-        <h2 className="text-xl font-semibold mb-2">
-          {wholesaler.wholesalerName}
-        </h2>
-        <p className="text-sm">Purchase Date: {wholesaler.purchaseDate}</p>
-        <button
-          className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          onClick={() => setSelectedWholesaler(wholesaler)}
-        >
-          View Stock
-        </button>
-      </div>
-    ))}
-  </div>
-) : (
-  <div>
-    <div className="flex justify-between items-center mb-5">
-      <button
-        className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-        onClick={() => setSelectedWholesaler(null)}
-      >
-        Back to Wholesalers
-      </button>
-      <button
-        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-        onClick={() => setOpenDeletePurchaseDialog(true)}
-      >
-        Delete Purchase
-      </button>
-    </div>
-    <h2 className="text-2xl font-semibold mb-3">
-      Stock for {selectedWholesaler.wholesalerName}
-    </h2>
-    <table className="table-auto w-full border-collapse border border-gray-300">
-      <thead>
-        <tr className="bg-gray-100">
-          {[
-            "Name",
-            "Batch",
-            "Expiry",
-            "Quantity",
-            "Purchase Price",
-            "Selling Price",
-            "Actions",
-          ].map((header) => (
-            <th key={header} className="border border-gray-300 px-4 py-2">
-              {header}
-            </th>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {wholesalers.map((wholesaler) => (
+            <div
+              key={wholesaler.id}
+              className="border p-4 rounded shadow hover:shadow-lg"
+            >
+              <h2 className="text-xl font-semibold mb-2">
+                {wholesaler.wholesalerName}
+              </h2>
+              <p className="text-sm">
+                Purchase Date: {wholesaler.purchaseDate}
+              </p>
+              <button
+                className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                onClick={() => setSelectedWholesaler(wholesaler)}
+              >
+                View Stock
+              </button>
+            </div>
           ))}
-        </tr>
-      </thead>
-      <tbody>
-        {selectedWholesaler.medicines.map((medicine) => (
-          <tr key={medicine.id}>
-            <td className="border border-gray-300 px-4 py-2">
-              {medicine.name}
-            </td>
-            <td className="border border-gray-300 px-4 py-2">
-              {medicine.batchNumber}
-            </td>
-            <td className="border border-gray-300 px-4 py-2">
-              {medicine.expiryDate}
-            </td>
-            <td className="border border-gray-300 px-4 py-2">
-              {medicine.quantity}
-            </td>
-            <td className="border border-gray-300 px-4 py-2">
-              {medicine.purchasePrice}
-            </td>
-            <td className="border border-gray-300 px-4 py-2">
-              {medicine.sellingPrice}
-            </td>
-            <td className="border border-gray-300 px-4 py-2">
-              <button
-                className="px-2 py-1 mr-2 bg-red-600 text-white rounded hover:bg-red-700"
-                onClick={() => {
-                  setMedicineToRemove(medicine.id);
-                  setOpenDialog(true);
-                }}
-              >
-                Remove
-              </button>
-              <button
-                className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                onClick={() => {
-                  setMedicineToEdit(medicine);
-                  setOpenEditDialog(true);
-                }}
-              >
-                Edit
-              </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-    
-  </div>
-)}
+        </div>
+      ) : (
+        <div>
+          <div className="flex justify-between items-center mb-5">
+            <button
+              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              onClick={() => setSelectedWholesaler(null)}
+            >
+              Back to Wholesalers
+            </button>
+            <button
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              onClick={() => setOpenDeletePurchaseDialog(true)}
+            >
+              Delete Purchase
+            </button>
+          </div>
+          <h2 className="text-2xl font-semibold mb-3">
+            Stock for {selectedWholesaler.wholesalerName}
+          </h2>
+          <table className="table-auto w-full border-collapse border border-gray-300">
+            <thead>
+              <tr className="bg-gray-100">
+                {[
+                  "Name",
+                  "Batch",
+                  "Expiry",
+                  "Quantity",
+                  "Purchase Price",
+                  "Selling Price",
+                  "Actions",
+                ].map((header) => (
+                  <th key={header} className="border border-gray-300 px-4 py-2">
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {selectedWholesaler.medicines.map((medicine) => (
+                <tr key={medicine.id}>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {medicine.name}
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {medicine.batchNumber}
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {medicine.expiryDate}
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {medicine.quantity}
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {medicine.purchasePrice}
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {medicine.sellingPrice}
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    <button
+                      className="px-2 py-1 mr-2 bg-red-600 text-white rounded hover:bg-red-700"
+                      onClick={() => {
+                        setMedicineToRemove(medicine.id);
+                        setOpenDialog(true);
+                      }}
+                    >
+                      Remove
+                    </button>
+                    <button
+                      className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      onClick={() => {
+                        setMedicineToEdit(medicine);
+                        setOpenEditDialog(true);
+                      }}
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Remove Medicine Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
@@ -446,7 +431,6 @@ const StockManager: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-      
     </div>
   );
 };

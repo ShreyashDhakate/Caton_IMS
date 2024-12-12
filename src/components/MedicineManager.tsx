@@ -49,9 +49,10 @@ const MedicineManager: React.FC = () => {
 
 
   const hospitalId = localStorage.getItem("userId");
+  console.log(hospitalId);
   // Fetch medicines from the backend
   const fetchMedicines = async () => {
-    
+    console.log(hospitalId);
     // setLoading(true);
     try {
       const result = await invoke<{
