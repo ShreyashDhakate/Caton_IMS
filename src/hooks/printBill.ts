@@ -14,7 +14,7 @@ export const printBill = (
   const printWindow = window.open('', '', 'height=800,width=1200');
   if (printWindow) {
     const totalCost = selectedMedicines.reduce(
-      (total, item) => total + item.medicine.selling_price * item.quantity,
+      (total, item) => total + item.medicine.sellingPrice * item.quantity,
       0
     );
 
@@ -66,9 +66,9 @@ export const printBill = (
                       (item) => `
                         <tr>
                           <td>${item.medicine.name}</td>
-                          <td>₹${item.medicine.selling_price.toFixed(2)}</td>
+                          <td>₹${item.medicine.sellingPrice.toFixed(2)}</td>
                           <td>${item.quantity}</td>
-                          <td>₹${(item.medicine.selling_price * item.quantity).toFixed(2)}</td>
+                          <td>₹${(item.medicine.sellingPrice * item.quantity).toFixed(2)}</td>
                         </tr>`
                     )
                     .join('')}

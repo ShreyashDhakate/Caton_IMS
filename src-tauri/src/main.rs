@@ -4,10 +4,12 @@ mod cmd;
 mod user;
 mod model;
 mod commands;
+mod utils;
 use crate::db::init_db;
-use crate::cmd::{SessionState, login, signup, logout, is_logged_in};
 use commands::{initialize_db, insert_medicine, update_batch, delete_batch, search_medicines,save_appointment,fetch_medicine,get_all_appointments,get_stock,delete_medicine,update_stock,get_medicine_by_id};
 
+
+use crate::cmd::{SessionState, login, signup, logout, is_logged_in, verify_signup, forgot_password, reset_password};
 use std::env;
 use tauri::{Builder, generate_handler};
 
@@ -41,6 +43,9 @@ fn main() {
             update_stock,
             get_medicine_by_id,
             fetch_medicine,
+            verify_signup, 
+            forgot_password, 
+            reset_password
         ])
         .run(tauri::generate_context!())
         .expect("Error while running Tauri application");

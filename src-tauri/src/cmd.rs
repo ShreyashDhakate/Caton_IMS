@@ -1,6 +1,6 @@
 use tauri::State;
 use mongodb::Collection;
-use crate::user::{signup_user, login_user};
+use crate::user::{signup_user, login_user, send_otp, validate_otp};
 use crate::model::User;
 use crate::db::DbState; // Import your DbState struct
 use mongodb::bson::doc;
@@ -16,10 +16,10 @@ pub struct SessionState {
 #[tauri::command]
 pub async fn signup(
     username: String,
-    name:String,
-    mobile:String,
-    address:String,
-    hospital:String,
+    name: String,
+    mobile: String,
+    address: String,
+    hospital: String,
     password_doc: String,
     password_pharma: String,
     email: String,
@@ -27,7 +27,7 @@ pub async fn signup(
 ) -> Result<(), String> {
     let user_collection: &Collection<User> = &db.db.collection("users");
 
-    // Check if email already exists
+    // Check if email is already registered
     let existing_email = user_collection
         .find_one(doc! { "email": &email }, None)
         .await
@@ -36,23 +36,114 @@ pub async fn signup(
     if existing_email.is_some() {
         return Err("Email already in use".to_string());
     }
+
+    // Send OTP for email verification
+    send_otp(user_collection, &email).await?;
+
+    signup_user(
+        user_collection,
+        &username,
+        &name,
+        &mobile,
+        &hospital,
+        &address,
+        &password_doc,
+        &password_pharma,
+        &email,
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn verify_signup(
+    username: String,
+    name: String,
+    mobile: String,
+    address: String,
+    hospital: String,
+    password_doc: String,
+    password_pharma: String,
+    email: String,
+    otp: String,
+    db: State<'_, DbState>,
+) -> Result<(), String> {
+    let user_collection: &Collection<User> = &db.db.collection("users");
+
+    // Validate OTP
+    validate_otp(user_collection, &email, &otp).await?;
+
+    // Proceed with user signup
+    signup_user(
+        user_collection,
+        &username,
+        &name,
+        &mobile,
+        &hospital,
+        &address,
+        &password_doc,
+        &password_pharma,
+        &email,
+    )
+    .await
     
-    let existing_user = user_collection
-        .find_one(doc! { "username": &username }, None)
+}
+
+
+#[tauri::command]
+pub async fn forgot_password(email: String, db: State<'_, DbState>) -> Result<(), String> {
+    let user_collection: &Collection<User> = &db.db.collection("users");
+
+    // Check if email exists
+    let existing_email = user_collection
+        .find_one(doc! { "email": &email }, None)
         .await
         .map_err(|e| format!("Database error: {}", e))?;
 
-    if existing_user.is_some() {
-        return Err("Username is  already in taken".to_string());
+    if existing_email.is_none() {
+        return Err("Email not found".to_string());
     }
 
-    // Proceed with user signup if the email is unique
-    signup_user(user_collection, &username, &name, &mobile, &hospital,&address, &password_doc,&password_pharma, &email).await
+    // Send OTP for password reset
+    send_otp(user_collection, &email).await
+}
+
+#[tauri::command]
+pub async fn reset_password(
+    email: String,
+    otp: String,
+    new_password: String,
+    role: String,
+    db: State<'_, DbState>,
+) -> Result<(), String> {
+    let user_collection: &Collection<User> = &db.db.collection("users");
+
+    // Validate OTP
+    validate_otp(user_collection, &email, &otp).await?;
+
+    // Update the user's password
+    let password_hash = bcrypt::hash(&new_password, bcrypt::DEFAULT_COST).map_err(|e| e.to_string())?;
+
+    let update_field = if role == "Doctor" {
+        "password_hash_doc"
+    } else {
+        "password_hash_pharma"
+    };
+
+    user_collection
+        .update_one(
+            doc! { "email": &email },
+            doc! { "$set": { update_field: password_hash } },
+            None,
+        )
+        .await
+        .map_err(|e| format!("Failed to update password: {}", e))?;
+
+    Ok(())
 }
 
 #[tauri::command]
 pub async fn login(
-    role:String,
+    role: String,
     username: String,
     password: String,
     db: State<'_, DbState>,
