@@ -7,6 +7,7 @@ import debounce from "lodash.debounce";
 import BillingSummary from "./BillingSummary";
 import { printBill } from "../hooks/printBill";
 import { Typography } from "@mui/material";
+import { salesDb } from "../lib/db";
 
 interface Props {
   location: Location & {
@@ -193,8 +194,44 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
       toast.error("Customer name is required!");
       return;
     }
-
+  
+    if (!billingId) {
+      toast.error("Billing ID is required!");
+      return;
+    }
+  
+    if (!selectedMedicines || selectedMedicines.length === 0) {
+      toast.error("No medicines selected for purchase!");
+      return;
+    }
+  
     try {
+      // Calculate total cost of the purchase
+      const totalCost = selectedMedicines.reduce(
+        (sum, item) => sum + item.medicine.sellingPrice * item.quantity,
+        0
+      );
+  
+      // Add a new sale entry to the `sales` table
+      const saleId = await salesDb.sales.add({
+        purchase_date: new Date().toISOString(),
+        customer_name: customerName,
+        total_cost: totalCost,
+        medicines: []
+      });
+  
+      // Map selected medicines to this sale in the `saleMedicines` table
+      await salesDb.saleMedicines.bulkPut(
+        selectedMedicines.map((item) => ({
+          sale_id: saleId,
+          medicine_id: item.medicine.id,
+          quantity: item.quantity,
+          selling_price: item.medicine.sellingPrice,
+        }))
+      );
+      toast.success("Purchase confirmed and inventory updated!");
+      setOpenDialog(true);
+      // Update inventory by reducing batch quantities
       for (const item of selectedMedicines) {
         await invoke("reduce_batch", {
           id: item.medicine.id,
@@ -202,16 +239,16 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
           quantity: item.quantity,
         });
       }
-      console.log("selected Medicines: ", selectedMedicines);
-
-      toast.success("Purchase confirmed, and inventory updated!");
-      setOpenDialog(true);
-      // setSelectedMedicines([]); // Clear after successful update
+  
+      // // Notify the user of success
+      toast.success("inventory update recovered!");
+      // setOpenDialog(true);
     } catch (error) {
-      console.error("Error updating inventory:", error);
-      toast.error("Failed to update inventory. Please try again.");
+      console.error("Error confirming purchase:", error);
+      toast.error("Failed to confirm purchase. Please try again.");
     }
   };
+  
 
   // Print the bill
   const handlePrintBill = () => {

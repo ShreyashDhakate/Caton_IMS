@@ -59,7 +59,7 @@ const BillingSummary = ({ selectedMedicines, setSelectedMedicines }: BillingSumm
         {selectedMedicines.map((item, index) => (
           <div key={index} className="contents">
             <div className="text-start">{index + 1}</div>
-            <div className="text-start col-span-3">
+            <div className="text-start col-span-3">3
               {item.medicine.name} (Batch: {item.medicine.batchNumber})
             </div>
             <input

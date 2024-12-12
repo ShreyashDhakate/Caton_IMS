@@ -13,6 +13,14 @@ export interface Medicine {
   purchase_date: string;
 }
 
+export interface Sale {
+  id?: string;
+  purchase_date: string;
+  customer_name: string;
+  medicines: Medicine[];
+  total_cost: number; // Array of medicines sold
+}
+
 class MedicineDatabase extends Dexie {
   medicines!: Dexie.Table<Medicine, string>; // Table schema
 
@@ -24,4 +32,18 @@ class MedicineDatabase extends Dexie {
   }
 }
 
+class SalesDatabase extends Dexie {
+  sales!: Dexie.Table<Sale, string>; // Table schema
+  saleMedicines: any;
+
+  constructor() {
+    super("SalesDatabase");
+    this.version(1).stores({
+      sales: "++id, purchase_date, customer_name, total_cost", // Indexed fields
+      saleMedicines: "++id, sale_id, medicine_id,selling_price",
+    });
+  }
+}
+
 export const db = new MedicineDatabase();
+export const salesDb = new SalesDatabase();
