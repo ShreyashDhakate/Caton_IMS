@@ -2,9 +2,11 @@ import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import loader from "./animations/loader.json"
 import Lottie from "react-lottie";
+import { db } from "../lib/db";
 // Define the Medicine type to match the backend structure
 type Medicine = {
-  id?: string; // Optional, matches `Option<ObjectId>` in Rust
+  [x: string]: any;
+  _id?: { $oid: string }; // Optional, matches `Option<ObjectId>` in Rust
   user_id: string;
   name: string;
   batch_number: string;
@@ -34,21 +36,38 @@ const MedicineManager: React.FC = () => {
     },
   };
 
+
+  const fetchFromLocal = async () => {
+    try {
+      const localMedicines = await db.medicines.toArray();
+      return localMedicines;
+    } catch (error) {
+      console.error("Error fetching medicines from local storage:", error);
+      return [];
+    }
+  };
+
+
+  const hospitalId = localStorage.getItem("userId");
   // Fetch medicines from the backend
   const fetchMedicines = async () => {
-    const hospitalId = localStorage.getItem("userId");
-    setLoading(true);
+    
+    // setLoading(true);
     try {
-      const result = await invoke<{ id: string; user_id: string; name: string; batch_number: string; expiry_date: string; quantity: number; purchase_price: number; selling_price: number; wholesaler_name: string; purchase_date: string; }[]>(
+      const result = await invoke<{
+        _id: any; id: string; user_id: string; name: string; batch_number: string; expiry_date: string; quantity: number; purchase_price: number; selling_price: number; wholesaler_name: string; purchase_date: string; 
+}[]>(
         "fetch_medicine",
         { hospitalId }
       );
-  
+      console.log(result);
       const transformedResult: Medicine[] = result.map((medicine) => ({
         ...medicine,
-        id: medicine.id, // Transform `id` into `{ $oid: string }`
+        id: medicine._id?.$oid, 
       }));
-  
+      console.log(transformedResult);
+      await db.medicines.clear();
+      await db.medicines.bulkPut(transformedResult);
       setMedicines(transformedResult);
     } catch (error) {
       console.error("Error fetching medicines:", error);
@@ -61,8 +80,14 @@ const MedicineManager: React.FC = () => {
 
   // Update stock of a medicine
   const updateStock = async (updatedMedicine: Medicine) => {
+    setMedicines((prev) =>
+      prev.map((medicine) =>
+        medicine.id === updatedMedicine.id ? updatedMedicine : medicine
+      )
+    );
+    setIsEditDialogOpen(false);
     try {
-      await invoke("update_stock", { medicine: updatedMedicine });
+      await invoke("update_stock", { updatedMedicine });
       fetchMedicines();
       setIsEditDialogOpen(false);
     } catch (error) {
@@ -72,9 +97,12 @@ const MedicineManager: React.FC = () => {
 
   // Delete a medicine
   const deleteMedicine = async (medicineId: string) => {
+    setMedicines((prev) => prev.filter((medicine) => medicine.id !== medicineId));
     console.log(medicineId);
+    await db.medicines.delete(medicineId);
+    setIsRemoveDialogOpen(false);
     try {
-      await invoke("delete_medicine", { id: medicineId });
+      await invoke("delete_medicine", { medicineId , hospitalId });
       fetchMedicines();
       setIsRemoveDialogOpen(false);
     } catch (error) {
@@ -82,8 +110,36 @@ const MedicineManager: React.FC = () => {
     }
   };
 
+  // Initialize medicines from IndexedDB or backend
+  const initializeMedicines = async () => {
+    setLoading(true);
+
+    const localMedicines = await fetchFromLocal();
+
+    if (localMedicines.length > 0) {
+      // Use local data if available
+      setMedicines(localMedicines);
+      setLoading(false);
+    } else {
+      // Fetch from backend if no local data
+       fetchMedicines();
+      
+      setLoading(false);
+    }
+  };
+
+  // Sync backend updates to IndexedDB (optional call if required)
+  const syncMedicinesFromBackend = async () => {
+    console.log("Syncing medicines from backend...");
+    await fetchMedicines();
+  };
+
   useEffect(() => {
-    fetchMedicines(); // Fetch medicines on component mount
+    initializeMedicines(); // Initialize medicines on component mount
+    const syncInterval = setInterval(syncMedicinesFromBackend, 300000); // 5 minutes
+
+    // Clear the interval when the component is unmounted
+    return () => clearInterval(syncInterval);
   }, []);
 
   return (
@@ -121,7 +177,7 @@ const MedicineManager: React.FC = () => {
           <tbody>
             {medicines.map((medicine) => (
               <tr key={medicine.id} className="hover:bg-gray-100">
-                <td className="border border-gray-300 px-4 py-2">{medicine.id}</td>
+                <td className="border border-gray-300 px-4 py-2">{medicine.name}</td>
                 <td className="border border-gray-300 px-4 py-2">{medicine.batch_number}</td>
                 <td className="border border-gray-300 px-4 py-2">{medicine.expiry_date}</td>
                 <td className="border border-gray-300 px-4 py-2">{medicine.quantity}</td>
@@ -137,7 +193,7 @@ const MedicineManager: React.FC = () => {
                       setIsRemoveDialogOpen(true);
                     }}
                   >
-                    Remove{medicine.id}
+                    Remove
                   </button>
                   <button
                     className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"

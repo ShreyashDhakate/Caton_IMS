@@ -1,4 +1,4 @@
-// src-tauri/src/db.rs
+// src-tauri/src/database.rs
 use mongodb::{Client, Database};
 use dotenv::dotenv;
 use std::env;
@@ -12,8 +12,3 @@ pub async fn get_db_connection() -> Database {
         .expect("Failed to connect to MongoDB");
     client.database("medicines_db") 
 }
-
-// src/db.rs
-
-
-

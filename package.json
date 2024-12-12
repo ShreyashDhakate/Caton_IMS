@@ -24,6 +24,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
+    "dexie": "^4.0.10",
     "lodash.debounce": "^4.0.8",
     "lottie-react": "^2.4.0",
     "lucide-react": "^0.446.0",

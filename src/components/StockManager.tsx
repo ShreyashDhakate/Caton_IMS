@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from 'uuid';
+import Lottie from "react-lottie";
+import loader from "./animations/loader.json";
 import {
   Dialog,
   DialogActions,
@@ -37,14 +39,26 @@ const StockManager: React.FC = () => {
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeletePurchaseDialog, setOpenDeletePurchaseDialog] =
     useState(false);
-    
+    const [loading, setLoading] = useState(false);
   const [medicineToRemove, setMedicineToRemove] = useState<string | null>(null);
   const [medicineToEdit, setMedicineToEdit] = useState<Medicine | null>(null);
 
   const hospitalId = localStorage.getItem("userId");
 
+
+
+  const loaderOptions = {
+    loop: true,
+    autoplay: true,
+    animationData: loader,
+    rendererSettings: {
+      preserveAspectRatio: "xMidYMid slice",
+    },
+  };
+
   useEffect(() => {
     const fetchWholesalers = async () => {
+      setLoading(true);
       try {
         if (!hospitalId) throw new Error("Invalid hospital ID");
         const rawResult = await invoke("get_stock", { hospitalId });
@@ -71,9 +85,14 @@ const StockManager: React.FC = () => {
           wholesalers.sort((a, b) =>
             a.wholesalerName.localeCompare(b.wholesalerName)
           )
+
         );
+        setLoading(false);
       } catch (error) {
+        setLoading(false);
         console.error("Error fetching stock:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -191,10 +210,16 @@ const StockManager: React.FC = () => {
       )
     );
   };
-
+  
   return (
     <div className="container mx-auto mt-10 p-4">
       <h1 className="text-3xl font-bold mb-5 text-center">Stock Manager</h1>
+      {loading && (
+        // Render loader when loading
+        <div className="flex justify-center items-center h-64">
+          <Lottie options={loaderOptions} height={150} width={150} />
+        </div>
+      ) }
       {!selectedWholesaler ? (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     {wholesalers.map((wholesaler) => (
@@ -297,6 +322,7 @@ const StockManager: React.FC = () => {
         ))}
       </tbody>
     </table>
+    
   </div>
 )}
 
@@ -420,6 +446,7 @@ const StockManager: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      
     </div>
   );
 };
