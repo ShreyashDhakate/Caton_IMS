@@ -93,7 +93,7 @@ pub async fn login_user(
                 "phone": user.mobile,
                 "address": user.address,
             });
-
+            println!("{:?}",user_response);
             return Ok(user_response.to_string());
         }
     }
