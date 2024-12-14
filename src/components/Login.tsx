@@ -38,7 +38,21 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
 
+
+
+  const checkConnectivity = (): boolean => {
+    if (navigator.onLine) {
+      return true;
+    } else {
+      toast.error("No internet connection. Please check your network.");
+      return false;
+    }
+  };
+
   const handleLogin = async () => {
+    
+    if (!checkConnectivity()) return;
+
     if (!username || !password) {
       toast.error("Please enter both username and password.");
       return;

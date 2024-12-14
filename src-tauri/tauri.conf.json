@@ -12,11 +12,12 @@
   "app": {
     "windows": [
   {
-    "title": "caton",
-    "width": 800,
-    "height": 600,
-    "resizable": true,
-    "fullscreen": false
+        "title": "Caton",
+        "width": 800,
+        "height": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "visible": true
   }
 ]
 ,
