@@ -12,7 +12,7 @@ import Appointment from "./components/Appointment";
 import History from "./components/History";
 import Patients from "./components/Patients";
 import StockManager from "./components/StockManager";
-// import ComingSoonPage from "./components/CommingSoon";
+import ComingSoonPage from "./components/CommingSoon";
 import BillingParent from "./components/BillingParent";
 import MedicineManager from "./components/MedicineManager";
 // Custom festival backgrounds
@@ -68,6 +68,7 @@ const ProtectedRoutes: React.FC = () => {
           <Route path="/billing" element={<BillingParent />} />
           <Route path="/stockmanager" element={<StockManager/>} />
           <Route path="/medmanager" element={<MedicineManager/>} />
+          <Route path="/editmedicine" element={ <ComingSoonPage/> }/>
         </>
       )}
       <Route path="/history" element={<History />} />

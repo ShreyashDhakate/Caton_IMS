@@ -1,7 +1,8 @@
 import Dexie from "dexie";
 
 export interface Medicine {
-  id?: string;
+  [x: string]: any;
+  _id?: { $oid: string };
   user_id: string;
   name: string;
   batch_number: string;
@@ -23,7 +24,7 @@ export interface Sale {
 
 class MedicineDatabase extends Dexie {
   medicines!: Dexie.Table<Medicine, string>; // Table schema
-
+  
   constructor() {
     super("MedicineDatabase");
     this.version(1).stores({

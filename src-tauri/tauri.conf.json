@@ -26,6 +26,7 @@
 
   },
   "bundle": {
+    "publisher": "Zip Software Services",
     "active": true,
     "targets": "all",
     "icon": [

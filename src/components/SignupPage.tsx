@@ -73,7 +73,8 @@ const SignupPage: React.FC = () => {
       setOtpSent(true);
       toast.success("OTP sent to your email!");
     } catch (error: any) {
-      toast.error(`Failed to send OTP: ${error.message || error}`);
+      (otpVerified || toast.error(`Failed to send OTP: ${error.message || error}`));
+      
     }
   };
 

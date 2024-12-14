@@ -1,16 +1,13 @@
 use crate::database::get_db_connection;
 use serde::{Deserialize, Serialize};
-use tauri::{command, State};
-use crate::db::DbState;
+use tauri::command;
+
 use futures::stream::StreamExt;
 use futures::TryStreamExt;
-use mongodb::bson;
 use mongodb::options::FindOptions;
-use regex::Regex;
 use chrono::Utc;
-use mongodb::error::Error;
-use mongodb::{Collection, Cursor};
-use mongodb::bson::{to_bson,doc, Document, Bson , oid::ObjectId};
+use mongodb::Collection;
+use mongodb::bson::{doc, oid::ObjectId};
 // use mongodb::bson::oid::ObjectId;
 
 
@@ -18,7 +15,7 @@ use mongodb::bson::{to_bson,doc, Document, Bson , oid::ObjectId};
 #[command]
 pub async fn initialize_db() -> Result<String, String> {
     let db = get_db_connection().await;
-    let collection: Collection<Medicine> = db.collection("medicines");
+    let _collection: Collection<Medicine> = db.collection("medicines");
     Ok("Medicines collection initialized successfully.".to_string())
 }
 
@@ -95,11 +92,11 @@ pub async fn get_stock(hospital_id: &str) -> Result<Vec<Wholesaler>, String> {
 
     // Group medicines by wholesaler_name and purchase_date
     let mut wholesalers_map: std::collections::HashMap<(String, String), Vec<Medicine>> = std::collections::HashMap::new();
-    for mut medicine in medicines {
+    for  medicine in medicines {
         // Ensure id is converted to string for frontend (not modifying the medicine.id directly)
         if let Some(ref id) = medicine.id {
             // Optionally, you could convert the id to a string for display purposes:
-            let id_string = id.to_string();
+            let _id_string = id.to_string();
             // You can now send id_string to the frontend, but keep the original ObjectId intact.
         }
         let key = (medicine.wholesaler_name.clone(), medicine.purchase_date.clone());
@@ -312,6 +309,16 @@ pub async fn update_batch(
     if let Some(sp) = selling_price {
         update_doc.insert("selling_price", sp);
     }
+    if let Some(expiry) = expiry_date {
+        update_doc.insert("expiry_date", expiry);
+    }
+    if let Some(wn) = wholesaler_name {
+        update_doc.insert("wholesaler_name", wn);
+    }
+    if let Some(pd) = purchase_date {
+        update_doc.insert("purchase_date", pd);
+    }
+    
 
     if update_doc.is_empty() {
         return Err("No fields to update.".to_string());

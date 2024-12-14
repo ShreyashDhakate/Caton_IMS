@@ -31,15 +31,15 @@ interface WholesalerPurchase {
   purchaseDate: string;
   medicines: Medicine[];
 }
-interface BackendMedicine {
-  _id?: { $oid: string };
-  name: string;
-  batch_number: string;
-  expiry_date: string;
-  quantity: number;
-  purchase_price: number;
-  selling_price: number;
-}
+// interface BackendMedicine {
+//   _id?: { $oid: string };
+//   name: string;
+//   batch_number: string;
+//   expiry_date: string;
+//   quantity: number;
+//   purchase_price: number;
+//   selling_price: number;
+// }
 
 const StockAdd: React.FC = () => {
   const [purchases, setPurchases] = useState<WholesalerPurchase[]>([

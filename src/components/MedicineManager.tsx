@@ -52,19 +52,13 @@ const MedicineManager: React.FC = () => {
   console.log(hospitalId);
   // Fetch medicines from the backend
   const fetchMedicines = async () => {
-    console.log(hospitalId);
-    // setLoading(true);
+    setLoading(true);
     try {
-      const result = await invoke<{
-        _id: any; id: string; user_id: string; name: string; batch_number: string; expiry_date: string; quantity: number; purchase_price: number; selling_price: number; wholesaler_name: string; purchase_date: string; 
-}[]>(
-        "fetch_medicine",
-        { hospitalId }
-      );
+      const result = await invoke<Medicine[]>("fetch_medicine", { hospitalId });
       console.log(result);
-      const transformedResult: Medicine[] = result.map((medicine) => ({
+      const transformedResult = result.map((medicine) => ({
         ...medicine,
-        id: medicine._id?.$oid, 
+        id: medicine._id?.$oid,
       }));
       console.log(transformedResult);
       await db.medicines.clear();
@@ -76,6 +70,7 @@ const MedicineManager: React.FC = () => {
       setLoading(false);
     }
   };
+
   
   
 
@@ -122,6 +117,7 @@ const MedicineManager: React.FC = () => {
       setMedicines(localMedicines);
       setLoading(false);
     } else {
+      console.log("123");
       // Fetch from backend if no local data
        fetchMedicines();
       

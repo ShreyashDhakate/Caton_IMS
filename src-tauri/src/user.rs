@@ -93,7 +93,7 @@ pub async fn login_user(
                 "phone": user.mobile,
                 "address": user.address,
             });
-            println!("{:?}",user_response);
+            
             return Ok(user_response.to_string());
         }
     }
@@ -108,9 +108,9 @@ pub async fn send_otp(user_collection: &Collection<User>, email: &str) -> Result
         .await
         .map_err(|e| e.to_string())?;
 
-    // if user.is_none() {
-    //     return Err("Email not registered".to_string());
-    // }
+    if user.is_none() {
+        return Err("Email not registered".to_string());
+    }
 
     // Generate numeric OTP
     let otp_code: String = rand::thread_rng()

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Location } from "react-router-dom";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
 import debounce from "lodash.debounce";
