@@ -1,7 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { TextField, Button, Box, Typography } from "@mui/material";
 import { toast } from "sonner";
+import { searchMedicines } from "../lib/stockdb";
+import { syncDoctorMedicinesFromMongoDB } from "../lib/doctorstock";
+
 
 interface BackendMedicine {
   _id?: { $oid: string };
@@ -20,6 +23,7 @@ interface MedicineInfo {
   quantity: number;
   sellingPrice: number;
   expiryDate: string;
+  purchasePrice: number;
 }
 
 const Appointment: React.FC = () => {
@@ -34,45 +38,71 @@ const Appointment: React.FC = () => {
   const [searchResults, setSearchResults] = useState<MedicineInfo[]>([]);
   const [selectedMedicines, setSelectedMedicines] = useState<MedicineInfo[]>([]);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        await syncDoctorMedicinesFromMongoDB();
+        console.log("Doctor's IndexedDB synced with MongoDB.");
+      } catch (error) {
+        console.error("Error syncing data to IndexedDB:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setPatient((prev) => ({ ...prev, [name]: value }));
   };
 
+  // const handleSearchMedicine = async (query: string) => {
+  //   try {
+  //     if (!query.trim()) {
+  //       setSearchResults([]);
+  //       return;
+  //     }
+
+  //     const userId = localStorage.getItem("userId");
+  //     const results: BackendMedicine[] = await invoke("search_medicines", {
+  //       query,
+  //       hospitalId: userId,
+  //     });
+
+  //     const mappedResults: MedicineInfo[] = results.map((medicine) => ({
+  //       id: medicine._id?.$oid || "", // Extracting the ID
+  //       name: medicine.name,
+  //       batchNumber: medicine.batch_number,
+  //       quantity: medicine.quantity,
+  //       sellingPrice: medicine.selling_price,
+  //       expiryDate: medicine.expiry_date,
+  //       purchasePrice: medicine.purchase_price,
+  //     }));
+
+  //     setSearchResults(mappedResults);
+  //   } catch (error) {
+  //     console.error("Error searching medicines:", error);
+  //     toast.error("Failed to fetch search results.");
+  //   }
+  // };
+
   const handleSearchMedicine = async (query: string) => {
-    try {
-      if (!query.trim()) {
-        setSearchResults([]);
-        return;
-      }
-
-      const userId = localStorage.getItem("userId");
-      const results: BackendMedicine[] = await invoke("search_medicines", {
-        query,
-        hospitalId: userId,
-      });
-
-      const mappedResults: MedicineInfo[] = results.map((medicine) => ({
-        id: medicine._id?.$oid || "", // Extracting the ID
-        name: medicine.name,
-        batchNumber: medicine.batch_number,
-        quantity: medicine.quantity,
-        sellingPrice: medicine.selling_price,
-        expiryDate: medicine.expiry_date,
-      }));
-
-      setSearchResults(mappedResults);
-    } catch (error) {
-      console.error("Error searching medicines:", error);
-      toast.error("Failed to fetch search results.");
-    }
-  };
+        try {
+          const results = await searchMedicines(query);
+          console.log(results);
+          // Convert string `id` to number before updating the state
+          setSearchResults(results);
+        } catch (error) {
+          console.error("Error searching medicines:", error);
+          toast.error("Failed to search medicines locally.");
+        }
+      };
 
   const handleMedicineSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setMedicineSearch(query);
 
-    if (query.length > 2) {
+    if (query.length > 0) {
       handleSearchMedicine(query);
     } else {
       setSearchResults([]);
@@ -80,10 +110,25 @@ const Appointment: React.FC = () => {
   };
 
   const handleAddMedicine = (medicine: MedicineInfo) => {
-    if (!selectedMedicines.find((item) => item.id === medicine.id)) {
-      setSelectedMedicines((prev) => [...prev, { ...medicine, quantity: 1 }]);
-    }
+    setSelectedMedicines((prev) => {
+      // Check if the medicine already exists in the array
+      const existingMedicine = prev.find((item) => item.id === medicine.id);
+  
+      if (existingMedicine) {
+        // If the medicine exists, return a new array with the quantity updated
+        return prev.map((item) =>
+          item.id === medicine.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+  
+      // If the medicine doesn't exist, add it to the array
+      return [...prev, { ...medicine, quantity: 1 }];
+    });
   };
+  
+  
 
   const handleRemoveMedicine = (index: number) => {
     setSelectedMedicines((prev) => prev.filter((_, i) => i !== index));
@@ -220,19 +265,19 @@ const Appointment: React.FC = () => {
           fullWidth
         />
         <Box className="mb-4">
-          {searchResults.map((medicine, index) => (
-            <Box
-              key={index}
-              className="flex items-center justify-between border-b py-2 cursor-pointer hover:bg-gray-200"
-              onClick={() => handleAddMedicine(medicine)}
-            >
-              <Typography variant="body2" className="flex-1">
-                {medicine.name} | Batch: {medicine.batchNumber} | Qty:{" "}
-                {medicine.quantity} | Price: ₹{medicine.sellingPrice} | Exp:{" "}
-                {medicine.expiryDate}
-              </Typography>
-            </Box>
-          ))}
+        {searchResults.map((medicine, index) => (
+  <Box
+    key={medicine.id} // Use `medicine.id` if unique
+    className="flex items-center justify-between border-b py-2 cursor-pointer hover:bg-gray-200"
+    onClick={() => handleAddMedicine(medicine)}
+  >
+    <Typography variant="body2" className="flex-1">
+      {medicine.name} | Batch: {medicine.batchNumber} | Qty:{" "}
+      {medicine.quantity} | Price: ₹{medicine.sellingPrice} | Exp:{" "}
+      {medicine.expiryDate}
+    </Typography>
+  </Box>
+))}
         </Box>
         <Box>
           <Typography variant="subtitle1" className="mt-4 mb-2">

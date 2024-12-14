@@ -1,7 +1,7 @@
 import Dexie from "dexie";
 
 export interface Medicine {
-  id?: string;
+  id: string;
   user_id: string;
   name: string;
   batch_number: string;

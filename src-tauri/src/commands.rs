@@ -26,6 +26,7 @@ pub async fn initialize_db() -> Result<String, String> {
 pub struct Medicine {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
+    pub local_id: String,
     pub user_id: String,
     pub name: String,
     pub batch_number: String,
@@ -39,6 +40,7 @@ pub struct Medicine {
 
 #[command]
 pub async fn insert_medicine(
+    local_id: String,
     name: String,
     batch_number: String,
     expiry_date: String,
@@ -55,6 +57,7 @@ pub async fn insert_medicine(
 
     let new_medicine = Medicine {
         id: None,
+        local_id,
         user_id: hospital_id,
         name,
         batch_number,
@@ -278,6 +281,28 @@ pub async fn update_stock(
     Ok("Stock updated successfully.".to_string())
 }
 
+#[command]
+pub async fn check_medicine_batch(
+    name: String,
+    batch_number: String,
+    hospital_id: String,
+) -> Result<bool, String> {
+    let db = get_db_connection().await;
+    let collection: Collection<Medicine> = db.collection("medicines");
+
+    // Build filter document using name, batch_number, and hospital_id
+    let filter = doc! {
+        "name": name,
+        "batch_number": batch_number,
+        "user_id": hospital_id,
+    };
+
+    match collection.find_one(filter, None).await {
+        Ok(Some(_)) => Ok(true), // Batch exists
+        Ok(None) => Ok(false),  // Batch does not exist
+        Err(e) => Err(e.to_string()), // Error during the query
+    }
+}
 
 
 #[command]

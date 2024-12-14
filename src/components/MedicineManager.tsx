@@ -6,7 +6,8 @@ import { db } from "../lib/db";
 // Define the Medicine type to match the backend structure
 type Medicine = {
   [x: string]: any;
-  _id?: { $oid: string }; // Optional, matches `Option<ObjectId>` in Rust
+  // _id?: { $oid: string }; // Optional, matches `Option<ObjectId>` in Rust
+  id:string;
   user_id: string;
   name: string;
   batch_number: string;

@@ -14,9 +14,14 @@ import dayjs from "dayjs";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
 import { openDB } from "idb";
+import { addMedicine, fetchAndGroupMedicines } from "../lib/stockdb";
+import { db } from "../lib/db";
+import { searchMedicines, syncMedicinesToMongoDB } from "../lib/stockdb";
+
+
 
 interface Medicine {
-  id: number;
+  id: string;
   name: string;
   batchNumber: string;
   expiryDate: string;
@@ -26,7 +31,7 @@ interface Medicine {
 }
 
 interface WholesalerPurchase {
-  id: number;
+  id: string;
   wholesalerName: string;
   purchaseDate: string;
   medicines: Medicine[];
@@ -44,12 +49,12 @@ interface BackendMedicine {
 const StockAdd: React.FC = () => {
   const [purchases, setPurchases] = useState<WholesalerPurchase[]>([
     {
-      id: 1,
+      id: crypto.randomUUID(),
       wholesalerName: "",
       purchaseDate: dayjs().format("YYYY-MM-DD"),
       medicines: [
         {
-          id: Date.now(),
+          id: crypto.randomUUID(),
           name: "",
           batchNumber: "",
           expiryDate: "",
@@ -62,96 +67,98 @@ const StockAdd: React.FC = () => {
   ]);
 
   const [searchResults, setSearchResults] = useState<Medicine[]>([]);
-  const [activeMedicineId, setActiveMedicineId] = useState<number | null>(null);
+  const [activeMedicineId, setActiveMedicineId] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Initialize IndexedDB on component mount
-    initializeIndexedDB();
-  }, []);
+  // useEffect(() => {
+  //   // Initialize IndexedDB on component mount
+  //   initializeIndexedDB();
+  // }, []);
   // 
   const handleSearchMedicine = async (query: string) => {
     try {
-      if (!query.trim()) {
-        setSearchResults([]);
-        return;
-      }
-
-      const db = await initializeIndexedDB();
-      const tx = db.transaction("medicines", "readonly");
-      const store = tx.objectStore("medicines");
-
-      const allMedicines: Medicine[] = await store.getAll();
-      const results = allMedicines.filter((medicine) =>
-        medicine.name.toLowerCase().includes(query.toLowerCase())
-      );
-
+      const results = await searchMedicines(query);
+      // console.log(results);
+  
+      // Convert string `id` to number before updating the state
       setSearchResults(results);
     } catch (error) {
-      console.error("Error searching medicines in IndexedDB:", error);
+      console.error("Error searching medicines:", error);
       toast.error("Failed to search medicines locally.");
     }
   };
+  
 
-  // Initialize IndexedDB
-  const initializeIndexedDB = async () => {
-    const db = await openDB("MedicineDB", 1, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains("medicines")) {
-          db.createObjectStore("medicines", { keyPath: "id" });
-        }
-      },
-    });
-    console.log("inedxeddb initialized");
-    return db;
-  };
-    // Sync data to MongoDB
-    const syncToMongoDB = async () => {
+  // // Initialize IndexedDB
+  // const initializeIndexedDB = async () => {
+  //   const db = await openDB("MedicineDB", 1, {
+  //     upgrade(db) {
+  //       if (!db.objectStoreNames.contains("medicines")) {
+  //         db.createObjectStore("medicines", { keyPath: "id" });
+  //       }
+  //     },
+  //   });
+  //   console.log("inedxeddb initialized");
+  //   return db;
+  // };
+  
+  
+  useEffect(() => {
+    const intervalId = setInterval(async () => {
       try {
-        const db = await initializeIndexedDB();
-        const tx = db.transaction("medicines", "readwrite");
-        const store = tx.objectStore("medicines");
-        const allMedicines = await store.getAll();
+        await syncMedicinesToMongoDB();
+        console.log("Synced medicines to MongoDB");
+      } catch (error) {
+        console.error("Error syncing medicines:", error);
+      }
+    }, 3600000); // Sync every 1 hour
   
-        for (const medicine of allMedicines) {
-          if (!medicine.synced) {
-            try {
-              const userId = localStorage.getItem("userId");
-              await invoke("insert_medicine", {
-                name: medicine.name,
-                batchNumber: medicine.batchNumber,
-                expiryDate: medicine.expiryDate,
-                quantity: medicine.quantity,
-                purchasePrice: medicine.purchasePrice,
-                sellingPrice: medicine.sellingPrice,
-                wholesalerName: medicine.wholesalerName,
-                purchaseDate: medicine.purchaseDate,
-                hospitalId: userId,
-              });
+    return () => clearInterval(intervalId);
+  }, []);
+
   
-              // Mark as synced
-              medicine.synced = true;
-              await store.put(medicine);
-            } catch (error) {
-              console.error("Error syncing to MongoDB:", error);
+    const handleSubmit = async () => {
+      try {
+        for (const purchase of purchases) {
+          for (const medicine of purchase.medicines) {
+            if (
+              !medicine.name.trim() ||
+              !medicine.batchNumber.trim() ||
+              !medicine.expiryDate.trim() ||
+              medicine.quantity <= 0 ||
+              medicine.purchasePrice <= 0 ||
+              medicine.sellingPrice <= 0
+            ) {
+              toast.error("Please fill in all fields for each medicine.");
+              return;
             }
+  
+            // Add medicine to IndexedDB
+            await addMedicine({
+              id: crypto.randomUUID(), // Generate a unique ID
+              user_id: localStorage.getItem("userId") || "default_user",
+              name: medicine.name,
+              batch_number: medicine.batchNumber,
+              expiry_date: medicine.expiryDate,
+              quantity: medicine.quantity,
+              purchase_price: medicine.purchasePrice,
+              selling_price: medicine.sellingPrice,
+              wholesaler_name: purchase.wholesalerName,
+              purchase_date: purchase.purchaseDate,
+            });
+            
+  
+            toast.success(`Medicine saved locally: ${medicine.name}`);
           }
         }
-  
-        await tx.done;
       } catch (error) {
-        console.error("Error syncing IndexedDB data:", error);
+        console.error("Error saving medicines:", error);
+        toast.error("Failed to save medicines locally.");
       }
     };
 
-    useEffect(() => {
-      // Periodically sync to MongoDB
-      const intervalId = setInterval(syncToMongoDB, 300000); // Sync every 5 minutes
-      return () => clearInterval(intervalId);
-    }, []);
-
   const handleMedicineChange = (
-    purchaseId: number,
-    medicineId: number,
+    purchaseId: string,
+    medicineId: string,
     field: keyof Medicine,
     value: string | number
   ) => {
@@ -175,8 +182,8 @@ const StockAdd: React.FC = () => {
   };
 
   const handleSelectMedicine = (
-    purchaseId: number,
-    medicineId: number,
+    purchaseId: string,
+    medicineId: string,
     selected: Medicine
   ) => {
     setPurchases((prev) =>
@@ -206,94 +213,6 @@ const StockAdd: React.FC = () => {
     toast.success(`Selected medicine: ${selected.name}`);
   };
 
-  // const handleSubmit = async () => {
-  //   try {
-  //     const userId = localStorage.getItem("userId");
-
-  //     for (const purchase of purchases) {
-  //       for (const medicine of purchase.medicines) {
-  //         if (
-  //           !medicine.name.trim() ||
-  //           !medicine.batchNumber.trim() ||
-  //           !medicine.expiryDate.trim() ||
-  //           medicine.quantity <= 0 ||
-  //           medicine.purchasePrice <= 0 ||
-  //           medicine.sellingPrice <= 0
-  //         ) {
-  //           toast.error("Please fill in all fields for each medicine.");
-  //           return;
-  //         }
-
-  //         // const existingMedicine = searchResults.find(
-  //         //   (result) => result.name.toLowerCase() === medicine.name.toLowerCase()
-  //         // );
-
-  //         // if (existingMedicine) {
-  //         //   await invoke("add_batch", {
-  //         //     medicineId: existingMedicine.id,
-  //         //     batchNumber: medicine.batchNumber,
-  //         //     expiryDate: medicine.expiryDate,
-  //         //     quantity: medicine.quantity,
-  //         //     purchasePrice: medicine.purchasePrice,
-  //         //     sellingPrice: medicine.sellingPrice,
-  //         //     wholesalerName: purchase.wholesalerName,
-  //         //     purchaseDate: purchase.purchaseDate,
-  //         //     hospitalId: userId,
-  //         //   });
-  //         //   toast.success(`Batch added to existing medicine: ${medicine.name}`);
-  //         // } else {
-  //           await invoke("insert_medicine", {
-  //             name: medicine.name,
-  //             batchNumber: medicine.batchNumber,
-  //             expiryDate: medicine.expiryDate,
-  //             quantity: medicine.quantity,
-  //             purchasePrice: medicine.purchasePrice,
-  //             sellingPrice: medicine.sellingPrice,
-  //             wholesalerName: purchase.wholesalerName,
-  //             purchaseDate: purchase.purchaseDate,
-  //             hospitalId: userId,
-  //           });
-  //           toast.success(`New medicine added: ${medicine.name}`);
-  //         // }
-  //       }
-  //     }
-  //   } catch (error) {
-  //     console.error("Error processing purchases:", error);
-  //     toast.error("Failed to confirm purchase.");
-  //   }
-  // };
-  const handleSubmit = async () => {
-    try {
-      const db = await initializeIndexedDB();
-
-      for (const purchase of purchases) {
-        for (const medicine of purchase.medicines) {
-          if (
-            !medicine.name.trim() ||
-            !medicine.batchNumber.trim() ||
-            !medicine.expiryDate.trim() ||
-            medicine.quantity <= 0 ||
-            medicine.purchasePrice <= 0 ||
-            medicine.sellingPrice <= 0
-          ) {
-            toast.error("Please fill in all fields for each medicine.");
-            return;
-          }
-
-          // Save to IndexedDB
-          const tx = db.transaction("medicines", "readwrite");
-          const store = tx.objectStore("medicines");
-
-          await store.add(medicine);
-
-          toast.success(`New medicine added locally: ${medicine.name}`);
-        }
-      }
-    } catch (error) {
-      console.error("Error saving medicines locally:", error);
-      toast.error("Failed to save medicines locally.");
-    }
-  };
 
   return (
     <div className="p-6 mx-auto bg-white shadow-lg rounded-lg">
@@ -424,7 +343,7 @@ const StockAdd: React.FC = () => {
                         medicines: [
                           ...p.medicines,
                           {
-                            id: Date.now(),
+                            id: crypto.randomUUID(),
                             name: "",
                             batchNumber: "",
                             expiryDate: "",

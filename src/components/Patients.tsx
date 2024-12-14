@@ -38,7 +38,7 @@ const Patients: React.FC = () => {
 
       // Update global previous count and set appointments
       GlobalState.previousCount = data.length;
-      console.log("data: ",data);
+      // console.log("data: ",data);
       setAppointments(data);
       // console.log("Appointments:",appointments);
     } catch (error) {
@@ -66,8 +66,8 @@ const Patients: React.FC = () => {
         medicines: selectedAppointment.medicines,
       };
       localStorage.setItem(appointmentKey, JSON.stringify(appointmentData));
-      console.log(appointmentData);
-      console.log(appointmentKey);
+      // console.log(appointmentData);
+      // console.log(appointmentKey);
       // Pass the appointment ID to the billing page
       navigate("/billing", { state: { appointmentId: selectedAppointment.id } });
     }
