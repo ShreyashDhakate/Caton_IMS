@@ -128,7 +128,7 @@ export async function searchMedicines(query: string): Promise<Medicine[]> {
 export async function syncMedicinesToMongoDB(): Promise<void> {
   try {
     const medicines: OriginalMedicine[] = await db.medicines.toArray();
-
+    console.log("medicines to sync to mongoDB:",medicines);
     for (const medicine of medicines) {
       try {
         const userId = localStorage.getItem("userId");

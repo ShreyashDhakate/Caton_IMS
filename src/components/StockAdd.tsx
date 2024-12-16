@@ -11,11 +11,8 @@ import {
 } from "@mui/material";
 import { AddCircleOutline, DeleteOutline } from "@mui/icons-material";
 import dayjs from "dayjs";
-import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
-import { openDB } from "idb";
-import { addMedicine, fetchAndGroupMedicines } from "../lib/stockdb";
-import { db } from "../lib/db";
+import { addMedicine } from "../lib/stockdb";
 import { searchMedicines, syncMedicinesToMongoDB } from "../lib/stockdb";
 
 
@@ -110,7 +107,7 @@ const StockAdd: React.FC = () => {
       } catch (error) {
         console.error("Error syncing medicines:", error);
       }
-    }, 3600000); // Sync every 1 hour
+    }, 60000); // Sync every 1 hour
   
     return () => clearInterval(intervalId);
   }, []);

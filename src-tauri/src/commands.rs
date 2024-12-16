@@ -307,7 +307,7 @@ pub async fn check_medicine_batch(
 
 #[command]
 pub async fn update_batch(
-    medicine_id: String,
+    local_id: String,
     batch_number: String,
     quantity: Option<u32>,
     expiry_date: Option<String>,
@@ -322,7 +322,7 @@ pub async fn update_batch(
     let collection: Collection<Medicine> = db.collection("medicines");
 
     let filter = doc! {
-        "_id": ObjectId::parse_str(&medicine_id).map_err(|_| "Invalid medicine ID".to_string())?,
+        "local_id": local_id,
         "user_id": hospital_id,
         "batch_number": batch_number.clone(),
     };
@@ -584,4 +584,27 @@ pub async fn get_medicine_by_id(medicine_id: String) -> Result<Medicine, String>
 
     // Step 4: Return the retrieved medicine
     Ok(medicine)
+}
+
+#[command]
+pub async fn get_all_medicines(hospital_id: String) -> Result<Vec<Medicine>, String> {
+    let db = get_db_connection().await;
+    let collection: Collection<Medicine> = db.collection("medicines");
+
+    // Query to filter medicines by the hospital's user ID
+    let filter = doc! { "user_id": &hospital_id };
+
+    // Fetch all medicines matching the filter
+    let cursor = collection
+        .find(filter, None)
+        .await
+        .map_err(|e| e.to_string())?;
+    
+    // Collect all medicines into a Vec
+    let medicines: Vec<Medicine> = cursor
+        .try_collect()
+        .await
+        .map_err(|e| e.to_string())?;
+    
+    Ok(medicines)
 }

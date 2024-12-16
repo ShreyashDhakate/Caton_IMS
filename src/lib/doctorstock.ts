@@ -3,6 +3,8 @@ import { doctorDb } from "./doctordb"; // Path to the doctor's IndexedDB instanc
 
 interface MongoDBMedicine {
   _id: { $oid: string };
+  local_id: string;
+  user_id: string;
   name: string;
   batch_number: string;
   expiry_date: string;
@@ -13,8 +15,12 @@ interface MongoDBMedicine {
   purchase_date: string;
 }
 
-interface DoctorMedicine {
-  id: string;
+
+// Type for OriginalMedicine
+type OriginalMedicine = {
+  [x: string]: any;
+  id: string; // Optional for flexibility during initial data creation
+  user_id: string;
   name: string;
   batch_number: string;
   expiry_date: string;
@@ -23,22 +29,55 @@ interface DoctorMedicine {
   selling_price: number;
   wholesaler_name: string;
   purchase_date: string;
+};
+
+// Required format interfaces
+export interface Medicine {
+  id: string;
+  name: string;
+  batchNumber: string;
+  expiryDate: string;
+  quantity: number;
+  purchasePrice: number;
+  sellingPrice: number;
+}
+
+// Search medicines by name
+export async function searchDoctorMedicines(query: string): Promise<Medicine[]> {
+  if (!query.trim()) return [];
+  const medicines: Medicine[] = await doctorDb.medicines.toArray();
+
+  return medicines
+    .filter((medicine) => medicine.name.toLowerCase().includes(query.toLowerCase()))
+    .map((medicine) => ({
+      id: medicine.id || crypto.randomUUID(), // Ensure an ID is present
+      name: medicine.name,
+      batchNumber: medicine.batchNumber,
+      expiryDate: medicine.expiryDate,
+      quantity: medicine.quantity,
+      purchasePrice: medicine.purchasePrice,
+      sellingPrice: medicine.sellingPrice,
+    }));
 }
 
 export async function syncDoctorMedicinesFromMongoDB(): Promise<void> {
   try {
-    const medicines: MongoDBMedicine[] = await invoke("get_all_medicines");
+    const hospitalId = localStorage.getItem("userId"); // Retrieve hospitalId from local storage
+    if (!hospitalId) {
+      throw new Error("Hospital ID is missing from local storage.");
+    }
+    const medicines: MongoDBMedicine[] = await invoke("get_all_medicines", {
+      hospitalId: hospitalId,
+    });
 
-    const formattedMedicines: DoctorMedicine[] = medicines.map((medicine) => ({
-      id: medicine._id.$oid,
+    const formattedMedicines: Medicine[] = medicines.map((medicine) => ({
+      id: medicine.local_id,
       name: medicine.name,
-      batch_number: medicine.batch_number,
-      expiry_date: medicine.expiry_date,
+      batchNumber: medicine.batch_number,
+      expiryDate: medicine.expiry_date,
       quantity: medicine.quantity,
-      purchase_price: medicine.purchase_price,
-      selling_price: medicine.selling_price,
-      wholesaler_name: medicine.wholesaler_name,
-      purchase_date: medicine.purchase_date,
+      purchasePrice: medicine.purchase_price,
+      sellingPrice: medicine.selling_price,
     }));
 
     await doctorDb.transaction("rw", doctorDb.medicines, async () => {

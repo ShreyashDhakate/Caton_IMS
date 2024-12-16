@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { TextField, Button, Box, Typography } from "@mui/material";
 import { toast } from "sonner";
 import { searchMedicines } from "../lib/stockdb";
-import { syncDoctorMedicinesFromMongoDB } from "../lib/doctorstock";
+import { searchDoctorMedicines, syncDoctorMedicinesFromMongoDB } from "../lib/doctorstock";
 
 
 interface BackendMedicine {
@@ -47,48 +47,26 @@ const Appointment: React.FC = () => {
         console.error("Error syncing data to IndexedDB:", error);
       }
     };
-
+  
+    // Initial fetch when the component mounts
     fetchData();
+  
+    // Set up an interval to run the fetchData function every hour (3600000ms)
+    const interval = setInterval(fetchData, 3600000);
+  
+    // Cleanup interval on component unmount
+    return () => clearInterval(interval);
   }, []);
+  
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setPatient((prev) => ({ ...prev, [name]: value }));
   };
 
-  // const handleSearchMedicine = async (query: string) => {
-  //   try {
-  //     if (!query.trim()) {
-  //       setSearchResults([]);
-  //       return;
-  //     }
-
-  //     const userId = localStorage.getItem("userId");
-  //     const results: BackendMedicine[] = await invoke("search_medicines", {
-  //       query,
-  //       hospitalId: userId,
-  //     });
-
-  //     const mappedResults: MedicineInfo[] = results.map((medicine) => ({
-  //       id: medicine._id?.$oid || "", // Extracting the ID
-  //       name: medicine.name,
-  //       batchNumber: medicine.batch_number,
-  //       quantity: medicine.quantity,
-  //       sellingPrice: medicine.selling_price,
-  //       expiryDate: medicine.expiry_date,
-  //       purchasePrice: medicine.purchase_price,
-  //     }));
-
-  //     setSearchResults(mappedResults);
-  //   } catch (error) {
-  //     console.error("Error searching medicines:", error);
-  //     toast.error("Failed to fetch search results.");
-  //   }
-  // };
-
   const handleSearchMedicine = async (query: string) => {
         try {
-          const results = await searchMedicines(query);
+          const results = await searchDoctorMedicines(query);
           console.log(results);
           // Convert string `id` to number before updating the state
           setSearchResults(results);
