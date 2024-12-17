@@ -45,7 +45,7 @@ pub async fn signup_user(
 
     // Create the user object
     let user = User {
-        id: None,
+        id: Some(ObjectId::new()),
         username: username.to_string(),
         name: name.to_string(),
         mobile: mobile.to_string(),

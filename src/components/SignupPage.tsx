@@ -10,7 +10,7 @@ import QRCode from "react-qr-code";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
-import Lottie from "react-lottie";
+import Lottie from "lottie-react";
 import step1Animation from "./animations/growth.json";
 import step2Animation from "./animations/payment.json";
 import step3Animation from "./animations/push.json";
@@ -21,7 +21,7 @@ const SignupPage: React.FC = () => {
   const [name, setName] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
-  const [otpVerified, setOtpVerified] = useState(false);
+  // const [otpVerified, setOtpVerified] = useState(false);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
@@ -53,55 +53,6 @@ const SignupPage: React.FC = () => {
   const handlePreviousStep = () =>
     setStep((prev) => (prev > 1 ? prev - 1 : prev));
 
-  const handleSendOtp = async () => {
-    if (!email) {
-      toast.error("Please enter your email to receive OTP.");
-      return;
-    }
-
-    try {
-      await invoke("signup", { 
-        username,
-        name,
-        mobile,
-        address,
-        hospital,
-        passwordDoc,
-        passwordPharma,
-        email,
-       });
-      setOtpSent(true);
-      toast.success("OTP sent to your email!");
-    } catch (error: any) {
-      toast.error(`Failed to send OTP: ${error.message || error}`);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!otp) {
-      toast.error("Please enter the OTP.");
-      return;
-    }
-
-    try {
-      await invoke("verify_signup", { 
-        username,
-        name,
-        mobile,
-        address,
-        hospital,
-        passwordDoc,
-        passwordPharma,
-        email,
-        otp, });
-      setOtpVerified(true);
-      toast.success("OTP verified successfully!");
-      handleNextStep();
-    } catch (error: any) {
-      toast.error(`Invalid or expired OTP: ${error.message || error}`);
-    }
-  };
-
   const handleSignup = async () => {
     // Validate required fields
     if (!name || !email || !mobile || !passwordDoc || !passwordPharma) {
@@ -128,6 +79,7 @@ const SignupPage: React.FC = () => {
       toast.error("Passwords do not match!");
       return;
     }
+
   
     // Log the username value
     console.log("Signup data being sent:", { username, name, email, mobile, passwordDoc, passwordPharma });
@@ -172,7 +124,12 @@ const SignupPage: React.FC = () => {
           }}
         >
           {step !== 4 && (
-            <Lottie options={defaultOptions} height="100%" width="100%" />
+            <Lottie
+            animationData={defaultOptions.animationData}
+            loop={defaultOptions.loop}
+            autoplay={defaultOptions.autoplay}
+            style={{ width: "100%", height: "100%" }}
+          />
           )}
         </div>
       </Grid>
@@ -226,31 +183,13 @@ const SignupPage: React.FC = () => {
                     variant="contained"
                     color="primary"
                     fullWidth
-                    onClick={handleSendOtp}
+                    onClick={handleNextStep}
                     disabled={otpSent}
                   >
-                    {otpSent ? "OTP Sent" : "Send OTP"}
+                    NEXT
                   </Button>
                 </Grid>
-                {otpSent && (
-                  <Grid item xs={12}>
-                    <TextField
-                      variant="outlined"
-                      label="Enter OTP"
-                      fullWidth
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
-                    />
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      fullWidth
-                      onClick={handleVerifyOtp}
-                    >
-                      Verify OTP
-                    </Button>
-                  </Grid>
-                )}
+        
               </Grid>
             </>
           )}
@@ -396,8 +335,12 @@ const SignupPage: React.FC = () => {
               style={{ textAlign: "center" }}
             >
               <div style={{ width: "80%", height: "50%" }}>
-                <Lottie options={defaultOptions} height="100%" width="100%" />
-              </div>
+<Lottie
+  animationData={defaultOptions.animationData}
+  loop={defaultOptions.loop}
+  autoplay={defaultOptions.autoplay}
+  style={{ width: "100%", height: "100%" }}
+/>              </div>
               <Typography variant="h3" align="center" style={{ fontWeight: "bold" }}>
                 Welcome to the board, Customer
               </Typography>

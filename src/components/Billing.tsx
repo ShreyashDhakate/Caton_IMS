@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react";
 import { Location } from "react-router-dom";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { invoke } from "@tauri-apps/api/core";
 import debounce from "lodash.debounce";
 import BillingSummary from "./BillingSummary";
 import { printBill } from "../hooks/printBill";
-import { Typography } from "@mui/material";
-import { fetchMedicineById, searchMedicines, syncMedicinesToMongoDB, updateMedicine } from "../lib/stockdb";
+import { fetchMedicineById, searchMedicines, updateMedicine } from "../lib/stockdb";
 
 
 interface Props {
@@ -31,15 +29,6 @@ interface MedicineDetail {
   quantity: number;
 }
 
-interface BackendMedicine {
-  _id?: { $oid: string };
-  name: string;
-  batch_number: string;
-  expiry_date: string;
-  quantity: number;
-  purchase_price: number;
-  selling_price: number;
-}
 
 
 const Billing: React.FC<Props> = ({ location }) => {  // const location = useLocation();
@@ -134,36 +123,7 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
   }
 }, [location.state, navigate]);
 
-  // Search for medicines
-  // const handleSearchMedicine = async (query: string) => {
-  //   try {
-  //     if (!query.trim()) {
-  //       setSearchResults([]);
-  //       return;
-  //     }
 
-  //     const userId = localStorage.getItem("userId");
-  //     const results: BackendMedicine[] = await invoke("search_medicines", {
-  //       query,
-  //       hospitalId: userId,
-  //     });
-
-  //     const mappedResults: MedicineInfo[] = results.map((medicine) => ({
-  //       id: medicine._id ? medicine._id.$oid : "", // Extract $oid or provide a fallback
-  //       name: medicine.name,
-  //       sellingPrice: medicine.selling_price,
-  //       batchNumber: medicine.batch_number,
-  //       expiryDate: medicine.expiry_date,
-  //       quantity: medicine.quantity,
-  //       purchasePrice: medicine.purchase_price,
-  //     }));
-
-  //     setSearchResults(mappedResults);
-  //   } catch (error) {
-  //     console.error("Error searching medicines:", error);
-  //     toast.error("Failed to fetch search results.");
-  //   }
-  // };
   const handleSearchMedicine = async (query: string) => {
       try {
         const results = await searchMedicines(query);
@@ -325,13 +285,15 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
         className="p-3 cursor-pointer hover:bg-gray-200 flex flex-col space-y-2"
         onClick={() => addMedicineToBilling(medicine)}
       >
-        <Typography variant="body2" className="text-gray-800">
-          <strong>{medicine.name}</strong>
-        </Typography>
-        <Typography variant="body2" className="text-gray-600">
-          Batch: {medicine.batchNumber} | Qty: {medicine.quantity} | Price: ₹{medicine.sellingPrice.toFixed(2)} | Exp:{" "}
-          {medicine.expiryDate}
-        </Typography>
+        <div>
+  <p className="text-gray-800 font-semibold">
+    <strong>{medicine.name}</strong>
+  </p>
+  <p className="text-gray-600 text-sm">
+    Batch: {medicine.batchNumber} | Qty: {medicine.quantity} | Price: ₹
+    {medicine.sellingPrice.toFixed(2)} | Exp: {medicine.expiryDate}
+  </p>
+</div>
       </li>
     ))}
   </ul>

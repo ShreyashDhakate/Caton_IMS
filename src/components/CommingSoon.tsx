@@ -1,6 +1,6 @@
 
 import { Box, Typography } from "@mui/material";
-import  Lottie  from "lottie-react";
+import Lottie from "lottie-react";
 import comingSoonAnimation from "./animations/comingsoon.json"; // Replace with your Lottie JSON file path
 
 const ComingSoonPage = () => {
