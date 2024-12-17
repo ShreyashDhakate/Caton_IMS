@@ -20,7 +20,7 @@ export default defineConfig(async () => ({
 
   build: {
     // Increase the chunk size warning limit
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 2000,
 
     // Manual chunking to split vendor code
     rollupOptions: {

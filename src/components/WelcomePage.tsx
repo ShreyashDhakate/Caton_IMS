@@ -24,7 +24,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ bgImage }) => {
       <div className="absolute inset-0 bg-black opacity-60"></div>
 
       {/* Main content */}
-      <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white px-6">
+      <div className="relative z-2 flex flex-col items-center justify-center h-full text-center text-white px-6">
         {/* Title */}
         <h1 className="text-4xl font-bold mb-4 sm:text-5xl lg:text-6xl">
           Welcome to Caton Dashboard
