@@ -1,29 +1,8 @@
 import React, { useState } from "react";
-import {
-  Button,
-  TextField,
-  Typography,
-  Container,
-  Paper,
-  Grid,
-  ToggleButton,
-  ToggleButtonGroup,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-} from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
 import { useAuth } from "../context/AuthContext";
-
-interface LoginResponse {
-  userId: string;
-  hospital: string;
-  address: string;
-  phone: string;
-}
 
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState("");
@@ -38,7 +17,18 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
 
+  const checkConnectivity = (): boolean => {
+    if (navigator.onLine) {
+      return true;
+    } else {
+      toast.error("No internet connection. Please check your network.");
+      return false;
+    }
+  };
+
   const handleLogin = async () => {
+    if (!checkConnectivity()) return;
+
     if (!username || !password) {
       toast.error("Please enter both username and password.");
       return;
@@ -51,9 +41,8 @@ const LoginPage: React.FC = () => {
         role,
       });
 
-      const parsedResponse: LoginResponse = JSON.parse(response);
+      const parsedResponse = JSON.parse(response);
 
-      // Save user data to localStorage
       localStorage.setItem("userId", parsedResponse.userId);
       localStorage.setItem("hospital", parsedResponse.hospital);
       localStorage.setItem("phone", parsedResponse.phone);
@@ -61,8 +50,8 @@ const LoginPage: React.FC = () => {
       localStorage.setItem("role", role);
 
       toast.success("Login successful!");
-      login(); // Update auth context
-      navigate("/"); // Redirect to the homepage
+      login();
+      navigate("/");
     } catch (error: any) {
       console.error("Login Error:", error);
       toast.error("Invalid username or password.");
@@ -103,130 +92,118 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <Container component="main" maxWidth="xs" className="animate-fade-in">
-      <Paper elevation={3} style={{ padding: "20px", marginTop: "100px" }}>
-        <Typography variant="h5" align="center">
-          Login
-        </Typography>
-        <form noValidate>
-          <Grid container spacing={2}>
-            <Grid item xs={12} style={{ textAlign: "center" }}>
-              <ToggleButtonGroup
-                value={role}
-                exclusive
-                onChange={(_, newRole) => newRole && setRole(newRole)}
-                aria-label="Role selection"
-              >
-                <ToggleButton value="Doctor" aria-label="Doctor">
-                  Doctor
-                </ToggleButton>
-                <ToggleButton value="Pharmacist" aria-label="Pharmacist">
-                  Pharmacist
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                variant="outlined"
-                label="Username"
-                fullWidth
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                variant="outlined"
-                label="Password"
-                type="password"
-                fullWidth
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <Button
-                variant="contained"
-                color="primary"
-                fullWidth
-                onClick={handleLogin}
-              >
-                Login
-              </Button>
-            </Grid>
-            <Grid item xs={12} style={{ textAlign: "center" }}>
-              <Button
-                color="primary"
-                onClick={() => setShowForgotPassword(true)}
-              >
-                Forgot Password?
-              </Button>
-            </Grid>
-            <Grid item xs={12}>
-              <Typography variant="body2" align="center">
-                Don't have an account?{" "}
-                <Button
-                  color="primary"
-                  onClick={() => navigate("/signup")}
-                >
-                  Sign up here
-                </Button>
-              </Typography>
-            </Grid>
-          </Grid>
-        </form>
-      </Paper>
-
-      {/* Forgot Password Dialog */}
-      <Dialog open={showForgotPassword} onClose={() => setShowForgotPassword(false)}>
-        <DialogTitle>Forgot Password</DialogTitle>
-        <DialogContent>
-          {step === "email" && (
-            <TextField
-              variant="outlined"
-              label="Email"
-              fullWidth
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={{ marginBottom: "10px" }}
-            />
-          )}
-          {step === "otp" && (
-            <>
-              <TextField
-                variant="outlined"
-                label="OTP"
-                fullWidth
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                style={{ marginBottom: "10px" }}
-              />
-              <TextField
-                variant="outlined"
-                label="New Password"
-                type="password"
-                fullWidth
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
-            </>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setShowForgotPassword(false);
-              setStep("email");
-            }}
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-md">
+        <h1 className="text-2xl font-semibold text-center mb-4">Login</h1>
+        <div className="flex justify-center mb-4">
+          <button
+            onClick={() => setRole("Doctor")}
+            className={`px-4 py-2 rounded-l-lg ${
+              role === "Doctor" ? "bg-[#057a85] text-white" : "bg-gray-200"
+            }`}
           >
-            Cancel
-          </Button>
-          <Button onClick={handleForgotPassword} color="primary">
-            {step === "email" ? "Send OTP" : "Reset Password"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
+            Doctor
+          </button>
+          <button
+            onClick={() => setRole("Pharmacist")}
+            className={`px-4 py-2 rounded-r-lg ${
+              role === "Pharmacist" ? "bg-[#057a85] text-white" : "bg-gray-200"
+            }`}
+          >
+            Pharmacist
+          </button>
+        </div>
+        <input
+          type="text"
+          placeholder="Username"
+          className="w-full px-4 py-2 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          className="w-full px-4 py-2 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <button
+          onClick={handleLogin}
+          className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-[#057a85]"
+        >
+          Login
+        </button>
+        <div className="text-center mt-4">
+          <button
+            onClick={() => setShowForgotPassword(true)}
+            className="text-[#057a85] hover:underline"
+          >
+            Forgot Password?
+          </button>
+        </div>
+        <div className="text-center mt-2">
+          <span className="text-gray-600">Don't have an account?</span>
+          <button
+            onClick={() => navigate("/signup")}
+            className="text-[#057a85] hover:underline ml-1"
+          >
+            Sign up here
+          </button>
+        </div>
+      </div>
+
+      {showForgotPassword && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-semibold mb-4">Forgot Password</h2>
+            {step === "email" && (
+              <input
+                type="email"
+                placeholder="Email"
+                className="w-full px-4 py-2 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#057a85]"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            )}
+            {step === "otp" && (
+              <>
+                <input
+                  type="text"
+                  placeholder="OTP"
+                  className="w-full px-4 py-2 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#057a85]"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                />
+                <input
+                  type="password"
+                  placeholder="New Password"
+                  className="w-full px-4 py-2 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#057a85]"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </>
+            )}
+            <div className="flex justify-end">
+              <button
+                onClick={() => {
+                  setShowForgotPassword(false);
+                  setStep("email");
+                }}
+                className="px-4 py-2 bg-gray-300 rounded-lg mr-2"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleForgotPassword}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              >
+                {step === "email" ? "Send OTP" : "Reset Password"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

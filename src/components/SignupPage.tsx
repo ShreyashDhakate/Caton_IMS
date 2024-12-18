@@ -1,16 +1,9 @@
 import React, { useState } from "react";
-import {
-  Button,
-  TextField,
-  Typography,
-  Container,
-  Grid,
-} from "@mui/material";
 import QRCode from "react-qr-code";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { invoke } from "@tauri-apps/api/core";
-import Lottie from "lottie-react";
+import Lottie from "react-lottie";
 import step1Animation from "./animations/growth.json";
 import step2Animation from "./animations/payment.json";
 import step3Animation from "./animations/push.json";
@@ -19,9 +12,6 @@ import step4Animation from "./animations/success.json";
 const SignupPage: React.FC = () => {
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
-  const [otp, setOtp] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  // const [otpVerified, setOtpVerified] = useState(false);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
@@ -53,6 +43,8 @@ const SignupPage: React.FC = () => {
   const handlePreviousStep = () =>
     setStep((prev) => (prev > 1 ? prev - 1 : prev));
 
+
+
   const handleSignup = async () => {
     // Validate required fields
     if (!name || !email || !mobile || !passwordDoc || !passwordPharma) {
@@ -79,7 +71,6 @@ const SignupPage: React.FC = () => {
       toast.error("Passwords do not match!");
       return;
     }
-
   
     // Log the username value
     console.log("Signup data being sent:", { username, name, email, mobile, passwordDoc, passwordPharma });
@@ -102,8 +93,6 @@ const SignupPage: React.FC = () => {
       toast.error(`Signup failed: ${error.message || error}`);
     }
   };
-  
-  
 
   const handlePaymentDetection = () => {
     toast.success("Payment received!");
@@ -111,251 +100,189 @@ const SignupPage: React.FC = () => {
   };
 
   return (
-    <Grid container style={{ height: "100vh" }}>
-      <Grid item xs={6} style={{ position: "relative" }}>
-        <div
-          style={{
-            position: "absolute",
-            top: 100,
-            left: 100,
-            width: "70%",
-            height: "70%",
-            zIndex: -1,
-          }}
-        >
+    <div className="flex h-screen">
+      <div className="relative w-1/2">
+        <div className="absolute top-24 left-24 w-3/4 h-3/4 z-10">
           {step !== 4 && (
-            <Lottie
-            animationData={defaultOptions.animationData}
-            loop={defaultOptions.loop}
-            autoplay={defaultOptions.autoplay}
-            style={{ width: "100%", height: "100%" }}
-          />
+            <Lottie options={defaultOptions} height="100%" width="100%" />
           )}
         </div>
-      </Grid>
+      </div>
 
-      <Grid item xs={6}>
-        <Container component="main" maxWidth="md" style={{ padding: "20px" }}>
-          {step === 1 && (
-            <>
-              <Typography variant="h5" align="center" style={{ marginBottom: "3rem" }}>
-                Step 1: Basic Information
-              </Typography>
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Name"
-                    fullWidth
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Username"
-                    fullWidth
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Email"
-                    fullWidth
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Mobile Number"
-                    fullWidth
-                    value={mobile}
-                    onChange={(e) => setMobile(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    onClick={handleNextStep}
-                    disabled={otpSent}
-                  >
-                    NEXT
-                  </Button>
-                </Grid>
-        
-              </Grid>
-            </>
-          )}
-
-          {step === 2 && (
-            <>
-              <Typography variant="h5" align="center">
-                Step 2: Payment Plan
-              </Typography>
-              <Typography align="center">
-                Pay ₹2000/month to enjoy these features:
-              </Typography>
-              <ul>
-                <li>24/7 Consultation</li>
-                <li>Access to exclusive features</li>
-                <li>Comprehensive medical records</li>
-              </ul>
-              <div style={{ display: "flex", justifyContent: "center", margin: "20px 0" }}>
-                <QRCode value="upi://pay?pa=shreyashdhakate20@oksbi&am=2000" size={200} />
+      <div className="w-1/2 bg-gray-50 p-8">
+        {step === 1 && (
+          <>
+            <h2 className="text-3xl font-bold text-center mb-12">Step 1: Basic Information</h2>
+            <div className="space-y-6">
+              <div>
+                <input
+                  type="text"
+                  placeholder="Name"
+                  className="w-full p-3 border rounded-md"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
               </div>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    fullWidth
-                    onClick={handlePreviousStep}
-                  >
-                    Back
-                  </Button>
-                </Grid>
-                <Grid item xs={6}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    onClick={handlePaymentDetection}
-                  >
-                    I've Paid
-                  </Button>
-                </Grid>
-              </Grid>
-            </>
-          )}
+              <div>
+                <input
+                  type="text"
+                  placeholder="Username"
+                  className="w-full p-3 border rounded-md"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
+              <div>
+                <input
+                  type="email"
+                  placeholder="Email"
+                  className="w-full p-3 border rounded-md"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="Mobile Number"
+                  className="w-full p-3 border rounded-md"
+                  value={mobile}
+                  onChange={(e) => setMobile(e.target.value)}
+                />
+              </div>
+              <div>
+                <button
+                  className="w-full p-3 bg-blue-500 text-white rounded-md"
+                  onClick={handleNextStep}
+                >
+                  NEXT
+                </button>
+              </div>
+            </div>
+          </>
+        )}
 
-          {step === 3 && (
-            <>
-              <Typography variant="h5" align="center">
-                Step 3: Personal Details
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Pharmacy/Hospital Name"
-                    fullWidth
-                    value={hospital}
-                    onChange={(e) => setHospital(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Address"
-                    fullWidth
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Doctor Password"
-                    type="password"
-                    fullWidth
-                    value={passwordDoc}
-                    onChange={(e) => setPasswordDoc(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Confirm Doctor Password"
-                    type="password"
-                    fullWidth
-                    value={passwordDocConfirm}
-                    onChange={(e) => setPasswordDocConfirm(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Pharmacy Password"
-                    type="password"
-                    fullWidth
-                    value={passwordPharma}
-                    onChange={(e) => setPasswordPharma(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Confirm Pharmacy Password"
-                    type="password"
-                    fullWidth
-                    value={passwordPharmaConfirm}
-                    onChange={(e) =>
-                      setPasswordPharmaConfirm(e.target.value)
-                    }
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    fullWidth
-                    onClick={handlePreviousStep}
-                  >
-                    Back
-                  </Button>
-                </Grid>
-
-                <Grid item xs={6}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    onClick={handleSignup}
-                  >
-                    Sign Up
-                  </Button>
-                </Grid>
-              </Grid>
-            </>
-          )}
-
-          {step === 4 && (
-            <Grid
-              container
-              alignItems="center"
-              justifyContent="center"
-              direction="column"
-              style={{ textAlign: "center" }}
-            >
-              <div style={{ width: "80%", height: "50%" }}>
-<Lottie
-  animationData={defaultOptions.animationData}
-  loop={defaultOptions.loop}
-  autoplay={defaultOptions.autoplay}
-  style={{ width: "100%", height: "100%" }}
-/>              </div>
-              <Typography variant="h3" align="center" style={{ fontWeight: "bold" }}>
-                Welcome to the board, Customer
-              </Typography>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => navigate("/login")}
+        {step === 2 && (
+          <>
+            <h2 className="text-3xl font-bold text-center">Step 2: Payment Plan</h2>
+            <p className="text-center mt-4">Pay ₹2000/month to enjoy these features:</p>
+            <ul className="list-disc pl-6 mt-2">
+              <li>24/7 Consultation</li>
+              <li>Access to exclusive features</li>
+              <li>Comprehensive medical records</li>
+            </ul>
+            <div className="flex justify-center my-8">
+              <QRCode value="upi://pay?pa=shreyashdhakate20@oksbi&am=2000" size={200} />
+            </div>
+            <div className="flex justify-between mt-6">
+              <button
+                className="w-1/2 p-3 bg-gray-300 text-black rounded-md"
+                onClick={handlePreviousStep}
               >
-                Go to Login
-              </Button>
-            </Grid>
-          )}
-        </Container>
-      </Grid>
-    </Grid>
+                Back
+              </button>
+              <button
+                className="w-1/2 p-3 bg-blue-500 text-white rounded-md"
+                onClick={handlePaymentDetection}
+              >
+                I've Paid
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 3 && (
+          <>
+            <h2 className="text-3xl font-bold text-center">Step 3: Personal Details</h2>
+            <div className="space-y-6">
+              <div>
+                <input
+                  type="text"
+                  placeholder="Pharmacy/Hospital Name"
+                  className="w-full p-3 border rounded-md"
+                  value={hospital}
+                  onChange={(e) => setHospital(e.target.value)}
+                />
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="Address"
+                  className="w-full p-3 border rounded-md"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              </div>
+              <div>
+                <input
+                  type="password"
+                  placeholder="Doctor Password"
+                  className="w-full p-3 border rounded-md"
+                  value={passwordDoc}
+                  onChange={(e) => setPasswordDoc(e.target.value)}
+                />
+              </div>
+              <div>
+                <input
+                  type="password"
+                  placeholder="Confirm Doctor Password"
+                  className="w-full p-3 border rounded-md"
+                  value={passwordDocConfirm}
+                  onChange={(e) => setPasswordDocConfirm(e.target.value)}
+                />
+              </div>
+              <div>
+                <input
+                  type="password"
+                  placeholder="Pharmacy Password"
+                  className="w-full p-3 border rounded-md"
+                  value={passwordPharma}
+                  onChange={(e) => setPasswordPharma(e.target.value)}
+                />
+              </div>
+              <div>
+                <input
+                  type="password"
+                  placeholder="Confirm Pharmacy Password"
+                  className="w-full p-3 border rounded-md"
+                  value={passwordPharmaConfirm}
+                  onChange={(e) => setPasswordPharmaConfirm(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-between mt-6">
+                <button
+                  className="w-1/2 p-3 bg-gray-300 text-black rounded-md"
+                  onClick={handlePreviousStep}
+                >
+                  Back
+                </button>
+                <button
+                  className="w-1/2 p-3 bg-blue-500 text-white rounded-md"
+                  onClick={handleSignup}
+                >
+                  Sign Up
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {step === 4 && (
+          <div className="flex flex-col items-center justify-center text-center">
+            <div className="w-3/4 h-1/2">
+              <Lottie options={defaultOptions} height="100%" width="100%" />
+            </div>
+            <h3 className="text-4xl font-bold mt-6">Welcome to the board, Customer</h3>
+            <button
+              className="mt-6 p-3 bg-blue-500 text-white rounded-md"
+              onClick={() => navigate("/login")}
+            >
+              Go to Login
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

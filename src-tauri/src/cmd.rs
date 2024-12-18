@@ -37,8 +37,6 @@ pub async fn signup(
         return Err("Email already in use".to_string());
     }
 
-    // Send OTP for email verification
-    send_otp(user_collection, &email).await?;
 
     signup_user(
         user_collection,
