@@ -14,7 +14,7 @@ import Patients from "./components/Patients";
 import StockManager from "./components/StockManager";
 import ComingSoonPage from "./components/CommingSoon";
 import BillingParent from "./components/BillingParent";
-import welcomebg from "../public/welcomebg.jpeg";
+import welcomebg from "/welcomebg.jpeg";
 import MedicineManager from "./components/MedicineManager";
 // Custom festival backgrounds
 // const festivalBackgrounds = {

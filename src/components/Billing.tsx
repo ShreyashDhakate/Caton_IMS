@@ -125,17 +125,22 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
 }, [location.state, navigate]);
 
 
-  const handleSearchMedicine = async (query: string) => {
-      try {
-        const results = await searchMedicines(query);
-    
-        // Convert string `id` to number before updating the state
-        setSearchResults(results);
-      } catch (error) {
-        console.error("Error searching medicines:", error);
-        toast.error("Failed to search medicines locally.");
-      }
-    };
+const handleSearchMedicine = async (query: string) => {
+  try {
+    const results = await searchMedicines(query);
+
+    // Ensure sellingPrice is a number for all results
+    const sanitizedResults = results.map((result) => ({
+      ...result,
+      sellingPrice: Number(result.sellingPrice),
+    }));
+
+    setSearchResults(sanitizedResults);
+  } catch (error) {
+    console.error("Error searching medicines:", error);
+    toast.error("Failed to search medicines locally.");
+  }
+};
 
   useEffect(() => {
     const debouncedSearch = debounce(() => handleSearchMedicine(query), 10);

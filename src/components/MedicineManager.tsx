@@ -7,7 +7,7 @@ import { db } from "../lib/db";
 type Medicine = {
   [x: string]: any;
   // _id?: { $oid: string }; // Optional, matches `Option<ObjectId>` in Rust
-  id:string;
+  // id:string;
   user_id: string;
   name: string;
   batch_number: string;
@@ -72,9 +72,6 @@ const MedicineManager: React.FC = () => {
     }
   };
 
-  
-  
-
   // Update stock of a medicine
   const updateStock = async (updatedMedicine: Medicine) => {
     setMedicines((prev) =>
@@ -134,7 +131,7 @@ const MedicineManager: React.FC = () => {
 
   useEffect(() => {
     initializeMedicines(); // Initialize medicines on component mount
-    const syncInterval = setInterval(syncMedicinesFromBackend, 300000); // 5 minutes
+    const syncInterval = setInterval(syncMedicinesFromBackend, 30000); // 5 minutes
 
     // Clear the interval when the component is unmounted
     return () => clearInterval(syncInterval);
