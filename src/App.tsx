@@ -14,14 +14,15 @@ import Patients from "./components/Patients";
 import StockManager from "./components/StockManager";
 import ComingSoonPage from "./components/CommingSoon";
 import BillingParent from "./components/BillingParent";
+import welcomebg from "../public/welcomebg.jpeg";
 import MedicineManager from "./components/MedicineManager";
 // Custom festival backgrounds
-const festivalBackgrounds = {
-  diwali: "https://example.com/diwali-bg.jpg",
-  christmas: "https://example.com/christmas-bg.jpg",
-  eid: "https://example.com/eid-bg.jpg",
-  default: "https://images.pexels.com/photos/326055/pexels-photo-326055.jpeg",
-};
+// const festivalBackgrounds = {
+//   diwali: "https://example.com/diwali-bg.jpg",
+//   christmas: "https://example.com/christmas-bg.jpg",
+//   eid: "https://example.com/eid-bg.jpg",
+//   default: "https://images.pexels.com/photos/326055/pexels-photo-326055.jpeg",
+// };
 
 const App: React.FC = () => {
   return (
@@ -42,7 +43,7 @@ const App: React.FC = () => {
 const ProtectedRoutes: React.FC = () => {
   const { isLoggedIn } = useAuth(); // Safe to call here because it's within AuthProvider
   const role = localStorage.getItem("role"); // Retrieve the role from localStorage
-  const currentFestival = "default"; // Replace with dynamic logic as needed
+  // const currentFestival = "default"; // Replace with dynamic logic as needed
 
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
@@ -55,7 +56,7 @@ const ProtectedRoutes: React.FC = () => {
         element={
           <WelcomePage
             bgImage={
-              festivalBackgrounds[currentFestival] || festivalBackgrounds.default
+              welcomebg
             }
           />
         }
@@ -68,12 +69,12 @@ const ProtectedRoutes: React.FC = () => {
           <Route path="/billing" element={<BillingParent />} />
           <Route path="/stockmanager" element={<StockManager/>} />
           <Route path="/medmanager" element={<MedicineManager/>} />
-          <Route path="/editmedicine" element={ <ComingSoonPage/> }/>
+          
         </>
       )}
       <Route path="/history" element={<History />} />
       <Route path="/patients" element={<Patients />} />
-      {/* <Route path="*" element={<ComingSoonPage />} /> */}
+      <Route path="*" element={<ComingSoonPage />} />
     </Routes>
   );
 };

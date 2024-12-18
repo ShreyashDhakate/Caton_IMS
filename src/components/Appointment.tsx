@@ -1,25 +1,16 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { TextField, Button, Box, Typography } from "@mui/material";
 import { toast } from "sonner";
-
-interface BackendMedicine {
-  _id?: { $oid: string };
-  name: string;
-  batch_number: string;
-  expiry_date: string;
-  quantity: number;
-  purchase_price: number;
-  selling_price: number;
-}
+import { searchDoctorMedicines, syncDoctorMedicinesFromMongoDB } from "../lib/doctorstock";
 
 interface MedicineInfo {
-  id: string; // Added ID field
+  id: string;
   name: string;
   batchNumber: string;
   quantity: number;
   sellingPrice: number;
   expiryDate: string;
+  purchasePrice: number;
 }
 
 const Appointment: React.FC = () => {
@@ -34,37 +25,35 @@ const Appointment: React.FC = () => {
   const [searchResults, setSearchResults] = useState<MedicineInfo[]>([]);
   const [selectedMedicines, setSelectedMedicines] = useState<MedicineInfo[]>([]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        await syncDoctorMedicinesFromMongoDB();
+        console.log("Doctor's IndexedDB synced with MongoDB.");
+      } catch (error) {
+        console.error("Error syncing data to IndexedDB:", error);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 3600000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setPatient((prev) => ({ ...prev, [name]: value }));
   };
 
+
   const handleSearchMedicine = async (query: string) => {
     try {
-      if (!query.trim()) {
-        setSearchResults([]);
-        return;
-      }
-
-      const userId = localStorage.getItem("userId");
-      const results: BackendMedicine[] = await invoke("search_medicines", {
-        query,
-        hospitalId: userId,
-      });
-
-      const mappedResults: MedicineInfo[] = results.map((medicine) => ({
-        id: medicine._id?.$oid || "", // Extracting the ID
-        name: medicine.name,
-        batchNumber: medicine.batch_number,
-        quantity: medicine.quantity,
-        sellingPrice: medicine.selling_price,
-        expiryDate: medicine.expiry_date,
-      }));
-
-      setSearchResults(mappedResults);
+      const results = await searchDoctorMedicines(query);
+      setSearchResults(results);
     } catch (error) {
       console.error("Error searching medicines:", error);
-      toast.error("Failed to fetch search results.");
+      toast.error("Failed to search medicines locally.");
     }
   };
 
@@ -72,7 +61,7 @@ const Appointment: React.FC = () => {
     const query = e.target.value;
     setMedicineSearch(query);
 
-    if (query.length > 2) {
+    if (query.length > 0) {
       handleSearchMedicine(query);
     } else {
       setSearchResults([]);
@@ -80,9 +69,18 @@ const Appointment: React.FC = () => {
   };
 
   const handleAddMedicine = (medicine: MedicineInfo) => {
-    if (!selectedMedicines.find((item) => item.id === medicine.id)) {
-      setSelectedMedicines((prev) => [...prev, { ...medicine, quantity: 1 }]);
-    }
+    setSelectedMedicines((prev) => {
+      const existingMedicine = prev.find((item) => item.id === medicine.id);
+
+      if (existingMedicine) {
+        return prev.map((item) =>
+          item.id === medicine.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...prev, { ...medicine, quantity: 1 }];
+    });
   };
 
   const handleRemoveMedicine = (index: number) => {
@@ -94,29 +92,22 @@ const Appointment: React.FC = () => {
       toast.error("Quantity must be at least 1.");
       return;
     }
-  
-    // Find the original medicine in the search results
+
     const originalMedicine = searchResults.find((medicine) => medicine.id === id);
-  
     if (!originalMedicine) {
       toast.error("Medicine not found in search results.");
       return;
     }
-  
+
     if (newQuantity > originalMedicine.quantity) {
-      toast.error(
-        `Entered quantity (${newQuantity}) exceeds available stock (${originalMedicine.quantity}).`
-      );
+      toast.error(`Entered quantity (${newQuantity}) exceeds available stock (${originalMedicine.quantity}).`);
       return;
     }
-  
+
     setSelectedMedicines((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, quantity: newQuantity } : item
-      )
+      prev.map((item) => (item.id === id ? { ...item, quantity: newQuantity } : item))
     );
   };
-  
 
   const handleSaveAppointment = async () => {
     try {
@@ -141,10 +132,7 @@ const Appointment: React.FC = () => {
         mobile: patient.mobile,
         disease: patient.disease || null,
         precautions: patient.precautions || null,
-        medicines: selectedMedicines.map(({ id, quantity }) => ({
-          id,
-          quantity,
-        })), // Saving only ID and quantity
+        medicines: selectedMedicines.map(({ id, quantity }) => ({ id, quantity })),
         hospitalId: userId,
       });
 
@@ -160,132 +148,109 @@ const Appointment: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-wrap items-center justify-between bg-gray-100 p-5 h-[70vh]">
-      {/* Patient Details Section */}
-      <Box className="flex flex-col justify-between w-[50%] h-[70vh] bg-white p-6 shadow-lg rounded-lg">
-        <Typography variant="h5" className="mb-6 font-semibold">
-          Patient Details
-        </Typography>
-        <TextField
-          label="Patient Name"
-          variant="outlined"
-          name="name"
-          value={patient.name}
-          onChange={handleInputChange}
-          className="mb-4"
-          fullWidth
-        />
-        <TextField
-          label="Mobile Number"
-          variant="outlined"
-          name="mobile"
-          value={patient.mobile}
-          onChange={handleInputChange}
-          className="mb-4"
-          fullWidth
-        />
-        <TextField
-          label="Disease"
-          variant="outlined"
-          name="disease"
-          value={patient.disease}
-          onChange={handleInputChange}
-          className="mb-4"
-          fullWidth
-        />
-        <TextField
-          label="Precautions"
-          variant="outlined"
-          name="precautions"
-          value={patient.precautions}
-          onChange={handleInputChange}
-          className="mb-4"
-          fullWidth
-          multiline
-          rows={4}
-        />
-      </Box>
-
-      {/* Medicine Search Section */}
-      <Box className="flex flex-col w-[48%] h-[70vh] bg-white p-6 shadow-lg rounded-lg">
-        <Typography variant="h5" className="mb-6 font-semibold">
-          Search Medicines
-        </Typography>
-        <TextField
-          label="Search for Medicines"
-          variant="outlined"
-          value={medicineSearch}
-          onChange={handleMedicineSearchChange}
-          className="mb-4"
-          fullWidth
-        />
-        <Box className="mb-4">
-          {searchResults.map((medicine, index) => (
-            <Box
-              key={index}
-              className="flex items-center justify-between border-b py-2 cursor-pointer hover:bg-gray-200"
-              onClick={() => handleAddMedicine(medicine)}
-            >
-              <Typography variant="body2" className="flex-1">
-                {medicine.name} | Batch: {medicine.batchNumber} | Qty:{" "}
-                {medicine.quantity} | Price: ₹{medicine.sellingPrice} | Exp:{" "}
-                {medicine.expiryDate}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-        <Box>
-          <Typography variant="subtitle1" className="mt-4 mb-2">
-            Selected Medicines:
-          </Typography>
-          <ul>
+    <div className="flex flex-col gap-4 bg-gray-100 p-2 min-h-screen">
+      {/* Two Sections Container */}
+      <div className="flex gap-4 p-2">
+        {/* Patient Details Section - Left */}
+        <div className="bg-white shadow-lg p-6 rounded-lg w-full md:w-1/2 h-[70vh] overflow-auto">
+          <h2 className="text-xl font-semibold mb-4">Patient Details</h2>
+          <input
+            placeholder="Patient Name"
+            name="name"
+            value={patient.name}
+            onChange={handleInputChange}
+            className="w-full mb-3 p-2 border rounded"
+          />
+          <input
+            placeholder="Mobile Number"
+            name="mobile"
+            value={patient.mobile}
+            onChange={handleInputChange}
+            className="w-full mb-3 p-2 border rounded"
+          />
+          <input
+            placeholder="Disease"
+            name="disease"
+            value={patient.disease}
+            onChange={handleInputChange}
+            className="w-full mb-3 p-2 border rounded"
+          />
+          <textarea
+            placeholder="Precautions"
+            name="precautions"
+            value={patient.precautions}
+            onChange={handleInputChange}
+            className="w-full p-2 border rounded"
+            rows={4}
+          />
+        </div>
+  
+        {/* Medicine Search Section - Right */}
+        <div className="bg-white shadow-lg p-6 rounded-lg w-full md:w-1/2 h-[70vh] overflow-auto">
+          <h2 className="text-xl font-semibold mb-4">Search Medicines</h2>
+          <input
+            placeholder="Search for Medicines"
+            value={medicineSearch}
+            onChange={handleMedicineSearchChange}
+            className="w-full mb-4 p-2 border rounded"
+          />
+  
+          {/* Medicine Results */}
+          {searchResults.length > 0 && (
+            <div>
+              {searchResults.map((medicine) => (
+                <div
+                  key={medicine.id}
+                  className="flex justify-between items-center border-b py-2 cursor-pointer hover:bg-gray-200"
+                  onClick={() => handleAddMedicine(medicine)}
+                >
+                  <span>
+                    {medicine.name} | Batch: {medicine.batchNumber} | Qty: {medicine.quantity} | Price: ₹{medicine.sellingPrice} | Exp: {medicine.expiryDate}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+  
+          {/* Selected Medicines */}
+          <div className="mt-4">
+            <h3 className="text-lg font-semibold mb-2">Selected Medicines:</h3>
             {selectedMedicines.map((medicine, index) => (
-              <li key={index} className="flex items-center justify-between mb-2">
-                <span>
-                  {medicine.name} (Batch: {medicine.batchNumber})
-                </span>
-                <Box className="flex items-center">
-                  <TextField
+              <div key={index} className="flex justify-between items-center mb-2">
+                <span>{medicine.name} (Batch: {medicine.batchNumber})</span>
+                <div className="flex items-center gap-2">
+                  <input
                     type="number"
-                    variant="outlined"
-                    size="small"
                     value={medicine.quantity}
                     onChange={(e) =>
-                      handleQuantityChange(
-                        medicine.id,
-                        parseInt(e.target.value) || 1
-                      )
+                      handleQuantityChange(medicine.id, parseInt(e.target.value) || 1)
                     }
-                    className="w-20 mr-4"
+                    className="w-16 p-1 border rounded"
                   />
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    size="small"
+                  <button
                     onClick={() => handleRemoveMedicine(index)}
+                    className="bg-red-500 text-white px-2 py-1 rounded"
                   >
                     Remove
-                  </Button>
-                </Box>
-              </li>
+                  </button>
+                </div>
+              </div>
             ))}
-          </ul>
-        </Box>
-      </Box>
-
+          </div>
+        </div>
+      </div>
+  
       {/* Save Button */}
-      <Box className="flex justify-center items-center w-full mt-12">
-        <Button
-          variant="contained"
-          color="primary"
+      <div className="flex justify-center mt-4">
+        <button
           onClick={handleSaveAppointment}
-          className="px-8"
+          className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded"
         >
           Save Appointment
-        </Button>
-      </Box>
+        </button>
+      </div>
     </div>
   );
-};
+}  
 
 export default Appointment;

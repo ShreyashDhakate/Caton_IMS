@@ -12,21 +12,17 @@ import step4Animation from "./animations/success.json";
 const SignupPage: React.FC = () => {
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
-  const [otp, setOtp] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [, setOtpVerified] = useState(false);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
   const [address, setAddress] = useState("");
   const [hospital, setHospital] = useState("");
   const [passwordDoc, setPasswordDoc] = useState("");
-  const [passwordDocConfirm] = useState("");
+  const [passwordDocConfirm, setPasswordDocConfirm] = useState("");
   const [passwordPharma, setPasswordPharma] = useState("");
   const [passwordPharmaConfirm, setPasswordPharmaConfirm] = useState("");
   const navigate = useNavigate();
-  
-  
+
   const animations = [
     step1Animation,
     step2Animation,
@@ -47,79 +43,38 @@ const SignupPage: React.FC = () => {
   const handlePreviousStep = () =>
     setStep((prev) => (prev > 1 ? prev - 1 : prev));
 
-  const handleSendOtp = async () => {
-    if (!email) {
-      toast.error("Please enter your email to receive OTP.");
-      return;
-    }
 
-    try {
-      await invoke("signup", {
-        username,
-        name,
-        mobile,
-        address,
-        hospital,
-        passwordDoc,
-        passwordPharma,
-        email,
-      });
-      setOtpSent(true);
-      toast.success("OTP sent to your email!");
-    } catch (error: any) {
-      toast.error(`Failed to send OTP: ${error.message || error}`);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!otp) {
-      toast.error("Please enter the OTP.");
-      return;
-    }
-
-    try {
-      await invoke("verify_signup", {
-        username,
-        name,
-        mobile,
-        address,
-        hospital,
-        passwordDoc,
-        passwordPharma,
-        email,
-        otp,
-      });
-      setOtpVerified(true);
-      toast.success("OTP verified successfully!");
-      handleNextStep();
-    } catch (error: any) {
-      toast.error(`Invalid or expired OTP: ${error.message || error}`);
-    }
-  };
 
   const handleSignup = async () => {
+    // Validate required fields
     if (!name || !email || !mobile || !passwordDoc || !passwordPharma) {
       toast.error("Please fill out all required fields.");
       return;
     }
-
+  
+    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       toast.error("Please enter a valid email address.");
       return;
     }
-
+  
+    // Validate mobile format (assuming 10-digit numbers for example)
     const mobileRegex = /^[0-9]{10}$/;
     if (!mobileRegex.test(mobile)) {
       toast.error("Please enter a valid 10-digit mobile number.");
       return;
     }
-
+  
+    // Ensure passwords match
     if (passwordDoc !== passwordDocConfirm || passwordPharma !== passwordPharmaConfirm) {
       toast.error("Passwords do not match!");
       return;
     }
-
+  
+    // Log the username value
+    console.log("Signup data being sent:", { username, name, email, mobile, passwordDoc, passwordPharma });
+  
     try {
       await invoke("signup", {
         username,
@@ -134,6 +89,7 @@ const SignupPage: React.FC = () => {
       toast.success("Account created successfully!");
       setStep(4);
     } catch (error: any) {
+      console.error("Signup error:", error);
       toast.error(`Signup failed: ${error.message || error}`);
     }
   };
@@ -145,182 +101,189 @@ const SignupPage: React.FC = () => {
 
   return (
     <div className="flex h-screen">
-      {/* Left Side with Animation */}
-      <div className="w-1/2 flex items-center justify-center bg-gray-100 relative">
-        {step !== 4 && (
-          <div className="absolute top-20 left-20 w-3/4 h-3/4">
+      <div className="relative w-1/2">
+        <div className="absolute top-24 left-24 w-3/4 h-3/4 z-10">
+          {step !== 4 && (
             <Lottie options={defaultOptions} height="100%" width="100%" />
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* Right Side with Form */}
-      <div className="w-1/2 flex flex-col justify-center items-center p-8">
+      <div className="w-1/2 bg-gray-50 p-8">
         {step === 1 && (
-          <div className="w-full max-w-md">
-            <h2 className="text-2xl font-bold text-center mb-6">Step 1: Basic Information</h2>
-            <div className="space-y-4">
-              <input
-                type="text"
-                className="w-full p-3 border rounded"
-                placeholder="Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <input
-                type="text"
-                className="w-full p-3 border rounded"
-                placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
-              <input
-                type="email"
-                className="w-full p-3 border rounded"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <input
-                type="tel"
-                className="w-full p-3 border rounded"
-                placeholder="Mobile Number"
-                value={mobile}
-                onChange={(e) => setMobile(e.target.value)}
-              />
-              <button
-                onClick={handleSendOtp}
-                disabled={otpSent}
-                className={`w-full p-3 rounded ${
-                  otpSent ? "bg-gray-400" : "bg-blue-600 text-white"
-                }`}
-              >
-                {otpSent ? "OTP Sent" : "Send OTP"}
-              </button>
-              {otpSent && (
-                <>
-                  <input
-                    type="text"
-                    className="w-full p-3 border rounded mt-2"
-                    placeholder="Enter OTP"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                  />
-                  <button
-                    onClick={handleVerifyOtp}
-                    className="w-full p-3 bg-green-600 text-white rounded mt-2"
-                  >
-                    Verify OTP
-                  </button>
-                </>
-              )}
+          <>
+            <h2 className="text-3xl font-bold text-center mb-12">Step 1: Basic Information</h2>
+            <div className="space-y-6">
+              <div>
+                <input
+                  type="text"
+                  placeholder="Name"
+                  className="w-full p-3 border rounded-md"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="Username"
+                  className="w-full p-3 border rounded-md"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
+              <div>
+                <input
+                  type="email"
+                  placeholder="Email"
+                  className="w-full p-3 border rounded-md"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="Mobile Number"
+                  className="w-full p-3 border rounded-md"
+                  value={mobile}
+                  onChange={(e) => setMobile(e.target.value)}
+                />
+              </div>
+              <div>
+                <button
+                  className="w-full p-3 bg-blue-500 text-white rounded-md"
+                  onClick={handleNextStep}
+                >
+                  NEXT
+                </button>
+              </div>
             </div>
-          </div>
+          </>
         )}
 
         {step === 2 && (
-          <div className="w-full max-w-md">
-            <h2 className="text-2xl font-bold text-center mb-6">Step 2: Payment Plan</h2>
-            <p className="text-center">Pay ₹2000/month to enjoy these features:</p>
-            <ul className="list-disc pl-6 mb-4">
+          <>
+            <h2 className="text-3xl font-bold text-center">Step 2: Payment Plan</h2>
+            <p className="text-center mt-4">Pay ₹2000/month to enjoy these features:</p>
+            <ul className="list-disc pl-6 mt-2">
               <li>24/7 Consultation</li>
-              <li>Exclusive Features</li>
-              <li>Medical Records</li>
+              <li>Access to exclusive features</li>
+              <li>Comprehensive medical records</li>
             </ul>
-            <div className="flex justify-center mb-4">
+            <div className="flex justify-center my-8">
               <QRCode value="upi://pay?pa=shreyashdhakate20@oksbi&am=2000" size={200} />
             </div>
-            <div className="flex gap-4">
-              <button onClick={handlePreviousStep} className="w-full p-3 bg-gray-300 rounded">
+            <div className="flex justify-between mt-6">
+              <button
+                className="w-1/2 p-3 bg-gray-300 text-black rounded-md"
+                onClick={handlePreviousStep}
+              >
                 Back
               </button>
               <button
+                className="w-1/2 p-3 bg-blue-500 text-white rounded-md"
                 onClick={handlePaymentDetection}
-                className="w-full p-3 bg-blue-600 text-white rounded"
               >
                 I've Paid
               </button>
             </div>
-          </div>
+          </>
         )}
 
         {step === 3 && (
-          <div className="w-full max-w-md">
-            <h2 className="text-2xl font-bold text-center mb-6">Step 3: Personal Details</h2>
-            <div className="space-y-4">
-              <input
-                type="text"
-                className="w-full p-3 border rounded"
-                placeholder="Hospital/Pharmacy Name"
-                value={hospital}
-                onChange={(e) => setHospital(e.target.value)}
-              />
-              <input
-                type="text"
-                className="w-full p-3 border rounded"
-                placeholder="Address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-              />
-              <input
-                type="password"
-                className="w-full p-3 border rounded"
-                placeholder="Doctor Password"
-                value={passwordDoc}
-                onChange={(e) => setPasswordDoc(e.target.value)}
-              />
-              <input
-                type="password"
-                className="w-full p-3 border rounded"
-                placeholder="Confirm Doctor Password"
-                value={passwordDocConfirm}
-                onChange={(e) => setPasswordDoc(e.target.value)}
+          <>
+            <h2 className="text-3xl font-bold text-center">Step 3: Personal Details</h2>
+            <div className="space-y-6">
+              <div>
+                <input
+                  type="text"
+                  placeholder="Pharmacy/Hospital Name"
+                  className="w-full p-3 border rounded-md"
+                  value={hospital}
+                  onChange={(e) => setHospital(e.target.value)}
                 />
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="Address"
+                  className="w-full p-3 border rounded-md"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              </div>
+              <div>
                 <input
                   type="password"
-                  className="w-full p-3 border rounded"
-                  placeholder="Pharmacist Password"
+                  placeholder="Doctor Password"
+                  className="w-full p-3 border rounded-md"
+                  value={passwordDoc}
+                  onChange={(e) => setPasswordDoc(e.target.value)}
+                />
+              </div>
+              <div>
+                <input
+                  type="password"
+                  placeholder="Confirm Doctor Password"
+                  className="w-full p-3 border rounded-md"
+                  value={passwordDocConfirm}
+                  onChange={(e) => setPasswordDocConfirm(e.target.value)}
+                />
+              </div>
+              <div>
+                <input
+                  type="password"
+                  placeholder="Pharmacy Password"
+                  className="w-full p-3 border rounded-md"
                   value={passwordPharma}
                   onChange={(e) => setPasswordPharma(e.target.value)}
                 />
+              </div>
+              <div>
                 <input
                   type="password"
-                  className="w-full p-3 border rounded"
-                  placeholder="Confirm Pharmacist Password"
+                  placeholder="Confirm Pharmacy Password"
+                  className="w-full p-3 border rounded-md"
                   value={passwordPharmaConfirm}
                   onChange={(e) => setPasswordPharmaConfirm(e.target.value)}
                 />
-                <div className="flex gap-4">
-                  <button onClick={handlePreviousStep} className="w-full p-3 bg-gray-300 rounded">
-                    Back
-                  </button>
-                  <button
-                    onClick={handleSignup}
-                    className="w-full p-3 bg-blue-600 text-white rounded"
-                  >
-                    Submit
-                  </button>
-                </div>
+              </div>
+              <div className="flex justify-between mt-6">
+                <button
+                  className="w-1/2 p-3 bg-gray-300 text-black rounded-md"
+                  onClick={handlePreviousStep}
+                >
+                  Back
+                </button>
+                <button
+                  className="w-1/2 p-3 bg-blue-500 text-white rounded-md"
+                  onClick={handleSignup}
+                >
+                  Sign Up
+                </button>
               </div>
             </div>
-          )}
-  
-          {step === 4 && (
-            <div className="w-full max-w-md">
-              <h2 className="text-2xl font-bold text-center mb-6">Success!</h2>
-              <p className="text-center">Your account has been created successfully.</p>
-              <button
-                onClick={() => navigate("/login")}
-                className="w-full mt-6 p-3 bg-green-600 text-white rounded"
-              >
-                Go to Login
-              </button>
+          </>
+        )}
+
+        {step === 4 && (
+          <div className="flex flex-col items-center justify-center text-center">
+            <div className="w-3/4 h-1/2">
+              <Lottie options={defaultOptions} height="100%" width="100%" />
             </div>
-          )}
-        </div>
+            <h3 className="text-4xl font-bold mt-6">Welcome to the board, Customer</h3>
+            <button
+              className="mt-6 p-3 bg-blue-500 text-white rounded-md"
+              onClick={() => navigate("/login")}
+            >
+              Go to Login
+            </button>
+          </div>
+        )}
       </div>
-    );
-  };
-  
-  export default SignupPage;
-  
+    </div>
+  );
+};
+
+export default SignupPage;

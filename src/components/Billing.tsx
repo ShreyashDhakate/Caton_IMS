@@ -2,12 +2,12 @@ import { useState, useEffect } from "react";
 import { Location } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { invoke } from "@tauri-apps/api/core";
 import debounce from "lodash.debounce";
 import BillingSummary from "./BillingSummary";
 import { printBill } from "../hooks/printBill";
-import { Typography } from "@mui/material";
+import { fetchMedicineById, searchMedicines, updateMedicine } from "../lib/stockdb";
 import { salesDb } from "../lib/db";
+
 
 interface Props {
   location: Location & {
@@ -22,6 +22,7 @@ export type MedicineInfo = {
   batchNumber: string;
   expiryDate: string;
   quantity: number;
+  purchasePrice: number;
 };
 
 interface MedicineDetail {
@@ -29,15 +30,6 @@ interface MedicineDetail {
   quantity: number;
 }
 
-interface BackendMedicine {
-  _id?: { $oid: string };
-  name: string;
-  batch_number: string;
-  expiry_date: string;
-  quantity: number;
-  purchase_price: number;
-  selling_price: number;
-}
 
 
 const Billing: React.FC<Props> = ({ location }) => {  // const location = useLocation();
@@ -67,25 +59,32 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
   useEffect(() => {
     const appointmentId = location?.state?.appointmentId;
     console.log("Appointment ID:", appointmentId);  // const appointmentId = location.state?.appointmentId;
+    console.log("outside try");
     const fetchMedicineDetails = async (medicines: MedicineDetail[]) => {
+      console.log("11");
       try {
+        console.log("inside try");
         const fetchedMedicines = await Promise.all(
           medicines.map(async (medicine) => {
-            // Fetch the backend medicine details
-            const details: BackendMedicine = await invoke("get_medicine_by_id", {
-              medicineId: medicine.id,
-            });
-    
-            // Map BackendMedicine to MedicineInfo
+            // Fetch the medicine details from IndexedDB
+            const details = await fetchMedicineById(medicine.id);
+        
+            if (!details) {
+              throw new Error(`Medicine with ID ${medicine.id} not found in IndexedDB`);
+            }
+        
+            // Map OriginalMedicine to MedicineInfo
             const mappedMedicine: MedicineInfo = {
-              id: details._id ? details._id.$oid : "", // Extract $oid or provide a fallback
+              id: details.id, // Use the ID from IndexedDB
               name: details.name,
               sellingPrice: details.selling_price,
               batchNumber: details.batch_number,
               expiryDate: details.expiry_date,
               quantity: details.quantity,
+              purchasePrice: details.purchase_price,
             };
-    
+            
+            console.log("mapped medicines: ",mappedMedicine);
             // Return the mapped medicine with quantity
             return {
               medicine: mappedMedicine,
@@ -93,7 +92,8 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
             };
           })
         );
-        // console.log("fetched medicines: ",fetchedMedicines);
+        
+        console.log("fetched medicines: ",fetchedMedicines);
         
 
         setSelectedMedicines(fetchedMedicines);
@@ -103,56 +103,42 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
         navigate("/patients");
       }
 
-    // const appointmentId = location.state?.appointmentId;
-    if (appointmentId) {
-      const appointmentKey = `appointment_${appointmentId}`;
-      const storedDetails = localStorage.getItem(appointmentKey);
+   
+  }
 
-      if (storedDetails) {
-        const details = JSON.parse(storedDetails);
-        setPatientDetails(details);
+   // const appointmentId = location.state?.appointmentId;
+   if (appointmentId) {
+    const appointmentKey = `appointment_${appointmentId}`;
+    const storedDetails = localStorage.getItem(appointmentKey);
 
-        setCustomerName(details.patient_name);
-        fetchMedicineDetails(details.medicines);
-      } else {
-        toast.error("Patient details not found. Redirecting...");
-        navigate("/patients");
-      }
+    if (storedDetails) {
+      const details = JSON.parse(storedDetails);
+      setPatientDetails(details);
+
+      setCustomerName(details.patient_name);
+      fetchMedicineDetails(details.medicines);
+    } else {
+      toast.error("Patient details not found. Redirecting...");
+      navigate("/patients");
     }
-  }}, [location.state, navigate]);
+  }
+}, [location.state, navigate]);
 
-  // Search for medicines
+
   const handleSearchMedicine = async (query: string) => {
-    try {
-      if (!query.trim()) {
-        setSearchResults([]);
-        return;
+      try {
+        const results = await searchMedicines(query);
+    
+        // Convert string `id` to number before updating the state
+        setSearchResults(results);
+      } catch (error) {
+        console.error("Error searching medicines:", error);
+        toast.error("Failed to search medicines locally.");
       }
-
-      const userId = localStorage.getItem("userId");
-      const results: BackendMedicine[] = await invoke("search_medicines", {
-        query,
-        hospitalId: userId,
-      });
-
-      const mappedResults: MedicineInfo[] = results.map((medicine) => ({
-        id: medicine._id ? medicine._id.$oid : "", // Extract $oid or provide a fallback
-        name: medicine.name,
-        sellingPrice: medicine.selling_price,
-        batchNumber: medicine.batch_number,
-        expiryDate: medicine.expiry_date,
-        quantity: medicine.quantity,
-      }));
-
-      setSearchResults(mappedResults);
-    } catch (error) {
-      console.error("Error searching medicines:", error);
-      toast.error("Failed to fetch search results.");
-    }
-  };
+    };
 
   useEffect(() => {
-    const debouncedSearch = debounce(() => handleSearchMedicine(query), 300);
+    const debouncedSearch = debounce(() => handleSearchMedicine(query), 10);
     debouncedSearch();
 
     return () => {
@@ -188,6 +174,30 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
     toast.success("Form reset successfully!");
   };
 
+  const updateMedicineQuantity = async (medicineId: string, quantityToReduce: number) => {
+    try {
+      // Fetch the medicine details directly from IndexedDB
+      const existingMedicine = await fetchMedicineById(medicineId);
+  
+      if (!existingMedicine) {
+        throw new Error(`Medicine with ID ${medicineId} not found in IndexedDB`);
+      }
+      // Calculate the new quantity
+      const newQuantity = existingMedicine.quantity - quantityToReduce;
+  
+      if (newQuantity < 0) {
+        throw new Error(`Insufficient quantity for medicine ID ${medicineId}`);
+      }
+  
+      // Update the quantity in IndexedDB
+      await updateMedicine(medicineId, { quantity: newQuantity });
+      console.log(`Medicine quantity updated successfully: ${medicineId}, New Quantity: ${newQuantity}`);
+    } catch (error) {
+      console.error("Error updating medicine quantity:", error);
+      toast.error(`Failed to update medicine quantity for ID: ${medicineId}`);
+    }
+  };
+  
   // Confirm purchase and reduce inventory
   const handleConfirmPurchase = async () => {
     if (!customerName) {
@@ -233,11 +243,7 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
       setOpenDialog(true);
       // Update inventory by reducing batch quantities
       for (const item of selectedMedicines) {
-        await invoke("reduce_batch", {
-          id: item.medicine.id,
-          batchNumber: item.medicine.batchNumber,
-          quantity: item.quantity,
-        });
+        await updateMedicineQuantity(item.medicine.id, item.quantity);
       }
   
       // // Notify the user of success
@@ -316,13 +322,15 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
         className="p-3 cursor-pointer hover:bg-gray-200 flex flex-col space-y-2"
         onClick={() => addMedicineToBilling(medicine)}
       >
-        <Typography variant="body2" className="text-gray-800">
-          <strong>{medicine.name}</strong>
-        </Typography>
-        <Typography variant="body2" className="text-gray-600">
-          Batch: {medicine.batchNumber} | Qty: {medicine.quantity} | Price: ₹{medicine.sellingPrice.toFixed(2)} | Exp:{" "}
-          {medicine.expiryDate}
-        </Typography>
+        <div>
+  <p className="text-gray-800 font-semibold">
+    <strong>{medicine.name}</strong>
+  </p>
+  <p className="text-gray-600 text-sm">
+    Batch: {medicine.batchNumber} | Qty: {medicine.quantity} | Price: ₹
+    {medicine.sellingPrice.toFixed(2)} | Exp: {medicine.expiryDate}
+  </p>
+</div>
       </li>
     ))}
   </ul>

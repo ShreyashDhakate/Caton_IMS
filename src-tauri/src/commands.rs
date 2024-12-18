@@ -23,6 +23,7 @@ pub async fn initialize_db() -> Result<String, String> {
 pub struct Medicine {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
+    pub local_id: String,
     pub user_id: String,
     pub name: String,
     pub batch_number: String,
@@ -36,6 +37,7 @@ pub struct Medicine {
 
 #[command]
 pub async fn insert_medicine(
+    local_id: String,
     name: String,
     batch_number: String,
     expiry_date: String,
@@ -52,6 +54,7 @@ pub async fn insert_medicine(
 
     let new_medicine = Medicine {
         id: None,
+        local_id,
         user_id: hospital_id,
         name,
         batch_number,
@@ -275,11 +278,33 @@ pub async fn update_stock(
     Ok("Stock updated successfully.".to_string())
 }
 
+#[command]
+pub async fn check_medicine_batch(
+    name: String,
+    batch_number: String,
+    hospital_id: String,
+) -> Result<bool, String> {
+    let db = get_db_connection().await;
+    let collection: Collection<Medicine> = db.collection("medicines");
+
+    // Build filter document using name, batch_number, and hospital_id
+    let filter = doc! {
+        "name": name,
+        "batch_number": batch_number,
+        "user_id": hospital_id,
+    };
+
+    match collection.find_one(filter, None).await {
+        Ok(Some(_)) => Ok(true), // Batch exists
+        Ok(None) => Ok(false),  // Batch does not exist
+        Err(e) => Err(e.to_string()), // Error during the query
+    }
+}
 
 
 #[command]
 pub async fn update_batch(
-    medicine_id: String,
+    local_id: String,
     batch_number: String,
     quantity: Option<u32>,
     expiry_date: Option<String>,
@@ -294,7 +319,7 @@ pub async fn update_batch(
     let collection: Collection<Medicine> = db.collection("medicines");
 
     let filter = doc! {
-        "_id": ObjectId::parse_str(&medicine_id).map_err(|_| "Invalid medicine ID".to_string())?,
+        "local_id": local_id,
         "user_id": hospital_id,
         "batch_number": batch_number.clone(),
     };
@@ -566,4 +591,27 @@ pub async fn get_medicine_by_id(medicine_id: String) -> Result<Medicine, String>
 
     // Step 4: Return the retrieved medicine
     Ok(medicine)
+}
+
+#[command]
+pub async fn get_all_medicines(hospital_id: String) -> Result<Vec<Medicine>, String> {
+    let db = get_db_connection().await;
+    let collection: Collection<Medicine> = db.collection("medicines");
+
+    // Query to filter medicines by the hospital's user ID
+    let filter = doc! { "user_id": &hospital_id };
+
+    // Fetch all medicines matching the filter
+    let cursor = collection
+        .find(filter, None)
+        .await
+        .map_err(|e| e.to_string())?;
+    
+    // Collect all medicines into a Vec
+    let medicines: Vec<Medicine> = cursor
+        .try_collect()
+        .await
+        .map_err(|e| e.to_string())?;
+    
+    Ok(medicines)
 }

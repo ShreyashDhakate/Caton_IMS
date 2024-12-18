@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import loader from "./animations/loader.json"
-import Lottie from "react-lottie";
+import Lottie from "lottie-react";
 import { db } from "../lib/db";
 // Define the Medicine type to match the backend structure
 type Medicine = {
   [x: string]: any;
-  _id?: { $oid: string }; // Optional, matches `Option<ObjectId>` in Rust
+  // _id?: { $oid: string }; // Optional, matches `Option<ObjectId>` in Rust
+  id:string;
   user_id: string;
   name: string;
   batch_number: string;
@@ -147,7 +148,13 @@ const MedicineManager: React.FC = () => {
       {loading ? (
         // Render loader when loading
         <div className="flex justify-center items-center h-64">
-          <Lottie options={loaderOptions} height={150} width={150} />
+          <Lottie 
+  animationData={loaderOptions.animationData} 
+  loop={loaderOptions.loop} 
+  autoplay={loaderOptions.autoplay} 
+  style={{ width: 150, height: 150 }} 
+/>
+
         </div>
       ) : (
         // Medicine Table

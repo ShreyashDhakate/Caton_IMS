@@ -8,6 +8,7 @@ type MedicineInfo = {
   batchNumber: string; // Added field
   expiryDate: string;  // Added field
   quantity: number;    // Available quantity in the database
+  purchasePrice: number;
 };
 
 type BillingSummaryProps = {

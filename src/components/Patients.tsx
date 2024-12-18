@@ -1,8 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
-import { toast } from "sonner"; // Import Sonner toast and Toaster
 import { useNavigate } from "react-router-dom";
+
+// Custom toast alternative using simple DOM manipulation
+const showToast = (message: string, type: "success" | "error" = "success") => {
+  const toast = document.createElement("div");
+  toast.textContent = message;
+  toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded text-white shadow-lg z-50 ${
+    type === "success" ? "bg-gr-500" : "bg-red-500"
+  }`;
+
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    document.body.removeChild(toast);
+  }, 3000);
+};
 
 type Appointment = {
   id: string;
@@ -33,17 +46,15 @@ const Patients: React.FC = () => {
 
       // Trigger notification only if there are new patients
       if (GlobalState.previousCount !== -1 && data.length > GlobalState.previousCount) {
-        toast(`New patient added! Total patients: ${data.length}`);
+        showToast(`New patient added! Total patients: ${data.length}`);
       }
 
       // Update global previous count and set appointments
       GlobalState.previousCount = data.length;
-      console.log("data: ",data);
       setAppointments(data);
-      // console.log("Appointments:",appointments);
     } catch (error) {
       console.error("Error fetching appointments:", error);
-      toast.error("Failed to fetch appointments. Please try again.");
+      showToast("Failed to fetch appointments. Please try again.", "error");
     }
   };
 
@@ -66,9 +77,6 @@ const Patients: React.FC = () => {
         medicines: selectedAppointment.medicines,
       };
       localStorage.setItem(appointmentKey, JSON.stringify(appointmentData));
-      console.log(appointmentData);
-      console.log(appointmentKey);
-      // Pass the appointment ID to the billing page
       navigate("/billing", { state: { appointmentId: selectedAppointment.id } });
     }
   };
@@ -76,34 +84,38 @@ const Patients: React.FC = () => {
   return (
     <div className="p-6 space-y-4">
       <h1 className="text-2xl font-bold">Patients</h1>
-      <Table className="w-full border">
-        <TableHead>
-          <TableRow>
-            <TableCell>Patient Name</TableCell>
-            <TableCell>Mobile</TableCell>
-            <TableCell>Disease</TableCell>
-            <TableCell>Date</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-  {appointments.map((appointment, index) => (
-    <TableRow
-      key={appointment.id || `${appointment.patient_name}-${index}`}
-      onClick={() => setSelectedAppointment(appointment)}
-      className="hover:bg-gray-100 cursor-pointer"
-    >
-      <TableCell>{appointment.patient_name}</TableCell>
-      <TableCell>{appointment.mobile}</TableCell>
-      <TableCell>{appointment.disease}</TableCell>
-      <TableCell>{new Date(appointment.date_created).toLocaleString()}</TableCell>
-    </TableRow>
-  ))}
-</TableBody>
-      </Table>
+      <div className="w-full border rounded-lg overflow-hidden">
+        <table className="table-auto w-full">
+          <thead className="bg-gray-200 text-gray-700">
+            <tr>
+              <th className="px-4 py-2 text-left">Patient Name</th>
+              <th className="px-4 py-2 text-left">Mobile</th>
+              <th className="px-4 py-2 text-left">Disease</th>
+              <th className="px-4 py-2 text-left">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {appointments.map((appointment, index) => (
+              <tr
+                key={appointment.id || `${appointment.patient_name}-${index}`}
+                onClick={() => setSelectedAppointment(appointment)}
+                className="cursor-pointer hover:bg-gray-100 border-b"
+              >
+                <td className="px-4 py-2">{appointment.patient_name}</td>
+                <td className="px-4 py-2">{appointment.mobile}</td>
+                <td className="px-4 py-2">{appointment.disease}</td>
+                <td className="px-4 py-2">
+                  {new Date(appointment.date_created).toLocaleString()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {selectedAppointment && (
         <div className="p-4 border rounded shadow-md bg-white">
-          <h2 className="text-xl font-bold">Appointment Details</h2>
+          <h2 className="text-xl font-bold mb-2">Appointment Details</h2>
           <p>
             <strong>Patient Name:</strong> {selectedAppointment.patient_name}
           </p>
