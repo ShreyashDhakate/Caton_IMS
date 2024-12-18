@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { toast } from "sonner";
+
+import { useToast } from "./ui/sonner";
 import { v4 as uuidv4 } from "uuid";
 import {
   Dialog,
@@ -32,6 +33,7 @@ interface Wholesaler {
 }
 
 const StockManager: React.FC = () => {
+  const { addToast } = useToast();
   const [wholesalers, setWholesalers] = useState<Wholesaler[]>([]);
   const [selectedWholesaler, setSelectedWholesaler] =
     useState<Wholesaler | null>(null);
@@ -90,7 +92,7 @@ const StockManager: React.FC = () => {
 
       setOpenDialog(false);
       fetchWholesalers();
-      toast.success("Medicine removed successfully!");
+      addToast("Medicine removed successfully!","success");
       try {
         await db.medicines.delete(medicineToRemove);
         const result = await invoke("delete_medicine", {
@@ -112,7 +114,7 @@ const StockManager: React.FC = () => {
         // toast.success("Medicine removed successfully!");
       } catch (error) {
         console.error("Error removing stock:", error);
-        toast.error("Error removing medicine!");
+        addToast("Error removing medicine!","error");
       }
     }
   };
@@ -161,7 +163,7 @@ const StockManager: React.FC = () => {
         });
         updateWholesalerState();
         setOpenEditDialog(false);
-        toast.success("Edited Medicine Successfully!");
+        addToast("Edited Medicine Successfully!","success");
       } catch (error) {
         console.error("Error editing stock:", error);
       }

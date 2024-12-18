@@ -5,7 +5,7 @@ import WelcomePage from "./components/WelcomePage";
 import "./index.css";
 import LoginPage from "./components/Login";
 import SignupPage from "./components/SignupPage";
-import { Toaster } from "./components/ui/sonner";
+import { ToastProvider } from "./components/ui/sonner";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import StockAdd from "./components/StockAdd";
 import Appointment from "./components/Appointment";
@@ -28,13 +28,14 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
-        <Toaster />
+        <ToastProvider>
         <Navbar />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/*" element={<ProtectedRoutes />} />
         </Routes>
+        </ToastProvider>
       </Router>
     </AuthProvider>
   );

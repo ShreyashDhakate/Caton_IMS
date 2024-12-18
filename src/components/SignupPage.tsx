@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import QRCode from "react-qr-code";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { useToast } from "./ui/sonner";
 import { invoke } from "@tauri-apps/api/core";
 import Lottie from "react-lottie";
 import step1Animation from "./animations/growth.json";
@@ -22,6 +22,8 @@ const SignupPage: React.FC = () => {
   const [passwordPharma, setPasswordPharma] = useState("");
   const [passwordPharmaConfirm, setPasswordPharmaConfirm] = useState("");
   const navigate = useNavigate();
+  const { addToast } = useToast();
+  
 
   const animations = [
     step1Animation,
@@ -48,27 +50,27 @@ const SignupPage: React.FC = () => {
   const handleSignup = async () => {
     // Validate required fields
     if (!name || !email || !mobile || !passwordDoc || !passwordPharma) {
-      toast.error("Please fill out all required fields.");
+      addToast("Please fill out all required fields.","info");
       return;
     }
   
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      toast.error("Please enter a valid email address.");
+      addToast("Please enter a valid email address.","error");
       return;
     }
   
     // Validate mobile format (assuming 10-digit numbers for example)
     const mobileRegex = /^[0-9]{10}$/;
     if (!mobileRegex.test(mobile)) {
-      toast.error("Please enter a valid 10-digit mobile number.");
+      addToast("Please enter a valid 10-digit mobile number.","error");
       return;
     }
   
     // Ensure passwords match
     if (passwordDoc !== passwordDocConfirm || passwordPharma !== passwordPharmaConfirm) {
-      toast.error("Passwords do not match!");
+      addToast("Passwords do not match!","error");
       return;
     }
   
@@ -86,16 +88,16 @@ const SignupPage: React.FC = () => {
         passwordPharma,
         email,
       });
-      toast.success("Account created successfully!");
+      addToast("Account created successfully!","success");
       setStep(4);
     } catch (error: any) {
       console.error("Signup error:", error);
-      toast.error(`Signup failed: ${error.message || error}`);
+      addToast(`Signup failed: ${error.message || error}`,"error");
     }
   };
 
   const handlePaymentDetection = () => {
-    toast.success("Payment received!");
+    addToast("Payment received!","success");
     handleNextStep();
   };
 

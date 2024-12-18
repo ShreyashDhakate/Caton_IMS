@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { AddCircleOutline, DeleteOutline } from "@mui/icons-material";
 import dayjs from "dayjs";
-import { toast } from "sonner";
+
+import { useToast } from "./ui/sonner";
 import { addMedicine } from "../lib/stockdb";
 import { searchMedicines, syncMedicinesToMongoDB } from "../lib/stockdb";
 
@@ -23,6 +24,7 @@ interface WholesalerPurchase {
 }
 
 const StockAdd: React.FC = () => {
+  const { addToast } = useToast();
   const [purchases, setPurchases] = useState<WholesalerPurchase[]>([
     {
       id: crypto.randomUUID(),
@@ -51,7 +53,7 @@ const StockAdd: React.FC = () => {
       setSearchResults(results);
     } catch (error) {
       console.error("Error searching medicines:", error);
-      toast.error("Failed to search medicines locally.");
+      addToast("Failed to search medicines locally.","error");
     }
   };
 
@@ -80,7 +82,7 @@ const StockAdd: React.FC = () => {
             medicine.purchasePrice === null ||
             medicine.sellingPrice === null
           ) {
-            toast.error("Please fill in all fields for each medicine.");
+            addToast("Please fill in all fields for each medicine.","info");
             return;
           }
 
@@ -97,12 +99,12 @@ const StockAdd: React.FC = () => {
             purchase_date: purchase.purchaseDate,
           });
 
-          toast.success(`Medicine saved locally: ${medicine.name}`);
+          addToast(`Medicine saved locally: ${medicine.name}`,"success");
         }
       }
     } catch (error) {
       console.error("Error saving medicines:", error);
-      toast.error("Failed to save medicines locally.");
+      addToast("Failed to save medicines locally.","error");
     }
   };
 
@@ -160,7 +162,7 @@ const StockAdd: React.FC = () => {
 
     setActiveMedicineId(null);
     setSearchResults([]);
-    toast.success(`Selected medicine: ${selected.name}`);
+    addToast(`Selected medicine: ${selected.name}`,"success");
   };
 
   return (

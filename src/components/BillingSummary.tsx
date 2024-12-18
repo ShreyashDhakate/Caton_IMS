@@ -1,5 +1,5 @@
 import CloseIcon from '@mui/icons-material/Close';
-import { toast } from 'sonner';
+import { useToast } from "./ui/sonner";
 
 type MedicineInfo = {
   id: string;
@@ -19,6 +19,7 @@ type BillingSummaryProps = {
 };
 
 const BillingSummary = ({ selectedMedicines, setSelectedMedicines }: BillingSummaryProps) => {
+  const { addToast } = useToast();
   // Function to remove medicine from billing list
   const removeMedicineFromBilling = (medicineToRemove: MedicineInfo) => {
     setSelectedMedicines(
@@ -29,7 +30,7 @@ const BillingSummary = ({ selectedMedicines, setSelectedMedicines }: BillingSumm
   // Function to update the quantity of a medicine
   const updateQuantity = (medicine: MedicineInfo, quantity: number) => {
     if (quantity > medicine.quantity) {
-      toast.error(`Quantity exceeds available stock. Only ${medicine.quantity} items are in stock.`);
+      addToast(`Quantity exceeds available stock. Only ${medicine.quantity} items are in stock.`,"error");
       return;
     }
 

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { useToast } from "./ui/sonner";
 import { invoke } from "@tauri-apps/api/core";
 import { useAuth } from "../context/AuthContext";
 
@@ -16,12 +16,13 @@ const LoginPage: React.FC = () => {
 
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { addToast } = useToast();
 
   const checkConnectivity = (): boolean => {
     if (navigator.onLine) {
       return true;
     } else {
-      toast.error("No internet connection. Please check your network.");
+      addToast("No internet connection. Please check your network.", "error");
       return false;
     }
   };
@@ -30,7 +31,7 @@ const LoginPage: React.FC = () => {
     if (!checkConnectivity()) return;
 
     if (!username || !password) {
-      toast.error("Please enter both username and password.");
+      addToast("Please enter both username and password.","info");
       return;
     }
 
@@ -49,44 +50,44 @@ const LoginPage: React.FC = () => {
       localStorage.setItem("address", parsedResponse.address);
       localStorage.setItem("role", role);
 
-      toast.success("Login successful!");
+      addToast("Login successful!","success");
       login();
       navigate("/");
     } catch (error: any) {
       console.error("Login Error:", error);
-      toast.error("Invalid username or password.");
+      addToast("Invalid username or password.","error");
     }
   };
 
   const handleForgotPassword = async () => {
     if (step === "email") {
       if (!email) {
-        toast.error("Please enter your email address.");
+        addToast("Please enter your email address.","error");
         return;
       }
 
       try {
         await invoke("forgot_password", { email });
-        toast.success("OTP sent to your email.");
+        addToast("OTP sent to your email.","success");
         setStep("otp");
       } catch (error: any) {
         console.error("Error sending OTP:", error);
-        toast.error("Failed to send OTP. Please try again.");
+        addToast("Failed to send OTP. Please try again.","error");
       }
     } else if (step === "otp") {
       if (!otp || !newPassword) {
-        toast.error("Please enter both OTP and new password.");
+        addToast("Please enter both OTP and new password.","info");
         return;
       }
 
       try {
         await invoke("reset_password", { email, otp, newPassword, role });
-        toast.success("Password reset successful! You can now log in.");
+        addToast("Password reset successful! You can now log in.","success");
         setShowForgotPassword(false);
         setStep("email");
       } catch (error: any) {
         console.error("Error resetting password:", error);
-        toast.error("Failed to reset password. Please check your details.");
+        addToast("Failed to reset password. Please check your details.","error");
       }
     }
   };

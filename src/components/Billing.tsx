@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Location } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { useToast } from "./ui/sonner";
 import debounce from "lodash.debounce";
 import BillingSummary from "./BillingSummary";
 import { printBill } from "../hooks/printBill";
@@ -47,7 +47,7 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
   const hospitalName: string = localStorage.getItem("hospital") ?? "";
   const hospitalPhone: string = localStorage.getItem("phone") ?? "";
   const hospitalAddress: string = localStorage.getItem("address") ?? "";
-
+  const { addToast } = useToast();
   // Store patient details if redirected from Patients page
   const [patientDetails, setPatientDetails] = useState<{
     patient_name: string;
@@ -99,7 +99,7 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
         setSelectedMedicines(fetchedMedicines);
       } catch (error) {
         console.error("Error fetching medicine details:", error);
-        toast.error("Failed to fetch medicine details. Redirecting...");
+        addToast("Failed to fetch medicine details. Redirecting...","error");
         navigate("/patients");
       }
 
@@ -118,7 +118,7 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
       setCustomerName(details.patient_name);
       fetchMedicineDetails(details.medicines);
     } else {
-      toast.error("Patient details not found. Redirecting...");
+      addToast("Patient details not found. Redirecting...","info");
       navigate("/patients");
     }
   }
@@ -138,7 +138,7 @@ const handleSearchMedicine = async (query: string) => {
     setSearchResults(sanitizedResults);
   } catch (error) {
     console.error("Error searching medicines:", error);
-    toast.error("Failed to search medicines locally.");
+    addToast("Failed to search medicines locally.","error");
   }
 };
 
@@ -165,7 +165,7 @@ const handleSearchMedicine = async (query: string) => {
         ...selectedMedicines,
         { medicine, quantity: 1 },
       ]);
-      toast.success("Medicine added for billing!");
+      addToast("Medicine added for billing!","success");
     }
     setSearchResults([]);
     setQuery("");
@@ -176,7 +176,7 @@ const handleSearchMedicine = async (query: string) => {
     setPatientDetails(null);
     setSelectedMedicines([]);
     setQuery("");
-    toast.success("Form reset successfully!");
+    addToast("Form reset successfully!","info");
   };
 
   const updateMedicineQuantity = async (medicineId: string, quantityToReduce: number) => {
@@ -199,24 +199,24 @@ const handleSearchMedicine = async (query: string) => {
       console.log(`Medicine quantity updated successfully: ${medicineId}, New Quantity: ${newQuantity}`);
     } catch (error) {
       console.error("Error updating medicine quantity:", error);
-      toast.error(`Failed to update medicine quantity for ID: ${medicineId}`);
+      addToast(`Failed to update medicine quantity for ID: ${medicineId}`,"error");
     }
   };
   
   // Confirm purchase and reduce inventory
   const handleConfirmPurchase = async () => {
     if (!customerName) {
-      toast.error("Customer name is required!");
+      addToast("Customer name is required!","info");
       return;
     }
   
     if (!billingId) {
-      toast.error("Billing ID is required!");
+      addToast("Billing ID is required!","info");
       return;
     }
   
     if (!selectedMedicines || selectedMedicines.length === 0) {
-      toast.error("No medicines selected for purchase!");
+      addToast("No medicines selected for purchase!","error");
       return;
     }
   
@@ -244,7 +244,7 @@ const handleSearchMedicine = async (query: string) => {
           selling_price: item.medicine.sellingPrice,
         }))
       );
-      toast.success("Purchase confirmed and inventory updated!");
+      addToast("Purchase confirmed and inventory updated!","success");
       setOpenDialog(true);
       // Update inventory by reducing batch quantities
       for (const item of selectedMedicines) {
@@ -252,11 +252,11 @@ const handleSearchMedicine = async (query: string) => {
       }
   
       // // Notify the user of success
-      toast.success("inventory update recovered!");
+      addToast("inventory update recovered!","success");
       // setOpenDialog(true);
     } catch (error) {
       console.error("Error confirming purchase:", error);
-      toast.error("Failed to confirm purchase. Please try again.");
+      addToast("Failed to confirm purchase. Please try again.","error");
     }
   };
   
@@ -283,7 +283,7 @@ const handleSearchMedicine = async (query: string) => {
   setCustomerName(""); // Clear customer name
   setPatientDetails(null); // Clear patient details including disease and precautions
   setOpenDialog(false); // Close the dialog
-  toast.success("Bill printed successfully!");
+  addToast("Bill printed successfully!","info");
   };
 
   const handleCloseDialog = () => {

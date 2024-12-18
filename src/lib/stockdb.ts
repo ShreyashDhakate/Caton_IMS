@@ -4,7 +4,7 @@ import { db } from "./db"; // Adjust the path to your actual file
 // Type for OriginalMedicine
 type OriginalMedicine = {
   [x: string]: any;
-  id: string; // Optional for flexibility during initial data creation
+  // id: string; // Optional for flexibility during initial data creation
   user_id: string;
   name: string;
   batch_number: string;

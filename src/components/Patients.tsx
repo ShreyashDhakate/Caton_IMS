@@ -1,21 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "./ui/sonner";
 
-// Custom toast alternative using simple DOM manipulation
-const showToast = (message: string, type: "success" | "error" = "success") => {
-  const toast = document.createElement("div");
-  toast.textContent = message;
-  toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded text-white shadow-lg z-50 ${
-    type === "success" ? "bg-gr-500" : "bg-red-500"
-  }`;
 
-  document.body.appendChild(toast);
-
-  setTimeout(() => {
-    document.body.removeChild(toast);
-  }, 3000);
-};
+  
 
 type Appointment = {
   id: string;
@@ -36,6 +25,7 @@ const Patients: React.FC = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const navigate = useNavigate();
 
+  const { addToast } = useToast();
   // Fetch appointments from the backend
   const fetchAppointments = async () => {
     try {
@@ -46,7 +36,7 @@ const Patients: React.FC = () => {
 
       // Trigger notification only if there are new patients
       if (GlobalState.previousCount !== -1 && data.length > GlobalState.previousCount) {
-        showToast(`New patient added! Total patients: ${data.length}`);
+        addToast(`New patient added! Total patients: ${data.length}`,"info");
       }
 
       // Update global previous count and set appointments
@@ -54,7 +44,7 @@ const Patients: React.FC = () => {
       setAppointments(data);
     } catch (error) {
       console.error("Error fetching appointments:", error);
-      showToast("Failed to fetch appointments. Please try again.", "error");
+      addToast("Failed to fetch appointments. Please try again.", "error");
     }
   };
 

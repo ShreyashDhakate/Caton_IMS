@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { toast } from 'sonner';
+import { useToast } from "./ui/sonner";
 
 const Navbar: React.FC = () => {
   const { isLoggedIn, logout } = useAuth();
@@ -14,7 +14,7 @@ const Navbar: React.FC = () => {
 
   // Open the logout confirmation dialog
   const handleClickOpen = () => setOpen(true);
-
+  const { addToast } = useToast();
   // Close the logout confirmation dialog
   const handleClose = () => setOpen(false);
 
@@ -25,11 +25,11 @@ const Navbar: React.FC = () => {
       localStorage.removeItem('UserId');
       localStorage.removeItem('role');
       setActiveDropdown(null); // Reset active dropdowns
-      toast.success('You are logged out!');
+      addToast('You are logged out!',"success");
       navigate('/login');
     } catch (error) {
-      toast.error('Logout failed. Please try again.');
-      console.error('Logout error:', error);
+      addToast('Logout failed. Please try again.',"error");
+      
     } finally {
       handleClose();
     }

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { toast } from "sonner";
+import { useToast } from "./ui/sonner";
 import { searchDoctorMedicines, syncDoctorMedicinesFromMongoDB } from "../lib/doctorstock";
 
 interface MedicineInfo {
@@ -24,7 +24,7 @@ const Appointment: React.FC = () => {
   const [medicineSearch, setMedicineSearch] = useState("");
   const [searchResults, setSearchResults] = useState<MedicineInfo[]>([]);
   const [selectedMedicines, setSelectedMedicines] = useState<MedicineInfo[]>([]);
-
+  const { addToast } = useToast();
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -53,7 +53,7 @@ const Appointment: React.FC = () => {
       setSearchResults(results);
     } catch (error) {
       console.error("Error searching medicines:", error);
-      toast.error("Failed to search medicines locally.");
+      addToast("Failed to search medicines locally.","error");
     }
   };
 
@@ -89,18 +89,18 @@ const Appointment: React.FC = () => {
 
   const handleQuantityChange = (id: string, newQuantity: number) => {
     if (newQuantity < 1) {
-      toast.error("Quantity must be at least 1.");
+      addToast("Quantity must be at least 1.","info");
       return;
     }
 
     const originalMedicine = searchResults.find((medicine) => medicine.id === id);
     if (!originalMedicine) {
-      toast.error("Medicine not found in search results.");
+      addToast("Medicine not found in search results.","error");
       return;
     }
 
     if (newQuantity > originalMedicine.quantity) {
-      toast.error(`Entered quantity (${newQuantity}) exceeds available stock (${originalMedicine.quantity}).`);
+      addToast(`Entered quantity (${newQuantity}) exceeds available stock (${originalMedicine.quantity}).`,'error');
       return;
     }
 
@@ -113,17 +113,17 @@ const Appointment: React.FC = () => {
     try {
       const userId = localStorage.getItem("userId");
       if (!userId) {
-        toast.error("User ID is missing. Please log in again.");
+        addToast("User ID is missing. Please log in again.","info");
         return;
       }
 
       if (!patient.name || !patient.mobile) {
-        toast.error("Patient name and mobile number are required.");
+        addToast("Patient name and mobile number are required.","info");
         return;
       }
 
       if (selectedMedicines.length === 0) {
-        toast.error("Please select at least one medicine.");
+        addToast("Please select at least one medicine.","info");
         return;
       }
 
@@ -136,13 +136,13 @@ const Appointment: React.FC = () => {
         hospitalId: userId,
       });
 
-      toast.success("Appointment saved successfully!");
+      addToast("Appointment saved successfully!","success");
       setPatient({ name: "", mobile: "", disease: "", precautions: "" });
       setSelectedMedicines([]);
       setMedicineSearch("");
       setSearchResults([]);
     } catch (error: any) {
-      toast.error(`Failed to save appointment: ${error.message}`);
+      addToast(`Failed to save appointment: ${error.message}`,"error");
       console.error("Error saving appointment:", error);
     }
   };
