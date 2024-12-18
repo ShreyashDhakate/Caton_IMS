@@ -2,15 +2,6 @@ import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
-import {
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  TextField,
-  Button,
-} from "@mui/material";
 import { fetchAndGroupMedicines } from "../lib/stockdb";
 import { db } from "../lib/db";
 
@@ -33,12 +24,10 @@ interface Wholesaler {
 
 const StockManager: React.FC = () => {
   const [wholesalers, setWholesalers] = useState<Wholesaler[]>([]);
-  const [selectedWholesaler, setSelectedWholesaler] =
-    useState<Wholesaler | null>(null);
+  const [selectedWholesaler, setSelectedWholesaler] = useState<Wholesaler | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
-  const [openDeletePurchaseDialog, setOpenDeletePurchaseDialog] =
-    useState(false);
+  const [openDeletePurchaseDialog, setOpenDeletePurchaseDialog] = useState(false);
 
   const [medicineToRemove, setMedicineToRemove] = useState<string | null>(null);
   const [medicineToEdit, setMedicineToEdit] = useState<Medicine | null>(null);
@@ -71,9 +60,7 @@ const StockManager: React.FC = () => {
       console.log(wholesalers);
 
       setWholesalers(
-        wholesalers.sort((a, b) =>
-          a.wholesalerName.localeCompare(b.wholesalerName)
-        )
+        wholesalers.sort((a, b) => a.wholesalerName.localeCompare(b.wholesalerName))
       );
     } catch (error) {
       console.error("Error fetching stock:", error);
@@ -99,17 +86,13 @@ const StockManager: React.FC = () => {
         });
         console.log(result);
 
-        // Remove the medicine from the selected wholesaler's medicines
         const updatedMedicines = selectedWholesaler.medicines.filter(
           (medicine) => medicine.id !== medicineToRemove
         );
 
-        // Update the state for selected wholesaler
         updateWholesalerMedState(updatedMedicines);
 
-        // Close the dialog after successful deletion
         setOpenDialog(false);
-        // toast.success("Medicine removed successfully!");
       } catch (error) {
         console.error("Error removing stock:", error);
         toast.error("Error removing medicine!");
@@ -174,9 +157,7 @@ const StockManager: React.FC = () => {
         await invoke("delete_purchase", {
           wholesalerId: selectedWholesaler.id,
         });
-        setWholesalers((prev) =>
-          prev.filter((w) => w.id !== selectedWholesaler.id)
-        );
+        setWholesalers((prev) => prev.filter((w) => w.id !== selectedWholesaler.id));
         setSelectedWholesaler(null);
         setOpenDeletePurchaseDialog(false);
       } catch (error) {
@@ -214,9 +195,7 @@ const StockManager: React.FC = () => {
               <h2 className="text-xl font-semibold mb-2">
                 {wholesaler.wholesalerName}
               </h2>
-              <p className="text-sm">
-                Purchase Date: {wholesaler.purchaseDate}
-              </p>
+              <p className="text-sm">Purchase Date: {wholesaler.purchaseDate}</p>
               <button
                 className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                 onClick={() => setSelectedWholesaler(wholesaler)}
@@ -248,19 +227,13 @@ const StockManager: React.FC = () => {
           <table className="table-auto w-full border-collapse border border-gray-300">
             <thead>
               <tr className="bg-gray-100">
-                {[
-                  "Name",
-                  "Batch",
-                  "Expiry",
-                  "Quantity",
-                  "Purchase Price",
-                  "Selling Price",
-                  "Actions",
-                ].map((header) => (
-                  <th key={header} className="border border-gray-300 px-4 py-2">
-                    {header}
-                  </th>
-                ))}
+                {["Name", "Batch", "Expiry", "Quantity", "Purchase Price", "Selling Price", "Actions"].map(
+                  (header) => (
+                    <th key={header} className="border border-gray-300 px-4 py-2">
+                      {header}
+                    </th>
+                  )
+                )}
               </tr>
             </thead>
             <tbody>
@@ -312,127 +285,153 @@ const StockManager: React.FC = () => {
       )}
 
       {/* Remove Medicine Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-        <DialogTitle>Remove Medicine</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to remove this medicine from the stock?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)} color="primary">
-            Cancel
-          </Button>
-          <Button onClick={handleRemoveStock} color="secondary">
-            Confirm
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {openDialog && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded shadow-md w-11/12 md:w-1/3">
+            <h2 className="text-lg font-bold mb-4">Remove Medicine</h2>
+            <p className="mb-4">Are you sure you want to remove this medicine from the stock?</p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setOpenDialog(false)}
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRemoveStock}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Medicine Dialog */}
-      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)}>
-        <DialogTitle>Edit Medicine</DialogTitle>
-        <DialogContent>
-          <TextField
-            label="Quantity"
-            value={medicineToEdit?.quantity || ""}
-            onChange={(e) =>
-              setMedicineToEdit((prev) => ({
-                ...prev!,
-                quantity: Number(e.target.value),
-              }))
-            }
-            fullWidth
-            margin="normal"
-            type="number"
-          />
-          <TextField
-            label="Purchase Price"
-            value={medicineToEdit?.purchasePrice || ""}
-            onChange={(e) =>
-              setMedicineToEdit((prev) => ({
-                ...prev!,
-                purchasePrice: Number(e.target.value),
-              }))
-            }
-            fullWidth
-            margin="normal"
-            type="number"
-          />
-          <TextField
-            label="Selling Price"
-            value={medicineToEdit?.sellingPrice || ""}
-            onChange={(e) =>
-              setMedicineToEdit((prev) => ({
-                ...prev!,
-                sellingPrice: Number(e.target.value),
-              }))
-            }
-            fullWidth
-            margin="normal"
-            type="number"
-          />
-          <TextField
-            label="Batch Number"
-            value={medicineToEdit?.batchNumber || ""}
-            onChange={(e) =>
-              setMedicineToEdit((prev) => ({
-                ...prev!,
-                batchNumber: e.target.value,
-              }))
-            }
-            fullWidth
-            margin="normal"
-          />
-          <TextField
-            label="Expiry Date"
-            value={medicineToEdit?.expiryDate || ""}
-            onChange={(e) =>
-              setMedicineToEdit((prev) => ({
-                ...prev!,
-                expiryDate: e.target.value,
-              }))
-            }
-            fullWidth
-            margin="normal"
-            type="date"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenEditDialog(false)} color="primary">
-            Cancel
-          </Button>
-          <Button onClick={handleEditStock} color="secondary">
-            Save Changes
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {openEditDialog && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded shadow-md w-11/12 md:w-1/3">
+            <h2 className="text-lg font-bold mb-4">Edit Medicine</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Quantity</label>
+                <input
+                  type="number"
+                  className="w-full p-2 border rounded"
+                  value={medicineToEdit?.quantity || ""}
+                  onChange={(e) =>
+                    setMedicineToEdit((prev) => ({
+                      ...prev!,
+                      quantity: Number(e.target.value),
+                    }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Purchase Price</label>
+                <input
+                  type="number"
+                  className="w-full p-2 border rounded"
+                  value={medicineToEdit?.purchasePrice || ""}
+                  onChange={(e) =>
+                    setMedicineToEdit((prev) => ({
+                      ...prev!,
+                      purchasePrice: Number(e.target.value),
+                    }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Selling Price</label>
+                <input
+                  type="number"
+                  className="w-full p-2 border rounded"
+                  value={medicineToEdit?.sellingPrice || ""}
+                  onChange={(e) =>
+                    setMedicineToEdit((prev) => ({
+                      ...prev!,
+                      sellingPrice: Number(e.target.value),
+                    }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Batch Number</label>
+                <input
+                  type="text"
+                  className="w-full p-2 border rounded"
+                  value={medicineToEdit?.batchNumber || ""}
+                  onChange={(e) =>
+                    setMedicineToEdit((prev) => ({
+                      ...prev!,
+                      batchNumber: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Expiry Date</label>
+                <input
+                  type="date"
+                  className="w-full p-2 border rounded"
+                  value={medicineToEdit?.expiryDate || ""}
+                  onChange={(e) =>
+                    setMedicineToEdit((prev) => ({
+                      ...prev!,
+                      expiryDate: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+            <div className="flex justify-end space-x-4 mt-6">
+              <button
+                onClick={() => setOpenEditDialog(false)}
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditStock}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* Delete Purchase Dialog */}
-      <Dialog
-        open={openDeletePurchaseDialog}
-        onClose={() => setOpenDeletePurchaseDialog(false)}
-      >
-        <DialogTitle>Delete Purchase</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete this purchase record?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setOpenDeletePurchaseDialog(false)}
-            color="primary"
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleDeletePurchase} color="secondary">
-            Confirm
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Delete Purchase Confirmation Dialog */}
+      {openDeletePurchaseDialog && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded shadow-md w-11/12 md:w-1/3">
+            <h2 className="text-lg font-bold mb-4">Delete Purchase</h2>
+            <p className="mb-4">
+              Are you sure you want to delete this entire purchase record? This action cannot
+              be undone.
+            </p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setOpenDeletePurchaseDialog(false)}
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeletePurchase}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default StockManager;
+

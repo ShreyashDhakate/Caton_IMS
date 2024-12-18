@@ -1,19 +1,4 @@
 import React, { useState } from 'react';
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Button,
-  Box,
-  Menu,
-  MenuItem,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Grow,
-} from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
@@ -64,187 +49,151 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <AppBar
-      position="static"
-      sx={{ width: '100%', backgroundColor: '#057A85', zIndex: 1201 }}
-    >
-      <Toolbar>
-        <Typography
-          component={Link}
-          to="/"
-          sx={{
-            flexGrow: 1,
-            textDecoration: 'none',
-            color: 'inherit',
-            fontSize: '24px',
-          }}
-        >
+    <nav className="bg-teal-700 text-white shadow-md">
+      <div className="container mx-auto px-4 flex items-center justify-between h-16">
+        <Link to="/" className="text-2xl font-bold text-white no-underline">
           Caton Dashboard
-        </Typography>
+        </Link>
 
-        <Box display="flex">
+        <div className="flex items-center space-x-4">
           {isLoggedIn ? (
             <>
               {role === 'Pharmacist' && (
-                <Button color="inherit" component={Link} to="/billing">
+                <Link to="/billing" className="hover:underline">
                   Billing
-                </Button>
+                </Link>
               )}
+
               {role === 'Pharmacist' && (
                 <>
-                  <Button
-                    color="inherit"
+                  <button
+                    className="hover:underline"
                     onClick={handleMedicineMenuOpen}
                   >
                     Medicine
-                  </Button>
-                  <Menu
-                    anchorEl={medicineAnchorEl}
-                    open={Boolean(medicineAnchorEl)}
-                    onClose={handleMedicineMenuClose}
-                    TransitionComponent={Grow}
-                    sx={{
-                      mt: 1, // Add spacing below the navbar
-                      zIndex: 1200, // Ensure it's above other components
-                      '& .MuiPaper-root': {
-                        position: 'absolute', // Ensure absolute positioning
-                        top: '100px', // Adjust dropdown position
-                        left: '0px', // Align it horizontally as needed
-                        transform: 'none', // Remove default transformations
-                      },
-                    }}
-                    anchorOrigin={{
-                      vertical: 'bottom',
-                      horizontal: 'right',
-                    }}
-                    transformOrigin={{
-                      vertical: 'top',
-                      horizontal: 'center',
-                    }}
-                  >
-                    <MenuItem
-                      component={Link}
-                      to="/editmedicine"
-                      onClick={handleMedicineMenuClose}
+                  </button>
+                  {medicineAnchorEl && (
+                    <div
+                      className="absolute mt-2 bg-white text-black shadow-md rounded-md py-2"
+                      onMouseLeave={handleMedicineMenuClose}
                     >
-                      Edit Medicine Details
-                    </MenuItem>
-                    <MenuItem
-                      component={Link}
-                      to="/medmanager"
-                      onClick={handleMedicineMenuClose}
-                    >
-                      Medicine Stock
-                    </MenuItem>
-                    <MenuItem
-                      component={Link}
-                      to="/all-medicines"
-                      onClick={handleMedicineMenuClose}
-                    >
-                      All Stock
-                    </MenuItem>
-                  </Menu>
+                      <Link
+                        to="/editmedicine"
+                        className="block px-4 py-2 hover:bg-gray-100"
+                        onClick={handleMedicineMenuClose}
+                      >
+                        Edit Medicine Details
+                      </Link>
+                      <Link
+                        to="/medmanager"
+                        className="block px-4 py-2 hover:bg-gray-100"
+                        onClick={handleMedicineMenuClose}
+                      >
+                        Medicine Stock
+                      </Link>
+                      <Link
+                        to="/all-medicines"
+                        className="block px-4 py-2 hover:bg-gray-100"
+                        onClick={handleMedicineMenuClose}
+                      >
+                        All Stock
+                      </Link>
+                    </div>
+                  )}
                 </>
               )}
 
               {role === 'Pharmacist' && (
                 <>
-                  <Button
-                    color="inherit"
+                  <button
+                    className="hover:underline"
                     onClick={handleStockMenuOpen}
                   >
                     Stocks
-                  </Button>
-                  <Menu
-                    anchorEl={stockAnchorEl}
-                    open={Boolean(stockAnchorEl)}
-                    onClose={handleStockMenuClose}
-                    TransitionComponent={Grow}
-                    sx={{
-                      mt: 1, // Add spacing below the navbar
-                      zIndex: 1200, // Ensure it's above other components
-                      '& .MuiPaper-root': {
-                        position: 'absolute', // Ensure absolute positioning
-                        top: '100px', // Adjust dropdown position
-                        left: '0px', // Align it horizontally as needed
-                        transform: 'none', // Remove default transformations
-                      },
-                    }}
-                    anchorOrigin={{
-                      vertical: 'bottom',
-                      horizontal: 'right',
-                    }}
-                    transformOrigin={{
-                      vertical: 'top',
-                      horizontal: 'center',
-                    }}
-                  >
-                    <MenuItem
-                      component={Link}
-                      to="/stockadd"
-                      onClick={handleStockMenuClose}
+                  </button>
+                  {stockAnchorEl && (
+                    <div
+                      className="absolute mt-2 bg-white text-black shadow-md rounded-md py-2"
+                      onMouseLeave={handleStockMenuClose}
                     >
-                      Add Stock
-                    </MenuItem>
-                    <MenuItem
-                      component={Link}
-                      to="/stockmanager"
-                      onClick={handleStockMenuClose}
-                    >
-                      Stock Manager
-                    </MenuItem>
-                    <MenuItem
-                      component={Link}
-                      to="/generate-report"
-                      onClick={handleStockMenuClose}
-                    >
-                      Generate Medicine Report
-                    </MenuItem>
-                  </Menu>
+                      <Link
+                        to="/stockadd"
+                        className="block px-4 py-2 hover:bg-gray-100"
+                        onClick={handleStockMenuClose}
+                      >
+                        Add Stock
+                      </Link>
+                      <Link
+                        to="/stockmanager"
+                        className="block px-4 py-2 hover:bg-gray-100"
+                        onClick={handleStockMenuClose}
+                      >
+                        Stock Manager
+                      </Link>
+                      <Link
+                        to="/generate-report"
+                        className="block px-4 py-2 hover:bg-gray-100"
+                        onClick={handleStockMenuClose}
+                      >
+                        Generate Medicine Report
+                      </Link>
+                    </div>
+                  )}
                 </>
               )}
 
               {role === 'Doctor' && (
-                <Button color="inherit" component={Link} to="/appointment">
+                <Link to="/appointment" className="hover:underline">
                   Appointment
-                </Button>
+                </Link>
               )}
-              <Button color="inherit" component={Link} to="/history">
+
+              <Link to="/history" className="hover:underline">
                 Analytics
-              </Button>
-              <Button color="inherit" component={Link} to="/patients">
+              </Link>
+              <Link to="/patients" className="hover:underline">
                 Patients
-              </Button>
-              <Button color="inherit" onClick={handleClickOpen}>
+              </Link>
+              <button className="hover:underline" onClick={handleClickOpen}>
                 Logout
-              </Button>
+              </button>
             </>
           ) : (
-            <Button color="inherit" component={Link} to="/login">
+            <Link to="/login" className="hover:underline">
               Login
-            </Button>
+            </Link>
           )}
-        </Box>
-      </Toolbar>
+        </div>
+      </div>
 
       {/* Logout Confirmation Dialog */}
-      <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Logout Confirmation</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to logout?
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose} color="primary">
-            Cancel
-          </Button>
-          <Button onClick={handleLogout} color="primary">
-            Logout
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </AppBar>
+      {open && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-lg max-w-sm w-full">
+            <div className="px-6 py-4 border-b">
+              <h2 className="text-lg font-semibold">Logout Confirmation</h2>
+            </div>
+            <div className="px-6 py-4">
+              <p>Are you sure you want to logout?</p>
+            </div>
+            <div className="px-6 py-4 flex justify-end space-x-4">
+              <button
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                onClick={handleClose}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-teal-700 text-white rounded hover:bg-teal-800"
+                onClick={handleLogout}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </nav>
   );
 };
 

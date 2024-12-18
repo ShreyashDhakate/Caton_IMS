@@ -1,4 +1,3 @@
-import CloseIcon from '@mui/icons-material/Close';
 import { toast } from 'sonner';
 
 type MedicineInfo = {
@@ -48,8 +47,8 @@ const BillingSummary = ({ selectedMedicines, setSelectedMedicines }: BillingSumm
   };
 
   return (
-    <div className="border border-gray-300 min-h-[26rem] rounded mt-4 p-4">
-      <h6 className="font-bold mb-2">Selected Medicines:</h6>
+    <div className="border border-gray-300 min-h-[26rem] rounded mt-4 p-4 shadow-md">
+      <h6 className="font-bold text-lg mb-2">Selected Medicines:</h6>
       <div id="billing-summary" className="grid grid-cols-8 gap-4">
         <div className="font-bold mb-2 text-start">S.No</div>
         <div className="font-bold mb-2 col-span-3 text-start">Medicine</div>
@@ -61,7 +60,7 @@ const BillingSummary = ({ selectedMedicines, setSelectedMedicines }: BillingSumm
           <div key={index} className="contents">
             <div className="text-start">{index + 1}</div>
             <div className="text-start col-span-3">
-              {item.medicine.name} (Batch: {item.medicine.batchNumber})
+              {item.medicine.name} <span className="text-gray-500">(Batch: {item.medicine.batchNumber})</span>
             </div>
             <input
               type="number"
@@ -71,16 +70,16 @@ const BillingSummary = ({ selectedMedicines, setSelectedMedicines }: BillingSumm
               }
               min={0}
               max={item.medicine.quantity} // Limit input field to max available stock
-              className="w-16 border border-gray-300 rounded p-1 text-sm text-start"
+              className="w-16 border border-gray-300 rounded p-1 text-sm text-start focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
             <div className="text-center col-span-2">
               ₹{(item.medicine.sellingPrice * item.quantity).toFixed(2)}
             </div>
             <button
               onClick={() => removeMedicineFromBilling(item.medicine)}
-              className="text-red-500 text-end"
+              className="text-red-500 hover:text-red-700 transition-colors text-end"
             >
-              <CloseIcon />
+              ✖
             </button>
           </div>
         ))}
