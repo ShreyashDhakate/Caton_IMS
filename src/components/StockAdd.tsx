@@ -85,16 +85,16 @@ const StockAdd: React.FC = () => {
             addToast("Please fill in all fields for each medicine.","info");
             return;
           }
-
+  
           await addMedicine({
             id: crypto.randomUUID(),
             user_id: localStorage.getItem("userId") || "default_user",
             name: medicine.name,
             batch_number: medicine.batchNumber,
             expiry_date: medicine.expiryDate,
-            quantity: medicine.quantity,
-            purchase_price: medicine.purchasePrice,
-            selling_price: medicine.sellingPrice,
+            quantity: Number(medicine.quantity),
+            purchase_price: Number(medicine.purchasePrice),
+            selling_price: Number(medicine.sellingPrice),
             wholesaler_name: purchase.wholesalerName,
             purchase_date: purchase.purchaseDate,
           });
@@ -102,11 +102,34 @@ const StockAdd: React.FC = () => {
           addToast(`Medicine saved locally: ${medicine.name}`,"success");
         }
       }
+  
+      // Reset state to clear input fields after successful submission
+      setPurchases([
+        {
+          id: crypto.randomUUID(),
+          wholesalerName: "",
+          purchaseDate: dayjs().format("YYYY-MM-DD"),
+          medicines: [
+            {
+              id: crypto.randomUUID(),
+              name: "",
+              batchNumber: "",
+              expiryDate: "",
+              quantity: null,
+              purchasePrice: null,
+              sellingPrice: null,
+            },
+          ],
+        },
+      ]);
+  
+      addToast("All data submitted successfully!","success");
     } catch (error) {
       console.error("Error saving medicines:", error);
       addToast("Failed to save medicines locally.","error");
     }
   };
+  
 
   const handleMedicineChange = (
     purchaseId: string,
@@ -171,42 +194,60 @@ const StockAdd: React.FC = () => {
       {purchases.map((purchase) => (
         <div key={purchase.id} className="mb-10">
           <div className="grid grid-cols-2 gap-4 mb-6">
-            <input
-              className="border rounded p-2 w-full"
-              placeholder="Wholesaler Name"
-              value={purchase.wholesalerName}
-              onChange={(e) =>
-                setPurchases((prev) =>
-                  prev.map((p) =>
-                    p.id === purchase.id ? { ...p, wholesalerName: e.target.value } : p
+            <div>
+              <label htmlFor={`wholesalerName-${purchase.id}`} className="block mb-1 font-medium">
+                Wholesaler Name
+              </label>
+              <input
+                id={`wholesalerName-${purchase.id}`}
+                className="border rounded p-2 w-full"
+                placeholder="Wholesaler Name"
+                value={purchase.wholesalerName}
+                onChange={(e) =>
+                  setPurchases((prev) =>
+                    prev.map((p) =>
+                      p.id === purchase.id ? { ...p, wholesalerName: e.target.value } : p
+                    )
                   )
-                )
-              }
-            />
-            <input
-              type="date"
-              className="border rounded p-2 w-full"
-              value={purchase.purchaseDate}
-              onChange={(e) =>
-                setPurchases((prev) =>
-                  prev.map((p) =>
-                    p.id === purchase.id ? { ...p, purchaseDate: e.target.value } : p
+                }
+              />
+            </div>
+            <div>
+              <label htmlFor={`purchaseDate-${purchase.id}`} className="block mb-1 font-medium">
+                Purchase Date
+              </label>
+              <input
+                id={`purchaseDate-${purchase.id}`}
+                type="date"
+                className="border rounded p-2 w-full"
+                value={purchase.purchaseDate}
+                onChange={(e) =>
+                  setPurchases((prev) =>
+                    prev.map((p) =>
+                      p.id === purchase.id ? { ...p, purchaseDate: e.target.value } : p
+                    )
                   )
-                )
-              }
-            />
+                }
+              />
+            </div>
           </div>
           <h3 className="text-lg font-semibold mb-4">Medicines List</h3>
           {purchase.medicines.map((medicine) => (
             <div key={medicine.id} className="mb-4">
-              <input
-                className="border rounded p-2 w-full mb-2"
-                placeholder="Medicine Name"
-                value={medicine.name}
-                onChange={(e) =>
-                  handleMedicineChange(purchase.id, medicine.id, "name", e.target.value)
-                }
-              />
+              <div>
+                <label htmlFor={`medicineName-${medicine.id}`} className="block mb-1 font-medium">
+                  Medicine Name
+                </label>
+                <input
+                  id={`medicineName-${medicine.id}`}
+                  className="border rounded p-2 w-full mb-2"
+                  placeholder="Medicine Name"
+                  value={medicine.name}
+                  onChange={(e) =>
+                    handleMedicineChange(purchase.id, medicine.id, "name", e.target.value)
+                  }
+                />
+              </div>
               {activeMedicineId === medicine.id && searchResults.length > 0 && (
                 <ul className="border rounded p-2 bg-gray-100">
                   {searchResults.map((result) => (
@@ -228,21 +269,26 @@ const StockAdd: React.FC = () => {
                   { label: "Purchase Price", field: "purchasePrice", type: "number" },
                   { label: "Selling Price", field: "sellingPrice", type: "number" },
                 ].map(({ label, field, type }) => (
-                  <input
-                    key={field}
-                    placeholder={label}
-                    type={type || "text"}
-                    className="border rounded p-2"
-                    value={(medicine as any)[field] ?? ""}
-                    onChange={(e) =>
-                      handleMedicineChange(
-                        purchase.id,
-                        medicine.id,
-                        field as keyof Medicine,
-                        e.target.value === "" ? null : e.target.value
-                      )
-                    }
-                  />
+                  <div key={field}>
+                    <label htmlFor={`${field}-${medicine.id}`} className="block mb-1 font-medium">
+                      {label}
+                    </label>
+                    <input
+                      id={`${field}-${medicine.id}`}
+                      placeholder={label}
+                      type={type || "text"}
+                      className="border rounded p-2"
+                      value={(medicine as any)[field] ?? ""}
+                      onChange={(e) =>
+                        handleMedicineChange(
+                          purchase.id,
+                          medicine.id,
+                          field as keyof Medicine,
+                          e.target.value === "" ? null : e.target.value
+                        )
+                      }
+                    />
+                  </div>
                 ))}
                 <button
                   className="text-red-600 hover:text-red-800"
@@ -300,6 +346,7 @@ const StockAdd: React.FC = () => {
       </button>
     </div>
   );
+  
 };
 
 export default StockAdd;
