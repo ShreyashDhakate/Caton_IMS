@@ -51,11 +51,14 @@ export async function syncDoctorMedicinesFromMongoDB(): Promise<void> {
     if (!hospitalId) {
       throw new Error("Hospital ID is missing from local storage.");
     }
-    const medicines: MongoDBMedicine[] = await invoke("get_all_medicines", {
+
+    // Fetch all medicines from MongoDB
+    const medicinesFromMongoDB: MongoDBMedicine[] = await invoke("get_all_medicines", {
       hospitalId: hospitalId,
     });
 
-    const formattedMedicines: Medicine[] = medicines.map((medicine) => ({
+    // Format medicines for IndexedDB
+    const formattedMedicines: Medicine[] = medicinesFromMongoDB.map((medicine) => ({
       id: medicine.local_id,
       name: medicine.name,
       batchNumber: medicine.batch_number,
@@ -65,7 +68,11 @@ export async function syncDoctorMedicinesFromMongoDB(): Promise<void> {
       sellingPrice: medicine.selling_price,
     }));
 
+    // Begin IndexedDB transaction
     await doctorDb.transaction("rw", doctorDb.medicines, async () => {
+      const indexedDbMedicines = await doctorDb.medicines.toArray();
+
+      // Update or add medicines from MongoDB to IndexedDB
       for (const medicine of formattedMedicines) {
         const existingMedicine = await doctorDb.medicines.get(medicine.id);
         if (existingMedicine) {
@@ -74,11 +81,20 @@ export async function syncDoctorMedicinesFromMongoDB(): Promise<void> {
           await doctorDb.medicines.add(medicine);
         }
       }
+
+      // Identify medicines to delete (present in IndexedDB but missing in MongoDB)
+      const mongoDbMedicineIds = new Set(formattedMedicines.map((medicine) => medicine.id));
+      for (const medicine of indexedDbMedicines) {
+        if (!mongoDbMedicineIds.has(medicine.id)) {
+          await doctorDb.medicines.delete(medicine.id);
+        }
+      }
     });
 
-    console.log("Doctor's IndexedDB synced with MongoDB.");
+    console.log("Doctor's IndexedDB synced with MongoDB, including deletions.");
   } catch (error) {
     console.error("Error syncing data to doctor's IndexedDB:", error);
     throw error;
   }
 }
+

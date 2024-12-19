@@ -1,4 +1,5 @@
-import { toast } from 'sonner';
+
+import { useToast } from "./ui/sonner";
 
 type MedicineInfo = {
   id: string;
@@ -18,6 +19,7 @@ type BillingSummaryProps = {
 };
 
 const BillingSummary = ({ selectedMedicines, setSelectedMedicines }: BillingSummaryProps) => {
+  const { addToast } = useToast();
   // Function to remove medicine from billing list
   const removeMedicineFromBilling = (medicineToRemove: MedicineInfo) => {
     setSelectedMedicines(
@@ -28,7 +30,7 @@ const BillingSummary = ({ selectedMedicines, setSelectedMedicines }: BillingSumm
   // Function to update the quantity of a medicine
   const updateQuantity = (medicine: MedicineInfo, quantity: number) => {
     if (quantity > medicine.quantity) {
-      toast.error(`Quantity exceeds available stock. Only ${medicine.quantity} items are in stock.`);
+      addToast(`Quantity exceeds available stock. Only ${medicine.quantity} items are in stock.`,"error");
       return;
     }
 
@@ -60,7 +62,7 @@ const BillingSummary = ({ selectedMedicines, setSelectedMedicines }: BillingSumm
           <div key={index} className="contents">
             <div className="text-start">{index + 1}</div>
             <div className="text-start col-span-3">
-              {item.medicine.name} <span className="text-gray-500">(Batch: {item.medicine.batchNumber})</span>
+              {item.medicine.name} (Batch: {item.medicine.batchNumber})
             </div>
             <input
               type="number"

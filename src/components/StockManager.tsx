@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { toast } from "sonner";
-import { v4 as uuidv4 } from "uuid";
-import { fetchAndGroupMedicines } from "../lib/stockdb";
-import { db } from "../lib/db";
+import { useToast } from "./ui/sonner";
+import { fetchAndGroupMedicines, updateMedicine, deleteLocalMedicine, deletePurchase, syncMedicinesToMongoDB } from "../lib/stockdb";
 
 interface Medicine {
   id: string;
@@ -23,80 +20,50 @@ interface Wholesaler {
 }
 
 const StockManager: React.FC = () => {
+  const { addToast } = useToast();
   const [wholesalers, setWholesalers] = useState<Wholesaler[]>([]);
   const [selectedWholesaler, setSelectedWholesaler] = useState<Wholesaler | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeletePurchaseDialog, setOpenDeletePurchaseDialog] = useState(false);
-
+  
   const [medicineToRemove, setMedicineToRemove] = useState<string | null>(null);
   const [medicineToEdit, setMedicineToEdit] = useState<Medicine | null>(null);
-
+  
   const hospitalId = localStorage.getItem("userId");
+
   const fetchWholesalers = async () => {
     const groupedData = await fetchAndGroupMedicines();
     setWholesalers(groupedData);
-    try {
-      if (!hospitalId) throw new Error("Invalid hospital ID");
-      const rawResult = await invoke("get_stock", { hospitalId });
-      console.log(rawResult);
-      const wholesalers: Wholesaler[] = Array.isArray(rawResult)
-        ? rawResult.map((wholesaler) => ({
-            id: uuidv4(),
-            wholesalerName: wholesaler.wholesaler_name,
-            purchaseDate: wholesaler.purchase_date,
-            medicines: wholesaler.medicines.map((med: any) => ({
-              id: med._id.$oid,
-              name: med.name,
-              batchNumber: med.batch_number,
-              expiryDate: med.expiry_date,
-              quantity: med.quantity,
-              purchasePrice: med.purchase_price,
-              sellingPrice: med.selling_price,
-            })),
-          }))
-        : [];
-
-      console.log(wholesalers);
-
-      setWholesalers(
-        wholesalers.sort((a, b) => a.wholesalerName.localeCompare(b.wholesalerName))
-      );
-    } catch (error) {
-      console.error("Error fetching stock:", error);
-    }
   };
 
   useEffect(() => {
     fetchWholesalers();
   }, [hospitalId]);
 
+    useEffect(() => {
+      const intervalId = setInterval(async () => {
+        try {
+          await syncMedicinesToMongoDB();
+          console.log("Synced medicines to MongoDB");
+        } catch (error) {
+          console.error("Error syncing medicines:", error);
+        }
+      }, 60000);
+  
+      return () => clearInterval(intervalId);
+    }, []);
+    
   const handleRemoveStock = async () => {
     if (selectedWholesaler && medicineToRemove !== null) {
-      await db.medicines.delete(medicineToRemove);
-
-      setOpenDialog(false);
+      await deleteLocalMedicine(medicineToRemove);
       fetchWholesalers();
-      toast.success("Medicine removed successfully!");
-      try {
-        await db.medicines.delete(medicineToRemove);
-        const result = await invoke("delete_medicine", {
-          hospitalId,
-          medicineId: medicineToRemove,
-        });
-        console.log(result);
-
-        const updatedMedicines = selectedWholesaler.medicines.filter(
-          (medicine) => medicine.id !== medicineToRemove
-        );
-
-        updateWholesalerMedState(updatedMedicines);
-
-        setOpenDialog(false);
-      } catch (error) {
-        console.error("Error removing stock:", error);
-        toast.error("Error removing medicine!");
-      }
+      setOpenDialog(false);
+      const updatedMedicines = selectedWholesaler.medicines.filter(
+        (medicine) => medicine.id !== medicineToRemove
+      );
+      updateWholesalerMedState(updatedMedicines);
+      addToast("Medicine removed successfully!","success");
     }
   };
 
@@ -114,73 +81,77 @@ const StockManager: React.FC = () => {
   };
 
   const handleEditStock = async () => {
-    console.log(medicineToEdit?.id);
     if (!medicineToEdit || !medicineToEdit.id) {
       console.error("Invalid medicine ID");
       return;
     }
-
+  
     if (selectedWholesaler) {
-      console.log("Medicine to edit:", medicineToEdit);
-      console.log("Updating stock with:", {
-        hospitalId,
-        medicineId: medicineToEdit?.id,
-        quantity: medicineToEdit?.quantity,
-        purchase_price: medicineToEdit?.purchasePrice,
-        selling_price: medicineToEdit?.sellingPrice,
-        batch_number: medicineToEdit?.batchNumber,
-        expiry_date: medicineToEdit?.expiryDate,
-      });
-
       try {
-        await invoke("update_stock", {
-          hospitalId,
-          medicineId: medicineToEdit.id,
+        // Update the medicine in the database
+        await updateMedicine(medicineToEdit.id, {
           quantity: medicineToEdit.quantity,
-          purchase_price: medicineToEdit.purchasePrice,
-          selling_price: medicineToEdit.sellingPrice,
-          batch_number: medicineToEdit.batchNumber,
-          expiry_date: medicineToEdit.expiryDate,
+          purchasePrice: medicineToEdit.purchasePrice,
+          sellingPrice: medicineToEdit.sellingPrice,
+          batchNumber: medicineToEdit.batchNumber,
+          expiryDate: medicineToEdit.expiryDate,
         });
-        updateWholesalerState();
+  
+        // Update the local state to reflect the change immediately
+        const updatedMedicines = selectedWholesaler.medicines.map((medicine) =>
+          medicine.id === medicineToEdit.id ? { ...medicine, ...medicineToEdit } : medicine
+        );
+  
+        updateWholesalerMedState(updatedMedicines);
+  
         setOpenEditDialog(false);
-        toast.success("Edited Medicine Successfully!");
+        addToast("Edited Medicine Successfully!", "success");
       } catch (error) {
         console.error("Error editing stock:", error);
+        addToast("Failed to edit medicine", "error");
       }
     }
   };
+  
 
   const handleDeletePurchase = async () => {
     if (selectedWholesaler) {
       try {
-        await invoke("delete_purchase", {
-          wholesalerId: selectedWholesaler.id,
-        });
-        setWholesalers((prev) => prev.filter((w) => w.id !== selectedWholesaler.id));
+        await deletePurchase(
+          selectedWholesaler.wholesalerName,
+          selectedWholesaler.purchaseDate
+        );
+        fetchWholesalers();
+        // Remove deleted purchase from UI
+        setWholesalers((prev) =>
+          prev.filter((wholesaler) => wholesaler.id !== selectedWholesaler.id)
+        );
         setSelectedWholesaler(null);
         setOpenDeletePurchaseDialog(false);
+        addToast("Purchase deleted successfully!","success");
       } catch (error) {
         console.error("Error deleting purchase:", error);
+        addToast("Failed to delete purchase","error");
       }
     }
   };
+  
 
-  const updateWholesalerState = (updatedMedicines?: Medicine[]) => {
-    setSelectedWholesaler((prev) =>
-      prev ? { ...prev, medicines: updatedMedicines || prev.medicines } : null
-    );
-    setWholesalers((prev) =>
-      prev.map((wholesaler) =>
-        wholesaler.id === selectedWholesaler?.id
-          ? {
-              ...wholesaler,
-              medicines: updatedMedicines || wholesaler.medicines,
-            }
-          : wholesaler
-      )
-    );
-  };
+  // const updateWholesalerState = (updatedMedicines?: Medicine[]) => {
+  //   setSelectedWholesaler((prev) =>
+  //     prev ? { ...prev, medicines: updatedMedicines || prev.medicines } : null
+  //   );
+  //   setWholesalers((prev) =>
+  //     prev.map((wholesaler) =>
+  //       wholesaler.id === selectedWholesaler?.id
+  //         ? {
+  //             ...wholesaler,
+  //             medicines: updatedMedicines || wholesaler.medicines,
+  //           }
+  //         : wholesaler
+  //     )
+  //   );
+  // };
 
   return (
     <div className="container mx-auto mt-10 p-4">
