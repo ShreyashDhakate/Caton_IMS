@@ -76,6 +76,7 @@ const ProtectedRoutes: React.FC = () => {
       )}
       <Route path="/history" element={<History />} />
       <Route path="/patients" element={<Patients />} />
+      <Route path="/profile" element={<ProfilePage/>} />
       <Route path="*" element={<ComingSoonPage />} />
     </Routes>
   );
