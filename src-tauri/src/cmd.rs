@@ -1,11 +1,12 @@
 use tauri::State;
-use mongodb::Collection;
 use crate::user::{signup_user, login_user, send_otp, validate_otp};
 use crate::model::User;
 use crate::db::DbState; // Import your DbState struct
-use mongodb::bson::doc;
 use chrono::Utc;
 use std::sync::Mutex;
+use mongodb::{bson::doc, bson::oid::ObjectId, Collection};
+
+
 
 #[derive(Default)]
 pub struct SessionState {
@@ -221,6 +222,66 @@ pub async fn update_user_details(
         )
         .await
         .map_err(|e| format!("Failed to update user details: {}", e))?;
+
+    Ok(())
+}
+
+
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct AppliedSubscription {
+    pub id: Option<ObjectId>,
+    pub user_id: ObjectId,
+    pub name: String,
+    pub mobile: String,
+    pub hospital: String,
+    pub email: String,
+    pub subscription_end_date: chrono::DateTime<Utc>,
+    pub applied_on: chrono::DateTime<Utc>,
+}
+
+#[tauri::command]
+pub async fn renew_subscription(
+    user_id: String,
+    name: String,
+    email: String,
+    subscription_end_date: String,
+    db: State<'_, DbState>,
+) -> Result<(), String> {
+    // Parse the user ID and subscription end date
+    let user_id = ObjectId::parse_str(&user_id).map_err(|e| format!("Invalid user ID: {}", e))?;
+    let subscription_end_date = subscription_end_date
+        .parse::<chrono::DateTime<Utc>>()
+        .map_err(|e| format!("Invalid date format: {}", e))?;
+    
+    // Get the collections
+    let user_collection: &Collection<User> = &db.db.collection("users");
+    let applied_sub_collection: &Collection<AppliedSubscription> = &db.db.collection("applied_subscriptions");
+
+    // Find the user by ID
+    let user = user_collection
+        .find_one(doc! { "_id": &user_id }, None)
+        .await
+        .map_err(|e| format!("Database error: {}", e))?
+        .ok_or("User not found")?;
+
+    // Prepare the applied subscription data
+    let applied_subscription = AppliedSubscription {
+        id: Some(ObjectId::new()),
+        user_id: user_id.clone(),
+        name: user.name.clone(),
+        mobile: user.mobile.clone(),
+        hospital: user.hospital.clone(),
+        email: user.email.clone(),
+        subscription_end_date,
+        applied_on: Utc::now(),
+    };
+
+    // Insert into applied_subscriptions collection
+    applied_sub_collection
+        .insert_one(applied_subscription, None)
+        .await
+        .map_err(|e| format!("Failed to create subscription entry: {}", e))?;
 
     Ok(())
 }
