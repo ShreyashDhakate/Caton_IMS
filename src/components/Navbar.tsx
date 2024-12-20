@@ -1,39 +1,17 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link} from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from "./ui/sonner";
+
 
 const Navbar: React.FC = () => {
-  const { isLoggedIn, logout } = useAuth();
-  const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const { isLoggedIn } = useAuth();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   // Retrieve role from local storage
   const role: string = localStorage.getItem('role') || '';
+  
 
-  // Open the logout confirmation dialog
-  const handleClickOpen = () => setOpen(true);
-  const { addToast } = useToast();
-  // Close the logout confirmation dialog
-  const handleClose = () => setOpen(false);
-
-  // Handle logout
-  const handleLogout = async () => {
-    try {
-      logout(); // Update auth context
-      localStorage.removeItem('UserId');
-      localStorage.removeItem('role');
-      setActiveDropdown(null); // Reset active dropdowns
-      addToast('You are logged out!',"success");
-      navigate('/login');
-    } catch (error) {
-      addToast('Logout failed. Please try again.',"error");
-      
-    } finally {
-      handleClose();
-    }
-  };
+  
 
   // Toggle dropdown menus
   const toggleDropdown = (dropdown: string) => {
@@ -136,12 +114,10 @@ const Navbar: React.FC = () => {
                 <Link to="/patients" className="text-white hover:text-gray-300">
                   Patients
                 </Link>
-                <button
-                  onClick={handleClickOpen}
-                  className="text-white hover:text-gray-300"
-                >
-                  Logout
-                </button>
+                <Link to="/profile" className="text-white hover:text-gray-300">
+                  Profile
+                </Link>
+                
               </>
             ) : (
               <Link to="/login" className="text-white hover:text-gray-300">
@@ -152,33 +128,7 @@ const Navbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Logout Confirmation Dialog */}
-      {open && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
-          <div className="bg-white rounded-lg shadow-md w-80 z-1000">
-            <div className="p-4">
-              <h2 className="text-lg font-semibold">Logout Confirmation</h2>
-              <p className="text-gray-700 mt-2">
-                Are you sure you want to logout?
-              </p>
-            </div>
-            <div className="flex justify-end p-4 space-x-2">
-              <button
-                onClick={handleClose}
-                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      
     </nav>
   );
 };

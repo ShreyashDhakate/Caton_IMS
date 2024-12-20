@@ -169,3 +169,58 @@ pub async fn logout(state: State<'_, SessionState>) -> Result<(), String> {
     *state.expiry.lock().unwrap() = None;
     Ok(())
 }
+
+
+#[tauri::command]
+pub async fn update_user_details(
+    email: String,
+    name: Option<String>,
+    hospital: Option<String>,
+    mobile: Option<String>,
+    address: Option<String>,
+    db: State<'_, DbState>,
+) -> Result<(), String> {
+    let user_collection: &Collection<User> = &db.db.collection("users");
+
+    // Check if the user exists
+    let existing_user = user_collection
+        .find_one(doc! { "email": &email }, None)
+        .await
+        .map_err(|e| format!("Database error: {}", e))?;
+
+    if existing_user.is_none() {
+        return Err("User not found".to_string());
+    }
+
+    // Build the update document dynamically
+    let mut update_fields = doc! {};
+    if let Some(new_name) = name {
+        update_fields.insert("name", new_name);
+    }
+    if let Some(new_hospital) = hospital {
+        update_fields.insert("hospital", new_hospital);
+    }
+    if let Some(new_mobile) = mobile {
+        update_fields.insert("mobile", new_mobile);
+    }
+    if let Some(new_address) = address {
+        update_fields.insert("address", new_address);
+    }
+
+    // Ensure there is something to update
+    if update_fields.is_empty() {
+        return Err("No fields provided for update".to_string());
+    }
+
+    // Perform the update
+    user_collection
+        .update_one(
+            doc! { "email": &email },
+            doc! { "$set": update_fields },
+            None,
+        )
+        .await
+        .map_err(|e| format!("Failed to update user details: {}", e))?;
+
+    Ok(())
+}

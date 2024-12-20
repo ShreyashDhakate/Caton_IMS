@@ -15,7 +15,7 @@ export interface Medicine {
 }
 
 export interface Sale {
-  id: string;
+  id?: string;
   purchase_date: string;
   customer_name: string;
   medicines: Medicine[];

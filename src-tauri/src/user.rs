@@ -92,6 +92,8 @@ pub async fn login_user(
                 "hospital": user.hospital,
                 "phone": user.mobile,
                 "address": user.address,
+                "name": user.name,
+                "email":user.email
             });
             
             return Ok(user_response.to_string());

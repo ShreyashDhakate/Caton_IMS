@@ -82,7 +82,7 @@ export async function updateMedicine(id: string, updates: Partial<OriginalMedici
 }
 
 // Delete a medicine by ID
-export async function deleteMedicine(id: string): Promise<void> {
+export async function deleteLocalMedicine(id: string): Promise<void> {
   await db.medicines.delete(id);
 }
 
@@ -176,3 +176,33 @@ export async function syncMedicinesToMongoDB(): Promise<void> {
     console.error("Error syncing medicines to MongoDB:", error);
   }
 }
+
+// import { Wholesaler } from "../types"; // Replace with the actual path if needed
+
+export async function deletePurchase(wholesalerName: string, purchaseDate: string): Promise<void> {
+  try {
+    // Fetch all medicines
+    const medicines = await db.medicines.toArray();
+
+    // Filter medicines belonging to the specific purchase (wholesaler and date)
+    const medicinesToDelete = medicines.filter(
+      (medicine) =>
+        medicine.wholesaler_name === wholesalerName && medicine.purchase_date === purchaseDate
+    );
+
+    // Delete each medicine from the database
+    const deletePromises = medicinesToDelete.map((medicine) =>
+      db.medicines.delete(medicine.id)
+    );
+
+    await Promise.all(deletePromises);
+
+    console.log(
+      `Deleted ${medicinesToDelete.length} medicines for wholesaler ${wholesalerName} and purchase date ${purchaseDate}.`
+    );
+  } catch (error) {
+    console.error("Error deleting purchase:", error);
+    throw new Error("Failed to delete purchase");
+  }
+}
+

@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { AddCircleOutline, DeleteOutline } from "@mui/icons-material";
 import dayjs from "dayjs";
-
-import { useToast } from "./ui/sonner";
 import { addMedicine } from "../lib/stockdb";
 import { searchMedicines, syncMedicinesToMongoDB } from "../lib/stockdb";
+import { useToast } from "./ui/sonner";
 
 interface Medicine {
   id: string;
@@ -98,7 +97,7 @@ const StockAdd: React.FC = () => {
             wholesaler_name: purchase.wholesalerName,
             purchase_date: purchase.purchaseDate,
           });
-
+  
           addToast(`Medicine saved locally: ${medicine.name}`,"success");
         }
       }
