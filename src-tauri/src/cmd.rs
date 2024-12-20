@@ -285,3 +285,47 @@ pub async fn renew_subscription(
 
     Ok(())
 }
+
+
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct NewSubscription {
+    pub id: Option<ObjectId>,
+    pub username: String,
+    pub name: String,
+    pub email: String,
+    pub mobile: String,
+    pub subscription_date: chrono::DateTime<Utc>,
+}
+
+#[tauri::command]
+pub async fn new_subscription(
+    username: String,
+    name: String,
+    email: String,
+    mob: String,
+    db: State<'_, DbState>,
+) -> Result<(), String> {
+    // Prepare the new subscription data
+    let new_subscription = NewSubscription {
+        id: Some(ObjectId::new()),
+        username: username.clone(),
+        name: name.clone(),
+        email: email.clone(),
+        mobile: mob.clone(),
+        subscription_date: Utc::now(),
+    };
+
+    // Access the `new_subscriptions` collection in the `users_db` database
+    let new_subscriptions_collection: &Collection<NewSubscription> = &db
+        .db
+        .collection("new_subscriptions");
+
+    // Insert the new subscription document into the `new_subscriptions` collection
+    new_subscriptions_collection
+        .insert_one(new_subscription, None)
+        .await
+        .map_err(|e| format!("Failed to create subscription entry: {}", e))?;
+
+    Ok(())
+}
