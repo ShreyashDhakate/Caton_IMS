@@ -2,7 +2,7 @@ import Dexie from "dexie";
 
 export interface Medicine {
   [x: string]: any;
-  _id: { $oid: string };
+  id:  string;
   user_id: string;
   name: string;
   batch_number: string;
