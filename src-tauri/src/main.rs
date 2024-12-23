@@ -11,7 +11,7 @@ use commands::{
     save_appointment,fetch_medicine,get_all_appointments,get_stock,delete_medicine,update_stock,get_medicine_by_id,
     delete_appointments_older_than_one_hour,check_medicine_batch,get_all_medicines
 };
-use crate::cmd::{SessionState, login, signup, logout, is_logged_in, verify_signup, forgot_password, reset_password, update_user_details,renew_subscription,new_subscription};
+use crate::cmd::{SessionState, login,  logout, is_logged_in,  forgot_password, reset_password, update_user_details,renew_subscription,new_subscription};
 use std::env;
 use tauri::{Builder, generate_handler};
 use tokio::time::{interval, Duration};
@@ -50,7 +50,7 @@ async fn main() {
             update_batch,
             delete_batch,
             search_medicines,
-            signup,
+            
             login,
             logout,
             is_logged_in,
@@ -61,7 +61,7 @@ async fn main() {
             update_stock,
             get_medicine_by_id,
             fetch_medicine,
-            verify_signup, 
+             
             forgot_password, 
             reset_password,
             delete_appointments_older_than_one_hour,

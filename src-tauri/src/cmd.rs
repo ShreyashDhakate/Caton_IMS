@@ -1,5 +1,5 @@
 use tauri::State;
-use crate::user::{signup_user, login_user, send_otp, validate_otp};
+use crate::user::{login_user, send_otp, validate_otp};
 use crate::model::User;
 use crate::db::DbState; // Import your DbState struct
 use chrono::Utc;
@@ -14,79 +14,6 @@ pub struct SessionState {
     pub expiry: Mutex<Option<i64>>,
 }
 
-#[tauri::command]
-pub async fn signup(
-    username: String,
-    name: String,
-    mobile: String,
-    address: String,
-    hospital: String,
-    password_doc: String,
-    password_pharma: String,
-    email: String,
-    db: State<'_, DbState>,
-) -> Result<(), String> {
-    let user_collection: &Collection<User> = &db.db.collection("users");
-
-    // Check if email is already registered
-    let existing_email = user_collection
-        .find_one(doc! { "email": &email }, None)
-        .await
-        .map_err(|e| format!("Database error: {}", e))?;
-
-    if existing_email.is_some() {
-        return Err("Email already in use".to_string());
-    }
-
-    
-
-    signup_user(
-        user_collection,
-        &username,
-        &name,
-        &mobile,
-        &hospital,
-        &address,
-        &password_doc,
-        &password_pharma,
-        &email,
-    )
-    .await
-}
-
-#[tauri::command]
-pub async fn verify_signup(
-    username: String,
-    name: String,
-    mobile: String,
-    address: String,
-    hospital: String,
-    password_doc: String,
-    password_pharma: String,
-    email: String,
-    otp: String,
-    db: State<'_, DbState>,
-) -> Result<(), String> {
-    let user_collection: &Collection<User> = &db.db.collection("users");
-
-    // Validate OTP
-    validate_otp(user_collection, &email, &otp).await?;
-
-    // Proceed with user signup
-    signup_user(
-        user_collection,
-        &username,
-        &name,
-        &mobile,
-        &hospital,
-        &address,
-        &password_doc,
-        &password_pharma,
-        &email,
-    )
-    .await
-    
-}
 
 
 #[tauri::command]
@@ -230,6 +157,7 @@ pub async fn update_user_details(
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct AppliedSubscription {
+    #[serde(rename = "_id")]
     pub id: Option<ObjectId>,
     pub user_id: ObjectId,
     pub name: String,
@@ -256,7 +184,7 @@ pub async fn renew_subscription(
     
     // Get the collections
     let user_collection: &Collection<User> = &db.db.collection("users");
-    let applied_sub_collection: &Collection<AppliedSubscription> = &db.db.collection("applied_subscriptions");
+    let applied_sub_collection: &Collection<AppliedSubscription> = &db.db.collection("renew_subscriptions");
 
     // Find the user by ID
     let user = user_collection
@@ -270,7 +198,7 @@ pub async fn renew_subscription(
         id: Some(ObjectId::new()),
         user_id: user_id.clone(),
         name: user.name.clone(),
-        mobile: user.mobile.clone(),
+        mobile: user.mobileOne.clone(),
         hospital: user.hospital.clone(),
         email: user.email.clone(),
         subscription_end_date,

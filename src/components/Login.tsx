@@ -46,7 +46,7 @@ const LoginPage: React.FC = () => {
 
       localStorage.setItem("userId", parsedResponse.userId);
       localStorage.setItem("hospital", parsedResponse.hospital);
-      localStorage.setItem("phone", parsedResponse.phone);
+      // localStorage.setItem("phone", parsedResponse.phone);
       localStorage.setItem("address", parsedResponse.address);
       localStorage.setItem("name", parsedResponse.name);
       localStorage.setItem("email", parsedResponse.email);
@@ -95,7 +95,7 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-[91.8vh] flex items-center justify-center bg-gray-100">
       <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-md">
         <h1 className="text-2xl font-semibold text-center mb-4">Login</h1>
         <div className="flex justify-center mb-4">
