@@ -106,6 +106,25 @@ export async function fetchAllMedicines(): Promise<OriginalMedicine[]> {
   return await db.medicines.toArray();
 }
 
+// Fetch medicines expiring in the next 10 days
+export async function fetchExpiringMedicines(): Promise<OriginalMedicine[]> {
+  const today = new Date();
+  const tenDaysLater = new Date();
+  tenDaysLater.setDate(today.getDate() + 10);
+
+  return await db.medicines
+    .where("expiry_date")
+    .between(today.toISOString(), tenDaysLater.toISOString(), true, true)
+    .toArray();
+}
+
+// Fetch medicines with low quantity (less than 10)
+export async function fetchLowQuantityMedicines(): Promise<OriginalMedicine[]> {
+  return await db.medicines
+    .filter((medicine) => medicine.quantity < 10)
+    .toArray();
+}
+
 // Search medicines by name
 export async function searchMedicines(query: string): Promise<Medicine[]> {
   if (!query.trim()) return [];

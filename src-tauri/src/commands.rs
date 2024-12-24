@@ -415,10 +415,12 @@ pub async fn search_medicines(
 //     pub name: String,
 //     pub quantity: u32,
 // }
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MedicineDetail {
     pub id: String, // Medicine ID
     pub quantity: u32,
+    pub name: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -426,21 +428,45 @@ pub struct Appointment {
     #[serde(rename = "_id")]
     pub id: ObjectId,
     pub patient_name: String,
+    pub age: Option<u32>,          // New field
+    pub gender: Option<String>,   // New field
+    pub address: Option<String>,  // New field
     pub mobile: String,
-    pub disease: String,
-    pub precautions: String,
-    pub medicines: Vec<MedicineDetail>, // Updated to store only IDs and quantities
+    pub investigation: Option<String>, // New field
+    pub diagnosis: Option<String>,     // New field
+    pub advice: Option<String>,        // New field
+    pub medicines: Vec<MedicineDetail>,
     pub hospital_id: String,
     pub date_created: String,
+}
+
+#[derive(Serialize, Debug)]
+pub struct AppointmentResponse {
+    pub id: String,
+    pub hospital_id: String,
+    pub patient_name: String,
+    pub age: Option<u32>,
+    pub gender: Option<String>,
+    pub address: Option<String>,
+    pub mobile: String,
+    pub investigation: Option<String>,
+    pub diagnosis: Option<String>,
+    pub advice: Option<String>,
+    pub medicines: Vec<MedicineDetail>,
+    pub date_created: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[command]
 pub async fn save_appointment(
     patient_name: String,
+    age: Option<u32>,          // New field
+    gender: Option<String>,    // New field
+    address: Option<String>,   // New field
     mobile: String,
-    disease: String,
-    precautions: String,
-    medicines: Vec<MedicineDetail>, // Adjusted to accept only medicine IDs and quantities
+    investigation: Option<String>, // New field
+    diagnosis: Option<String>,     // New field
+    advice: Option<String>,        // New field
+    medicines: Vec<MedicineDetail>,
     hospital_id: String,
 ) -> Result<String, String> {
     // Validate required fields
@@ -457,10 +483,14 @@ pub async fn save_appointment(
     let new_appointment = Appointment {
         id: ObjectId::new(), // Generates a new ObjectId
         patient_name,
+        age,
+        gender,
+        address,
         mobile,
-        disease,
-        precautions,
-        medicines, // Only medicine IDs and quantities are stored
+        investigation,
+        diagnosis,
+        advice,
+        medicines,
         hospital_id,
         date_created: Utc::now().to_rfc3339(), // Generate current timestamp
     };
@@ -478,19 +508,6 @@ pub async fn save_appointment(
 async fn get_appointments_collection() -> Result<Collection<Appointment>, mongodb::error::Error> {
     let db = get_db_connection().await; // Replace with your database connection logic
     Ok(db.collection::<Appointment>("appointments"))
-}
-
-// Fetch all appointments from the database
-
-#[derive(Serialize, Debug)]
-pub struct AppointmentResponse {
-    pub id: String,
-    pub hospital_id: String,
-    pub patient_name: String,
-    pub disease: String,
-    pub precautions: String,
-    pub medicines: Vec<MedicineDetail>,
-    pub date_created: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[command]
@@ -514,20 +531,26 @@ pub async fn get_all_appointments(hospital_id: &str) -> Result<Vec<AppointmentRe
                 id: appointment.id.to_hex(),
                 hospital_id: appointment.hospital_id,
                 patient_name: appointment.patient_name,
-                disease: appointment.disease,
-                precautions: appointment.precautions,
+                age: appointment.age,
+                gender: appointment.gender,
+                address: appointment.address,
+                mobile: appointment.mobile,
+                investigation: appointment.investigation,
+                diagnosis: appointment.diagnosis,
+                advice: appointment.advice,
                 medicines: appointment
                     .medicines
                     .iter()
                     .map(|m| MedicineDetail {
                         id: m.id.clone(),
                         quantity: m.quantity,
+                        name: m.name.clone(),
                     })
                     .collect(),
                 date_created: appointment
-                .date_created
-                .parse::<chrono::DateTime<chrono::Utc>>()
-                .ok(),
+                    .date_created
+                    .parse::<chrono::DateTime<chrono::Utc>>()
+                    .ok(),
             })
         })
         .try_collect()
@@ -536,6 +559,7 @@ pub async fn get_all_appointments(hospital_id: &str) -> Result<Vec<AppointmentRe
 
     Ok(appointments)
 }
+
 
 #[command]
 pub async fn delete_appointments_older_than_one_hour() -> Result<String, String> {

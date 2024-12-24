@@ -15,6 +15,21 @@ interface MongoDBMedicine {
   purchase_date: string;
 }
 
+export interface Appointment {
+  id: string;
+  patientName: string;
+  mobile: string;
+  age: number;
+  gender: string;
+  address: string;
+  investigation: string | null;
+  diagnosis: string | null;
+  advice: string | null;
+  medicines: { id: string; quantity: number; name: string }[];
+  hospitalId: string;
+  timestamp: string;
+}
+
 
 // Required format interfaces
 export interface Medicine {
@@ -26,6 +41,46 @@ export interface Medicine {
   purchasePrice: number;
   sellingPrice: number;
 }
+
+export async function saveAppointmentToIndexedDB(appointment: Omit<Appointment, "id" | "timestamp">): Promise<void> {
+  try {
+    const timestamp = new Date().toISOString(); // Add a timestamp to the appointment
+    const id = crypto.randomUUID(); // Generate a unique ID for the appointment
+
+    // Begin a transaction on the "appointments" table
+    await doctorDb.transaction("rw", doctorDb.appointments, async () => {
+      await doctorDb.appointments.add({
+        ...appointment,
+        id,
+        timestamp,
+      });
+    });
+
+    console.log("Appointment saved successfully to IndexedDB.");
+  } catch (error) {
+    console.error("Failed to save appointment to IndexedDB:", error);
+    throw error;
+  }
+}
+
+export async function searchAppointmentsByPatientName(query: string): Promise<Appointment[]> {
+  if (!query.trim()) return [];
+
+  try {
+    // Perform a case-insensitive search in the IndexedDB "appointments" table
+    const appointments: Appointment[] = await doctorDb.appointments
+      .filter((appointment) => 
+        appointment.patientName.toLowerCase().includes(query.toLowerCase())
+      )
+      .toArray();
+
+    return appointments;
+  } catch (error) {
+    console.error("Failed to search appointments by patient name:", error);
+    throw error;
+  }
+}
+
 
 // Search medicines by name
 export async function searchDoctorMedicines(query: string): Promise<Medicine[]> {

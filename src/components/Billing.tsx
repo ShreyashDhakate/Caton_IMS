@@ -28,6 +28,7 @@ export type MedicineInfo = {
 interface MedicineDetail {
   id: string; // Medicine ID
   quantity: number;
+  name: string;
 }
 
 
@@ -51,8 +52,11 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
   // Store patient details if redirected from Patients page
   const [patientDetails, setPatientDetails] = useState<{
     patient_name: string;
-    disease: string;
-    precautions: string;
+    gender: string;
+    age: number;
+    investigation: string;
+    diagnosis: string;
+    advice: string;
     medicines: MedicineDetail[];
   } | null>(null);
 
@@ -271,10 +275,13 @@ const handleSearchMedicine = async (query: string) => {
     printBill(
       selectedMedicines,
       customerName,
+      patientDetails?.gender || "",
+      patientDetails?.age || 0,
       billingId,
       billingDate,
-      patientDetails?.disease || "",
-      patientDetails?.precautions || "",
+      patientDetails?.investigation || "",
+      patientDetails?.diagnosis || "",
+      patientDetails?.advice || "",
       hospitalName,
       hospitalAddress,
       hospitalPhone
@@ -303,10 +310,10 @@ const handleSearchMedicine = async (query: string) => {
             <strong>Name:</strong> {patientDetails.patient_name}
           </p>
           <p>
-            <strong>Disease:</strong> {patientDetails.disease}
+            <strong>Diagnosis:</strong> {patientDetails.diagnosis}
           </p>
           <p>
-            <strong>Precautions:</strong> {patientDetails.precautions}
+            <strong>Advice:</strong> {patientDetails.advice}
           </p>
         </div>
       )}
