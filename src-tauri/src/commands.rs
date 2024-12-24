@@ -158,13 +158,13 @@ pub async fn reduce_batch(
 }
 
 #[command]
-pub async fn delete_medicine(medicine_id: &str, hospital_id: &str) -> Result<String, String> {
+pub async fn delete_medicine(local_id: &str, hospital_id: &str) -> Result<String, String> {
     let db = get_db_connection().await;
     let collection: Collection<Medicine> = db.collection("medicines");
 
     // Filter to find the specific medicine by ID and user ID
     let filter = doc! {
-        "_id": ObjectId::parse_str(medicine_id).map_err(|_| "Invalid medicine ID".to_string())?,
+        "local_id": local_id,
         "user_id": hospital_id
     };
 
@@ -284,7 +284,7 @@ pub async fn update_stock(
 #[command]
 pub async fn check_medicine_batch(
     name: String,
-    batch_number: String,
+    local_id: String,
     hospital_id: String,
 ) -> Result<bool, String> {
     let db = get_db_connection().await;
@@ -293,7 +293,7 @@ pub async fn check_medicine_batch(
     // Build filter document using name, batch_number, and hospital_id
     let filter = doc! {
         "name": name,
-        "batch_number": batch_number,
+        "local_id": local_id,
         "user_id": hospital_id,
     };
 
@@ -348,42 +348,6 @@ pub async fn update_batch(
     Ok("Batch updated successfully.".to_string())
 }
 
-#[command]
-pub async fn delete_batch(
-    medicine_id: String,
-    batch_number: String, // Specify the batch to delete
-    hospital_id: String,
-) -> Result<String, String> {
-    // let user_id = get_user_id(session.user_id.clone()).await?;
-    let db = get_db_connection().await;
-    let collection: Collection<Medicine> = db.collection("medicines");
-
-    // Filter to find the medicine by ID and user ID
-    let filter = doc! {
-        "_id": ObjectId::parse_str(&medicine_id).map_err(|_| "Invalid medicine ID".to_string())?,
-        "user_id": hospital_id,
-    };
-
-    // Update to pull the specific batch from the batches array
-    let update = doc! {
-        "$pull": { "batches": { "batch_number": batch_number } }
-    };
-
-    // Apply the update
-    let result = collection.update_one(filter, update, None).await.map_err(|e| e.to_string())?;
-
-    // If no batches remain, delete the entire medicine document
-    if result.matched_count > 0 {
-        let remaining_batches_filter = doc! {
-            "_id": ObjectId::parse_str(&medicine_id).unwrap(),
-            "batches": { "$size": 0 }
-        };
-
-        collection.delete_one(remaining_batches_filter, None).await.map_err(|e| e.to_string())?;
-    }
-
-    Ok("Batch deleted successfully.".to_string())
-}
 
 #[command]
 pub async fn search_medicines(

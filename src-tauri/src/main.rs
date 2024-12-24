@@ -7,7 +7,7 @@ mod commands;
 mod utils;
 use crate::db::init_db;
 use commands::{
-    initialize_db, insert_medicine, update_batch, delete_batch, search_medicines,
+    initialize_db, insert_medicine, update_batch, search_medicines,
     save_appointment,fetch_medicine,get_all_appointments,get_stock,delete_medicine,update_stock,get_medicine_by_id,
     delete_appointments_older_than_one_hour,check_medicine_batch,get_all_medicines
 };
@@ -48,7 +48,6 @@ async fn main() {
             initialize_db,
             insert_medicine,
             update_batch,
-            delete_batch,
             search_medicines,
             signup,
             login,

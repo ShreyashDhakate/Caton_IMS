@@ -64,7 +64,7 @@ const StockAdd: React.FC = () => {
       } catch (error) {
         console.error("Error syncing medicines:", error);
       }
-    }, 60000);
+    }, 600000);
 
     return () => clearInterval(intervalId);
   }, []);
