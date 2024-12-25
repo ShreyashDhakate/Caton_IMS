@@ -140,7 +140,7 @@ const Patients: React.FC = () => {
           </p>
 
           <p>
-            <strong>Date Created:</strong>{" "}
+            <strong>Date:</strong>{" "}
             {new Date(selectedAppointment.date_created).toLocaleString()}
           </p>
           <div className="mt-4 flex space-x-4">

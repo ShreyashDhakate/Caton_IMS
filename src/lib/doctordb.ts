@@ -13,10 +13,10 @@ export interface Medicine {
 export interface Appointment {
   id: string;
   patientName: string;
-  mobile: string;
+  // mobile: string;
   age: number;
   gender: string;
-  address: string;
+  // address: string;
   investigation: string | null;
   diagnosis: string | null;
   advice: string | null;

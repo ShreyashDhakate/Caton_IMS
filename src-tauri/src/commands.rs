@@ -394,8 +394,8 @@ pub struct Appointment {
     pub patient_name: String,
     pub age: Option<u32>,          // New field
     pub gender: Option<String>,   // New field
-    pub address: Option<String>,  // New field
-    pub mobile: String,
+    // pub address: Option<String>,  // New field
+    // pub mobile: String,
     pub investigation: Option<String>, // New field
     pub diagnosis: Option<String>,     // New field
     pub advice: Option<String>,        // New field
@@ -411,8 +411,8 @@ pub struct AppointmentResponse {
     pub patient_name: String,
     pub age: Option<u32>,
     pub gender: Option<String>,
-    pub address: Option<String>,
-    pub mobile: String,
+    // pub address: Option<String>,
+    // pub mobile: String,
     pub investigation: Option<String>,
     pub diagnosis: Option<String>,
     pub advice: Option<String>,
@@ -425,8 +425,8 @@ pub async fn save_appointment(
     patient_name: String,
     age: Option<u32>,          // New field
     gender: Option<String>,    // New field
-    address: Option<String>,   // New field
-    mobile: String,
+    // address: Option<String>,   // New field
+    // mobile: String,
     investigation: Option<String>, // New field
     diagnosis: Option<String>,     // New field
     advice: Option<String>,        // New field
@@ -434,8 +434,8 @@ pub async fn save_appointment(
     hospital_id: String,
 ) -> Result<String, String> {
     // Validate required fields
-    if patient_name.trim().is_empty() || mobile.trim().is_empty() {
-        return Err("Patient name and mobile number are required.".to_string());
+    if patient_name.trim().is_empty()  {
+        return Err("Patient name is required.".to_string());
     }
 
     // Prepare the database connection
@@ -449,8 +449,8 @@ pub async fn save_appointment(
         patient_name,
         age,
         gender,
-        address,
-        mobile,
+        // address,
+        // mobile,
         investigation,
         diagnosis,
         advice,
@@ -497,8 +497,8 @@ pub async fn get_all_appointments(hospital_id: &str) -> Result<Vec<AppointmentRe
                 patient_name: appointment.patient_name,
                 age: appointment.age,
                 gender: appointment.gender,
-                address: appointment.address,
-                mobile: appointment.mobile,
+                // address: appointment.address,
+                // mobile: appointment.mobile,
                 investigation: appointment.investigation,
                 diagnosis: appointment.diagnosis,
                 advice: appointment.advice,

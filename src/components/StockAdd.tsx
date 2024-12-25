@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { AddCircleOutline, DeleteOutline } from "@mui/icons-material";
 import dayjs from "dayjs";
 import { addMedicine } from "../lib/stockdb";
 import { searchMedicines, syncMedicinesToMongoDB } from "../lib/stockdb";
@@ -51,7 +50,6 @@ const StockAdd: React.FC = () => {
       const results = await searchMedicines(query);
       setSearchResults(results);
     } catch (error) {
-      console.error("Error searching medicines:", error);
       addToast("Failed to search medicines locally.","error");
     }
   };
@@ -60,7 +58,7 @@ const StockAdd: React.FC = () => {
     const intervalId = setInterval(async () => {
       try {
         await syncMedicinesToMongoDB();
-        console.log("Synced medicines to MongoDB");
+        // console.log("Synced medicines to MongoDB");
       } catch (error) {
         console.error("Error syncing medicines:", error);
       }
@@ -301,7 +299,9 @@ const StockAdd: React.FC = () => {
                     )
                   }
                 >
-                  <DeleteOutline />
+                  <span className="inline-block w-5 h-5 border-2 border-red-600 rounded-full text-center leading-4">
+    ×
+  </span>
                 </button>
               </div>
             </div>
@@ -332,7 +332,12 @@ const StockAdd: React.FC = () => {
               )
             }
           >
-            <AddCircleOutline className="mr-2" /> Add Medicine
+            <span
+    className="inline-block w-5 h-5 border-2 border-blue-600 rounded-full text-center leading-4 mr-2"
+  >
+    +
+  </span>
+  Add Medicine
           </button>
           <hr className="my-4" />
         </div>
