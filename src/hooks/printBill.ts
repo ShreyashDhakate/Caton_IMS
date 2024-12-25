@@ -21,66 +21,87 @@ export const printBill = (
       0
     );
 
+    // Fetch additional fields from localStorage
+    const doctorName = localStorage.getItem("doctorName") || "N/A";
+    const degree = localStorage.getItem("degree") || "N/A";
+    const consultationField = localStorage.getItem("consultationField") || "N/A";
+    const registrationNumber = localStorage.getItem("registrationNumber") || "N/A";
+    const email = localStorage.getItem("email") || "N/A";
+    const mobileNumber = localStorage.getItem("mobileNumber") || "N/A";
+    const consultingTiming = localStorage.getItem("consultingTiming") || "N/A";
+    const consultingLocation = localStorage.getItem("consultingLocation") || "N/A";
+
     printWindow.document.write(
       `
         <html>
           <head>
             <title>Billing Summary</title>
-            <script src="https://cdn.tailwindcss.com"></script>
           </head>
-          <body class="bg-white text-gray-900 font-sans">
-            <div class="bg-teal-600 text-white p-6 text-center">
-              <h1 class="text-3xl font-bold">${hospitalName}</h1>
-              <p class="text-lg">${hospitalAddress}</p>
-              <p class="text-lg">Phone: ${hospitalPhone}</p>
+          <body class="bg-white text-black font-sans">
+            <div style="text-align: center; padding: 10px; border-bottom: 1px solid black; margin-bottom: 20px;">
+              <h1 style="font-size: 24px; font-weight: bold;">${hospitalName}</h1>
+              <p>${hospitalAddress}</p>
+              <p>Phone: ${hospitalPhone}</p>
             </div>
-            <div class="p-6">
-              <div class="bg-gray-100 rounded-lg p-4 mb-6">
-                <p><span class="font-semibold">Customer Name:</span> ${customerName}</p>
-                <p><span class="font-semibold">Gender:</span> ${gender}</p>
-                <p><span class="font-semibold">Age:</span> ${age}</p>
-                <p><span class="font-semibold">Billing ID:</span> ${billingId}</p>
-                <p><span class="font-semibold">Billing Date:</span> ${billingDate}</p>
-              </div>
-              <div class="bg-gray-100 rounded-lg p-4 mb-6">
-                <p><span class="font-semibold">Investigation:</span> ${investigation}</p>
-                <p><span class="font-semibold">Diagnosis:</span> ${diagnosis}</p>
-                <p><span class="font-semibold">Advice:</span> ${advice}</p>
-              </div>
-              <div class="overflow-x-auto">
-                <table class="min-w-full bg-white border border-gray-300 rounded-lg">
-                  <thead>
-                    <tr class="bg-teal-500 text-white">
-                      <th class="px-4 py-2 text-left">Medicine</th>
-                      <th class="px-4 py-2 text-right">Price</th>
-                      <th class="px-4 py-2 text-center">Quantity</th>
-                      <th class="px-4 py-2 text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${selectedMedicines
-                      .map(
-                        (item) => `
-                        <tr>
-                          <td class="px-4 py-2 border-t">${item.medicine.name}</td>
-                          <td class="px-4 py-2 text-right border-t">₹${item.medicine.sellingPrice.toFixed(2)}</td>
-                          <td class="px-4 py-2 text-center border-t">${item.quantity}</td>
-                          <td class="px-4 py-2 text-right border-t">₹${(item.medicine.sellingPrice * item.quantity).toFixed(2)}</td>
-                        </tr>`
-                      )
-                      .join('')}
-                  </tbody>
-                </table>
-              </div>
-              <div class="text-right mt-4">
-                <p class="text-lg"><span class="font-semibold">Subtotal:</span> ₹${totalCost.toFixed(2)}</p>
-                <p class="text-lg"><span class="font-semibold">Tax (10%):</span> ₹${(totalCost * 0.1).toFixed(2)}</p>
-                <p class="text-2xl font-bold"><span class="font-semibold">Total:</span> ₹${(totalCost * 1.1).toFixed(2)}</p>
-              </div>
+
+            <div style="text-align: left; margin-bottom: 10px;">
+              <p><strong>Dr. </strong> ${doctorName}</p>
+              <p> ${degree}</p>
+              <p> ${consultationField}</p>
+              <p><strong>Reg.No.</strong> ${registrationNumber}</p>
+              <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Mo.</strong> ${mobileNumber}</p>
+              <p><strong>Consulting Timing:</strong> ${consultingTiming}</p>
+              <p> ${consultingLocation}</p>
             </div>
-            <footer class="text-center text-sm text-gray-600 mt-6">
+
+            <div style="margin-bottom: 20px;">
+              <p><strong>Customer Name:</strong> ${customerName}</p>
+              <p><strong>Gender:</strong> ${gender}</p>
+              <p><strong>Age:</strong> ${age}</p>
+              <p><strong>Billing ID:</strong> ${billingId}</p>
+              <p><strong>Billing Date:</strong> ${billingDate}</p>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+              <p><strong>Investigation:</strong> ${investigation}</p>
+              <p><strong>Diagnosis:</strong> ${diagnosis}</p>
+              <p><strong>Advice:</strong> ${advice}</p>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+              <thead>
+                <tr style="border-bottom: 1px solid black;">
+                  <th style="text-align: left; padding: 8px; border: 1px solid black;">Medicine</th>
+                  <th style="text-align: right; padding: 8px; border: 1px solid black;">Price</th>
+                  <th style="text-align: center; padding: 8px; border: 1px solid black;">Quantity</th>
+                  <th style="text-align: right; padding: 8px; border: 1px solid black;">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${selectedMedicines
+                  .map(
+                    (item) => `
+                    <tr>
+                      <td style="padding: 8px; border: 1px solid black;">${item.medicine.name}</td>
+                      <td style="text-align: right; padding: 8px; border: 1px solid black;">₹${item.medicine.sellingPrice.toFixed(2)}</td>
+                      <td style="text-align: center; padding: 8px; border: 1px solid black;">${item.quantity}</td>
+                      <td style="text-align: right; padding: 8px; border: 1px solid black;">₹${(item.medicine.sellingPrice * item.quantity).toFixed(2)}</td>
+                    </tr>`
+                  )
+                  .join('')}
+              </tbody>
+            </table>
+
+            <div style="text-align: right; margin-top: 20px;">
+              <p><strong>Subtotal:</strong> ₹${totalCost.toFixed(2)}</p>
+              <p><strong>Discount (10%):</strong> ₹${(totalCost * 0.1).toFixed(2)}</p>
+              <p><strong>Total:</strong> ₹${(totalCost * 0.9).toFixed(2)}</p>
+            </div>
+
+            <footer style="text-align: center; margin-top: 20px; font-size: 12px;">
               <p>Thank you for choosing ${hospitalName}!</p>
-              <p>Contact us: ${hospitalPhone} | www.${hospitalName.toLowerCase().replace(' ', '')}.com</p>
+              <p>Contact us: ${hospitalPhone}</p>
             </footer>
           </body>
         </html>

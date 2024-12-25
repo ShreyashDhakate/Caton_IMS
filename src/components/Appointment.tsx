@@ -315,7 +315,7 @@ const Appointment: React.FC = () => {
               {/* <p><strong>Mobile:</strong> {selectedAppointment.mobile}</p> */}
               <p><strong>Age:</strong> {selectedAppointment.age}</p>
               <p><strong>Gender:</strong> {selectedAppointment.gender}</p>
-              <p><strong>Address:</strong> {new Date(selectedAppointment.timestamp).toLocaleString()}</p>
+              <p><strong>Date:</strong> {new Date(selectedAppointment.timestamp).toLocaleString()}</p>
               <p><strong>Investigation:</strong> {selectedAppointment.investigation}</p>
               <p><strong>Diagnosis:</strong> {selectedAppointment.diagnosis}</p>
               <p><strong>Advice:</strong> {selectedAppointment.advice}</p>
@@ -343,75 +343,107 @@ const Appointment: React.FC = () => {
           )}
 
           {/* Patient Form */}
-          <div className="space-y-3 mt-4">
-            <input
-              type="text"
-              name="name"
-              placeholder="Patient Name"
-              value={patient.name}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-            />
-            <input
-              type="number"
-              name="age"
-              placeholder="Age"
-              value={patient.age}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-            />
-            <select
-              name="gender"
-              value={patient.gender}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-            >
-              <option value="">Select Gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-            </select>
-            {/* <input
-              type="text"
-              name="mobile"
-              placeholder="Mobile Number"
-              value={patient.mobile}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-            /> */}
-            {/* <textarea
-              name="address"
-              placeholder="Address"
-              value={patient.address}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-              rows={3}
-            /> */}
-            <textarea
-              name="investigation"
-              placeholder="Investigation"
-              value={patient.investigation}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-              rows={2}
-            />
-            <textarea
-              name="diagnosis"
-              placeholder="Diagnosis"
-              value={patient.diagnosis}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-              rows={2}
-            />
-            <textarea
-              name="advice"
-              placeholder="Advice"
-              value={patient.advice}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-              rows={2}
-            />
-          </div>
+          <div className="space-y-4 mt-4">
+  {/* Patient Name */}
+  <div className="flex flex-col">
+    <label htmlFor="name" className="text-sm font-medium text-gray-700">
+      Patient Name
+    </label>
+    <input
+      type="text"
+      id="name"
+      name="name"
+      placeholder="Enter patient name"
+      value={patient.name}
+      onChange={handleInputChange}
+      className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+  </div>
+
+  {/* Age and Gender */}
+  <div className="flex gap-4">
+    <div className="flex-1 flex flex-col">
+      <label htmlFor="age" className="text-sm font-medium text-gray-700">
+        Age
+      </label>
+      <input
+        type="number"
+        id="age"
+        name="age"
+        placeholder="Enter age"
+        value={patient.age}
+        onChange={handleInputChange}
+        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+    </div>
+    <div className="flex-1 flex flex-col">
+      <label htmlFor="gender" className="text-sm font-medium text-gray-700">
+        Gender
+      </label>
+      <select
+        id="gender"
+        name="gender"
+        value={patient.gender}
+        onChange={handleInputChange}
+        className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        <option value="">Select Gender</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+  </div>
+
+  {/* Investigation */}
+  <div className="flex flex-col">
+    <label htmlFor="investigation" className="text-sm font-medium text-gray-700">
+      Investigation
+    </label>
+    <textarea
+      id="investigation"
+      name="investigation"
+      placeholder="Enter investigation details"
+      value={patient.investigation}
+      onChange={handleInputChange}
+      className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+      rows={2}
+    />
+  </div>
+
+  {/* Diagnosis */}
+  <div className="flex flex-col">
+    <label htmlFor="diagnosis" className="text-sm font-medium text-gray-700">
+      Diagnosis
+    </label>
+    <textarea
+      id="diagnosis"
+      name="diagnosis"
+      placeholder="Enter diagnosis details"
+      value={patient.diagnosis}
+      onChange={handleInputChange}
+      className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+      rows={2}
+    />
+  </div>
+
+  {/* Advice */}
+  <div className="flex flex-col">
+    <label htmlFor="advice" className="text-sm font-medium text-gray-700">
+      Advice
+    </label>
+    <textarea
+      id="advice"
+      name="advice"
+      placeholder="Enter advice"
+      value={patient.advice}
+      onChange={handleInputChange}
+      className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+      rows={2}
+    />
+  </div>
+</div>
+
         </div>
 
         {/* Medicine Section */}

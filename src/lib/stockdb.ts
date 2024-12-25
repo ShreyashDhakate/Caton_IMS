@@ -3,8 +3,7 @@ import { db } from "./db"; // Adjust the path to your actual file
 
 // Type for OriginalMedicine
 type OriginalMedicine = {
-  [x: string]: any;
-  id: string; // Optional for flexibility during initial data creation
+  id: string; // Required
   user_id: string;
   name: string;
   batch_number: string;
@@ -26,7 +25,19 @@ export interface Medicine {
   purchasePrice: number;
   sellingPrice: number;
 }
-
+interface MongoDBMedicine {
+  _id: { $oid: string };
+  local_id: string;
+  user_id: string;
+  name: string;
+  batch_number: string;
+  expiry_date: string;
+  quantity: number;
+  purchase_price: number;
+  selling_price: number;
+  wholesaler_name: string;
+  purchase_date: string;
+}
 export interface Wholesaler {
   id: string;
   wholesalerName: string;
@@ -50,7 +61,7 @@ export async function fetchAndGroupMedicines(): Promise<Wholesaler[]> {
     }
 
     acc[groupKey].medicines.push({
-      id: medicine.id || crypto.randomUUID(), // Ensure each medicine has an ID
+      id: medicine.id, // Use the ID from OriginalMedicine
       name: medicine.name,
       batchNumber: medicine.batch_number,
       expiryDate: medicine.expiry_date,
@@ -100,7 +111,6 @@ export async function fetchMedicineById(id: string): Promise<OriginalMedicine | 
   }
 }
 
-
 // Fetch all medicines
 export async function fetchAllMedicines(): Promise<OriginalMedicine[]> {
   return await db.medicines.toArray();
@@ -133,7 +143,7 @@ export async function searchMedicines(query: string): Promise<Medicine[]> {
   return medicines
     .filter((medicine) => medicine.name.toLowerCase().includes(query.toLowerCase()))
     .map((medicine) => ({
-      id: medicine.id || crypto.randomUUID(), // Ensure an ID is present
+      id: medicine.id, // Use the ID from OriginalMedicine
       name: medicine.name,
       batchNumber: medicine.batch_number,
       expiryDate: medicine.expiry_date,
@@ -153,7 +163,7 @@ export async function syncMedicinesToMongoDB(): Promise<void> {
     console.log("Medicines to sync to MongoDB:", indexedDBMedicines);
 
     // Fetch all medicines from MongoDB
-    const mongoDBMedicines: OriginalMedicine[] = await invoke("get_all_medicines", {
+    const mongoDBMedicines: MongoDBMedicine[] = await invoke("get_all_medicines", {
       hospitalId: userId,
     });
 
@@ -189,7 +199,7 @@ export async function syncMedicinesToMongoDB(): Promise<void> {
         if (batchExists) {
           // Update the batch in MongoDB
           await invoke("update_batch", {
-            localId: medicine.id || "",
+            localId: medicine.id,
             batchNumber: medicine.batch_number,
             quantity: medicine.quantity,
             expiryDate: medicine.expiry_date,
@@ -202,7 +212,7 @@ export async function syncMedicinesToMongoDB(): Promise<void> {
         } else {
           // Insert the new medicine batch into MongoDB
           await invoke("insert_medicine", {
-            localId: medicine.id || "",
+            localId: medicine.id,
             name: medicine.name,
             batchNumber: medicine.batch_number,
             expiryDate: medicine.expiry_date,

@@ -91,10 +91,10 @@ const StockManager: React.FC = () => {
         // Update the medicine in the database
         await updateMedicine(medicineToEdit.id, {
           quantity: medicineToEdit.quantity,
-          purchasePrice: medicineToEdit.purchasePrice,
-          sellingPrice: medicineToEdit.sellingPrice,
-          batchNumber: medicineToEdit.batchNumber,
-          expiryDate: medicineToEdit.expiryDate,
+          purchase_price: medicineToEdit.purchasePrice,
+          selling_price: medicineToEdit.sellingPrice,
+          batch_number: medicineToEdit.batchNumber,
+          expiry_date: medicineToEdit.expiryDate,
         });
   
         // Update the local state to reflect the change immediately

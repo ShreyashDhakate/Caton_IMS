@@ -42,8 +42,7 @@ const MedicineManager: React.FC = () => {
   console.log(hospitalId);
 
   const fetchMedicines = async () => {
-    console.log(hospitalId);
-    // setLoading(true);
+    setLoading(true);
     try {
       const medicines = await fetchAllMedicines();
       console.log(medicines);

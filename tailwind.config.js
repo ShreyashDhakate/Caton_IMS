@@ -4,12 +4,15 @@ module.exports = {
     content: [
     './index.html',
     './src/**/*.{js,ts,jsx,tsx}',
-    'node_modules/@shadcn/ui/dist/**/*.{js,ts,jsx,tsx}'
+    'node_modules/@shadcn/ui/dist/**/*.{js,ts,jsx,tsx}',
+	'./node_modules/sonner/**/*.{js,jsx,ts,tsx}'
   ],
   theme: {
   	extend: {
   		animation: {
-  			'fade-in': 'fadeIn 0.2s ease-in-out'
+  			'fade-in': 'fadeIn 0.2s ease-in-out',
+			'toast-in': 'toastIn 0.5s ease-in-out',
+        	'toast-out': 'toastOut 0.5s ease-in-out',
   		},
   		keyframes: {
   			fadeIn: {
@@ -19,7 +22,27 @@ module.exports = {
   				'100%': {
   					opacity: '1'
   				}
-  			}
+  			},
+			  toastIn: {
+				'0%': {
+				  opacity: '0',
+				  transform: 'translateY(-20px)',
+				},
+				'100%': {
+				  opacity: '1',
+				  transform: 'translateY(0)',
+				},
+			  },
+			  toastOut: {
+				'0%': {
+				  opacity: '1',
+				  transform: 'translateY(0)',
+				},
+				'100%': {
+				  opacity: '0',
+				  transform: 'translateY(-20px)',
+				},
+			  }
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

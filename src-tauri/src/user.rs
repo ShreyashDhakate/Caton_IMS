@@ -9,63 +9,7 @@ use chrono::{DateTime, Utc, Duration};
 use rand::Rng;
 use crate::utils::send_otp_email;
 
-pub async fn signup_user(
-    user_collection: &Collection<User>,
-    username: &str,
-    name: &str,
-    mobile: &str,
-    hospital: &str,
-    address: &str,
-    password_doc: &str,
-    password_pharma: &str,
-    email: &str,
-) -> Result<(), String> {
-    // Hash the passwords
-    let password_hash_doc = hash(password_doc, DEFAULT_COST).map_err(|e| e.to_string())?;
-    let password_hash_pharma = hash(password_pharma, DEFAULT_COST).map_err(|e| e.to_string())?;
 
-    // Check for existing username and email
-    let existing_user = user_collection
-        .find_one(doc! { "username": username }, None)
-        .await
-        .map_err(|e| format!("Database error: {}", e))?;
-
-    if existing_user.is_some() {
-        return Err("Username is already taken".to_string());
-    }
-
-    let existing_email = user_collection
-        .find_one(doc! { "email": email }, None)
-        .await
-        .map_err(|e| format!("Database error: {}", e))?;
-
-    if existing_email.is_some() {
-        return Err("Email is already registered".to_string());
-    }
-
-    // Create the user object
-    let user = User {
-        id: Some(ObjectId::new()),
-        username: username.to_string(),
-        name: name.to_string(),
-        mobile: mobile.to_string(),
-        hospital: hospital.to_string(),
-        address: address.to_string(),
-        password_hash_doc,
-        password_hash_pharma,
-        email: email.to_string(),
-        otp: None,
-        otp_expiry: None,
-    };
-
-    // Insert the user into the database
-    user_collection
-        .insert_one(user, None)
-        .await
-        .map_err(|e| format!("Failed to create user: {}", e))?;
-
-    Ok(())
-}
 
 
 pub async fn login_user(
@@ -90,10 +34,13 @@ pub async fn login_user(
             let user_response = json!({
                 "userId": user.id.unwrap_or_else(|| ObjectId::new()).to_string(),
                 "hospital": user.hospital,
-                "phone": user.mobile,
+                // "phone": user.mobileOne,
+                "phoneTwo": user.mobileTwo,
                 "address": user.address,
+                "name": user.name,
+                "email":user.email
             });
-            println!("{:?}",user_response);
+            
             return Ok(user_response.to_string());
         }
     }
@@ -108,9 +55,9 @@ pub async fn send_otp(user_collection: &Collection<User>, email: &str) -> Result
         .await
         .map_err(|e| e.to_string())?;
 
-    // if user.is_none() {
-    //     return Err("Email not registered".to_string());
-    // }
+    if user.is_none() {
+        return Err("Email not registered".to_string());
+    }
 
     // Generate numeric OTP
     let otp_code: String = rand::thread_rng()
