@@ -3,10 +3,13 @@ import { MedicineInfo } from "@/components/Billing";
 export const printBill = (
   selectedMedicines: { medicine: MedicineInfo; quantity: number }[],
   customerName: string,
+  gender: string,
+  age: number,
   billingId: number,
   billingDate: string,
-  disease: string,
-  precautions: string,
+  investigation: string,
+  diagnosis: string,
+  advice: string,
   hospitalName: string,
   hospitalAddress: string,
   hospitalPhone: string
@@ -23,67 +26,62 @@ export const printBill = (
         <html>
           <head>
             <title>Billing Summary</title>
-            <style>
-              body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #333; }
-              .header { background-color: #057A85; color: white; padding: 20px; text-align: center; }
-              .header img { max-width: 100px; display: block; margin: 0 auto; }
-              .header h1 { margin: 10px 0; font-size: 24px; }
-              .invoice-details, .customer-info { padding: 20px; background: #f8f8f8; margin: 20px; border-radius: 8px; }
-              .summary table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-              th { background: #ffc107; color: black; padding: 10px; text-align: left; }
-              td { padding: 10px; border: 1px solid #ddd; }
-              .total-section { text-align: right; margin-right: 20px; font-size: 18px; font-weight: bold; }
-              .footer { text-align: center; margin: 20px; font-size: 12px; color: #666; }
-            </style>
+            <script src="https://cdn.tailwindcss.com"></script>
           </head>
-          <body>
-            <div class="header">
-              <img src="YOUR_LOGO_URL_HERE" alt="Logo">
-              <h1>${hospitalName}</h1>
-              <p>${hospitalAddress}</p>
-              <p>Phone: ${hospitalPhone}</p>
+          <body class="bg-white text-gray-900 font-sans">
+            <div class="bg-teal-600 text-white p-6 text-center">
+              <h1 class="text-3xl font-bold">${hospitalName}</h1>
+              <p class="text-lg">${hospitalAddress}</p>
+              <p class="text-lg">Phone: ${hospitalPhone}</p>
             </div>
-            <div class="customer-info">
-              <p><strong>Invoice to:</strong> ${customerName}</p>
-              <p><strong>Invoice ID:</strong> ${billingId}</p>
-              <p><strong>Date:</strong> ${billingDate}</p>
-              <p><strong>Disease:</strong> ${disease}</p>
-              <p><strong>Precautions:</strong> ${precautions}</p>
-            </div>
-            <div class="summary">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Description</th>
-                    <th>Price</th>
-                    <th>Qty</th>
-                    <th>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${selectedMedicines
-                    .map(
-                      (item) => `
+            <div class="p-6">
+              <div class="bg-gray-100 rounded-lg p-4 mb-6">
+                <p><span class="font-semibold">Customer Name:</span> ${customerName}</p>
+                <p><span class="font-semibold">Gender:</span> ${gender}</p>
+                <p><span class="font-semibold">Age:</span> ${age}</p>
+                <p><span class="font-semibold">Billing ID:</span> ${billingId}</p>
+                <p><span class="font-semibold">Billing Date:</span> ${billingDate}</p>
+              </div>
+              <div class="bg-gray-100 rounded-lg p-4 mb-6">
+                <p><span class="font-semibold">Investigation:</span> ${investigation}</p>
+                <p><span class="font-semibold">Diagnosis:</span> ${diagnosis}</p>
+                <p><span class="font-semibold">Advice:</span> ${advice}</p>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="min-w-full bg-white border border-gray-300 rounded-lg">
+                  <thead>
+                    <tr class="bg-teal-500 text-white">
+                      <th class="px-4 py-2 text-left">Medicine</th>
+                      <th class="px-4 py-2 text-right">Price</th>
+                      <th class="px-4 py-2 text-center">Quantity</th>
+                      <th class="px-4 py-2 text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${selectedMedicines
+                      .map(
+                        (item) => `
                         <tr>
-                          <td>${item.medicine.name}</td>
-                          <td>₹${item.medicine.sellingPrice.toFixed(2)}</td>
-                          <td>${item.quantity}</td>
-                          <td>₹${(item.medicine.sellingPrice * item.quantity).toFixed(2)}</td>
+                          <td class="px-4 py-2 border-t">${item.medicine.name}</td>
+                          <td class="px-4 py-2 text-right border-t">₹${item.medicine.sellingPrice.toFixed(2)}</td>
+                          <td class="px-4 py-2 text-center border-t">${item.quantity}</td>
+                          <td class="px-4 py-2 text-right border-t">₹${(item.medicine.sellingPrice * item.quantity).toFixed(2)}</td>
                         </tr>`
-                    )
-                    .join('')}
-                </tbody>
-              </table>
-              <div class="total-section">
-                Subtotal: ₹${totalCost.toFixed(2)} <br>
-                Tax: ₹${(totalCost * 0.1).toFixed(2)} <br>
-                <strong>Total: ₹${(totalCost * 1.1).toFixed(2)}</strong>
+                      )
+                      .join('')}
+                  </tbody>
+                </table>
+              </div>
+              <div class="text-right mt-4">
+                <p class="text-lg"><span class="font-semibold">Subtotal:</span> ₹${totalCost.toFixed(2)}</p>
+                <p class="text-lg"><span class="font-semibold">Tax (10%):</span> ₹${(totalCost * 0.1).toFixed(2)}</p>
+                <p class="text-2xl font-bold"><span class="font-semibold">Total:</span> ₹${(totalCost * 1.1).toFixed(2)}</p>
               </div>
             </div>
-            <div class="footer">
+            <footer class="text-center text-sm text-gray-600 mt-6">
               <p>Thank you for choosing ${hospitalName}!</p>
               <p>Contact us: ${hospitalPhone} | www.${hospitalName.toLowerCase().replace(' ', '')}.com</p>
-            </div>
+            </footer>
           </body>
         </html>
       `

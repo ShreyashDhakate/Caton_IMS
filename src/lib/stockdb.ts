@@ -9,6 +9,7 @@ type OriginalMedicine = {
   batch_number: string;
   expiry_date: string;
   quantity: number;
+  local_id:string;
   purchase_price: number;
   selling_price: number;
   wholesaler_name: string;
@@ -104,6 +105,25 @@ export async function fetchAllMedicines(): Promise<OriginalMedicine[]> {
   return await db.medicines.toArray();
 }
 
+// Fetch medicines expiring in the next 10 days
+export async function fetchExpiringMedicines(): Promise<OriginalMedicine[]> {
+  const today = new Date();
+  const tenDaysLater = new Date();
+  tenDaysLater.setDate(today.getDate() + 10);
+
+  return await db.medicines
+    .where("expiry_date")
+    .between(today.toISOString(), tenDaysLater.toISOString(), true, true)
+    .toArray();
+}
+
+// Fetch medicines with low quantity (less than 10)
+export async function fetchLowQuantityMedicines(): Promise<OriginalMedicine[]> {
+  return await db.medicines
+    .filter((medicine) => medicine.quantity < 10)
+    .toArray();
+}
+
 // Search medicines by name
 export async function searchMedicines(query: string): Promise<Medicine[]> {
   if (!query.trim()) return [];
@@ -125,15 +145,42 @@ export async function searchMedicines(query: string): Promise<Medicine[]> {
 // Sync medicines to MongoDB
 export async function syncMedicinesToMongoDB(): Promise<void> {
   try {
-    const medicines: OriginalMedicine[] = await db.medicines.toArray();
-    console.log("medicines to sync to mongoDB:", medicines);
-    for (const medicine of medicines) {
-      try {
-        const userId = localStorage.getItem("userId");
+    const userId = localStorage.getItem("userId");
 
+    // Fetch all medicines from IndexedDB
+    const indexedDBMedicines: OriginalMedicine[] = await db.medicines.toArray();
+    console.log("Medicines to sync to MongoDB:", indexedDBMedicines);
+
+    // Fetch all medicines from MongoDB
+    const mongoDBMedicines: OriginalMedicine[] = await invoke("get_all_medicines", {
+      hospitalId: userId,
+    });
+
+    // Find medicines that are in MongoDB but not in IndexedDB
+    const indexedDBIds = new Set(indexedDBMedicines.map((medicine) => medicine.id));
+    const medicinesToDelete = mongoDBMedicines.filter(
+      (mongoMedicine) => !indexedDBIds.has(mongoMedicine.local_id)
+    );
+
+    // Delete missing medicines from MongoDB
+    for (const medicine of medicinesToDelete) {
+      try {
+        await invoke("delete_medicine", {
+          localId: medicine.local_id,
+          hospitalId: userId,
+        });
+        console.log(`Deleted medicine with local_id [${medicine.local_id}] from MongoDB.`);
+      } catch (error) {
+        console.error(`Error deleting medicine with local_id [${medicine.local_id}]:`, error);
+      }
+    }
+
+    // Sync existing medicines
+    for (const medicine of indexedDBMedicines) {
+      try {
         // Check if the batch exists in MongoDB
         const batchExists = await invoke<boolean>("check_medicine_batch", {
-          batchNumber: medicine.batch_number,
+          localId: medicine.id,
           hospitalId: userId,
           name: medicine.name,
         });
@@ -176,6 +223,7 @@ export async function syncMedicinesToMongoDB(): Promise<void> {
     console.error("Error syncing medicines to MongoDB:", error);
   }
 }
+
 
 // import { Wholesaler } from "../types"; // Replace with the actual path if needed
 

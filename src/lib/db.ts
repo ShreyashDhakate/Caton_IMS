@@ -12,6 +12,7 @@ export interface Medicine {
   selling_price: number;
   wholesaler_name: string;
   purchase_date: string;
+  local_id:string;
 }
 
 export interface Sale {
