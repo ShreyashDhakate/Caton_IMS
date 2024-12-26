@@ -14,7 +14,7 @@ export const printBill = (
   hospitalAddress: string,
   hospitalPhone: string
 ) => {
-  const printWindow = window.open('', '', 'height=800,width=1200');
+  const printWindow = window.open("", "", "height=800,width=1200");
   if (printWindow) {
     const totalCost = selectedMedicines.reduce(
       (total, item) => total + item.medicine.sellingPrice * item.quantity,
@@ -24,12 +24,15 @@ export const printBill = (
     // Fetch additional fields from localStorage
     const doctorName = localStorage.getItem("doctorName") || "N/A";
     const degree = localStorage.getItem("degree") || "N/A";
-    const consultationField = localStorage.getItem("consultationField") || "N/A";
-    const registrationNumber = localStorage.getItem("registrationNumber") || "N/A";
+    const consultationField =
+      localStorage.getItem("consultationField") || "N/A";
+    const registrationNumber =
+      localStorage.getItem("registrationNumber") || "N/A";
     const email = localStorage.getItem("email") || "N/A";
     const mobileNumber = localStorage.getItem("mobileNumber") || "N/A";
     const consultingTiming = localStorage.getItem("consultingTiming") || "N/A";
-    const consultingLocation = localStorage.getItem("consultingLocation") || "N/A";
+    const consultingLocation =
+      localStorage.getItem("consultingLocation") || "N/A";
 
     printWindow.document.write(
       `
@@ -44,24 +47,25 @@ export const printBill = (
               <p>Phone: ${hospitalPhone}</p>
             </div>
 
-            <div style="text-align: left; margin-bottom: 10px;">
-              <p><strong>Dr. </strong> ${doctorName}</p>
-              <p> ${degree}</p>
-              <p> ${consultationField}</p>
-              <p><strong>Reg.No.</strong> ${registrationNumber}</p>
-              <p><strong>Email:</strong> ${email}</p>
-              <p><strong>Mo.</strong> ${mobileNumber}</p>
-              <p><strong>Consulting Timing:</strong> ${consultingTiming}</p>
-              <p> ${consultingLocation}</p>
-            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid black; margin-bottom: 20px;">
+  <div style="width: 48%;"><strong>Dr.</strong> ${doctorName}</div>
+  <div style="width: 48%;">${degree}</div>
+  <div style="width: 48%;">${consultationField}</div>
+  <div style="width: 48%;"><strong>Reg.No.</strong> ${registrationNumber}</div>
+  <div style="width: 48%;"><strong>Email:</strong> ${email}</div>
+  <div style="width: 48%;"><strong>Mo.</strong> ${mobileNumber}</div>
+  <div style="width: 48%;"><strong>Consulting Timing:</strong> ${consultingTiming}</div>
+  <div style="width: 48%;">${consultingLocation}</div>
+</div>
 
-            <div style="margin-bottom: 20px;">
-              <p><strong>Customer Name:</strong> ${customerName}</p>
-              <p><strong>Gender:</strong> ${gender}</p>
-              <p><strong>Age:</strong> ${age}</p>
-              <p><strong>Billing ID:</strong> ${billingId}</p>
-              <p><strong>Billing Date:</strong> ${billingDate}</p>
-            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+  <div style="width: 48%;"><strong>Customer Name:</strong> ${customerName}</div>
+  <div style="width: 48%;"><strong>Gender:</strong> ${gender}</div>
+  <div style="width: 48%;"><strong>Age:</strong> ${age}</div>
+  <div style="width: 48%;"><strong>Billing ID:</strong> ${billingId}</div>
+  <div style="width: 48%;"><strong>Billing Date:</strong> ${billingDate}</div>
+</div>
+
 
             <div style="margin-bottom: 20px;">
               <p><strong>Investigation:</strong> ${investigation}</p>
@@ -83,19 +87,29 @@ export const printBill = (
                   .map(
                     (item) => `
                     <tr>
-                      <td style="padding: 8px; border: 1px solid black;">${item.medicine.name}</td>
-                      <td style="text-align: right; padding: 8px; border: 1px solid black;">₹${item.medicine.sellingPrice.toFixed(2)}</td>
-                      <td style="text-align: center; padding: 8px; border: 1px solid black;">${item.quantity}</td>
-                      <td style="text-align: right; padding: 8px; border: 1px solid black;">₹${(item.medicine.sellingPrice * item.quantity).toFixed(2)}</td>
+                      <td style="padding: 8px; border: 1px solid black;">${
+                        item.medicine.name
+                      }</td>
+                      <td style="text-align: right; padding: 8px; border: 1px solid black;">₹${item.medicine.sellingPrice.toFixed(
+                        2
+                      )}</td>
+                      <td style="text-align: center; padding: 8px; border: 1px solid black;">${
+                        item.quantity
+                      }</td>
+                      <td style="text-align: right; padding: 8px; border: 1px solid black;">₹${(
+                        item.medicine.sellingPrice * item.quantity
+                      ).toFixed(2)}</td>
                     </tr>`
                   )
-                  .join('')}
+                  .join("")}
               </tbody>
             </table>
 
             <div style="text-align: right; margin-top: 20px;">
               <p><strong>Subtotal:</strong> ₹${totalCost.toFixed(2)}</p>
-              <p><strong>Discount (10%):</strong> ₹${(totalCost * 0.1).toFixed(2)}</p>
+              <p><strong>Discount (10%):</strong> ₹${(totalCost * 0.1).toFixed(
+                2
+              )}</p>
               <p><strong>Total:</strong> ₹${(totalCost * 0.9).toFixed(2)}</p>
             </div>
 
