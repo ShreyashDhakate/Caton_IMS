@@ -55,16 +55,23 @@ const StockAdd: React.FC = () => {
   };
 
   useEffect(() => {
-    const intervalId = setInterval(async () => {
+    const syncAndSchedule = async () => {
       try {
-        await syncMedicinesToMongoDB();
-        // console.log("Synced medicines to MongoDB");
+        await syncMedicinesToMongoDB(); // Run immediately
       } catch (error) {
         console.error("Error syncing medicines:", error);
       }
-    }, 600000);
-
-    return () => clearInterval(intervalId);
+      const intervalId = setInterval(async () => {
+        try {
+          await syncMedicinesToMongoDB();
+        } catch (error) {
+          console.error("Error syncing medicines:", error);
+        }
+      }, 600000);
+  
+      return () => clearInterval(intervalId);
+    };
+    syncAndSchedule();
   }, []);
 
   const handleSubmit = async () => {

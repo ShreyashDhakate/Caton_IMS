@@ -544,10 +544,12 @@ pub async fn delete_appointments_older_than_one_hour() -> Result<String, String>
         .await
         .map_err(|e| format!("Error deleting old appointments: {}", e))?;
 
-    Ok(format!(
+    Ok(
+        format!(
         "Deleted {} appointments older than 1 hour.",
         delete_result.deleted_count
-    ))
+    )
+)
 }
 
 

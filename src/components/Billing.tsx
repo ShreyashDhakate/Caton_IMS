@@ -5,7 +5,7 @@ import { useToast } from "./ui/sonner";
 import debounce from "lodash.debounce";
 import BillingSummary from "./BillingSummary";
 import { printBill } from "../hooks/printBill";
-import { fetchMedicineById, searchMedicines, updateMedicine } from "../lib/stockdb";
+import { fetchMedicineById, searchMedicines, syncMedicinesToMongoDB, updateMedicine } from "../lib/stockdb";
 import { salesDb } from "../lib/db";
 
 
@@ -110,6 +110,25 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
    
   }
 
+  useEffect(() => {
+    const syncAndSchedule = async () => {
+      try {
+        await syncMedicinesToMongoDB(); // Run immediately
+      } catch (error) {
+        console.error("Error syncing medicines:", error);
+      }
+      const intervalId = setInterval(async () => {
+        try {
+          await syncMedicinesToMongoDB();
+        } catch (error) {
+          console.error("Error syncing medicines:", error);
+        }
+      }, 600000);
+  
+      return () => clearInterval(intervalId);
+    };
+    syncAndSchedule();
+  }, []);
    // const appointmentId = location.state?.appointmentId;
    if (appointmentId) {
     const appointmentKey = `appointment_${appointmentId}`;
@@ -254,6 +273,14 @@ const handleSearchMedicine = async (query: string) => {
       for (const item of selectedMedicines) {
         await updateMedicineQuantity(item.medicine.id, item.quantity);
       }
+
+          // Delete appointment details from local storage
+    const appointmentId = location?.state?.appointmentId;
+    if (appointmentId) {
+      const appointmentKey = `appointment_${appointmentId}`;
+      localStorage.removeItem(appointmentKey);
+      addToast(`Appointment ${appointmentId} removed successfully!`, "info");
+    }
   
       // // Notify the user of success
       addToast("inventory update recovered!","success");
