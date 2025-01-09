@@ -11,7 +11,6 @@ export interface Medicine {
 }
 
 export interface Appointment {
-  id: string;
   patientName: string;
   // mobile: string;
   age: number;
@@ -25,9 +24,17 @@ export interface Appointment {
   timestamp: string;
 }
 
+interface Patient {
+  id: string; // Unique ID for the patient
+  name: string;
+  age: number;
+  gender: string;
+  appointments: Appointment[]; // List of appointments
+}
+
 class DoctorMedicineDatabase extends Dexie {
   medicines!: Dexie.Table<Medicine, string>; // Medicine table schema
-  appointments!: Dexie.Table<Appointment, string>; // Appointments table schema
+  patients!: Dexie.Table<Patient, string>; // Appointments table schema
 
   constructor() {
     super("DoctorMedicineDatabase");
@@ -35,10 +42,10 @@ class DoctorMedicineDatabase extends Dexie {
       medicines: "++id, user_id, name, batch_number, expiry_date, quantity, purchase_price, selling_price, wholesaler_name, purchase_date",
     });
 
-    // Define the appointments table in version 2
+    // Replace appointments table with the patients table in version 2
     this.version(2).stores({
-      appointments: "++id, patientName, age, gender, mobile, address, hospitalId, investigation, diagnosis, advice, timestamp", // Indexed fields for appointments
-    });    
+      patients: "++id, name, age, gender, appointments", // Indexed fields for patients
+    });
   }
 }
 

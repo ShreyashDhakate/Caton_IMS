@@ -2,9 +2,9 @@ import React, { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useToast } from "./ui/sonner";
 import {
-  saveAppointmentToIndexedDB,
-  searchAppointmentsByPatientName,
+  addAppointmentToPatient,
   searchDoctorMedicines,
+  searchPatientsByName,
   syncDoctorMedicinesFromMongoDB,
 } from "../lib/doctorstock";
 
@@ -27,7 +27,6 @@ interface Patient {
 }
 
 export interface Appointment {
-  id: string;
   patientName: string;
   // mobile: string;
   age: number;
@@ -41,14 +40,6 @@ export interface Appointment {
   timestamp: string;
 }
 
-// // Function to format the timestamp
-// const formatDate = (timestamp: string): string => {
-//   const date = new Date(timestamp);
-//   const day = date.getDate().toString().padStart(2, "0");
-//   const month = (date.getMonth() + 1).toString().padStart(2, "0");
-//   const year = date.getFullYear().toString().slice(-2);
-//   return `${day}-${month}-${year}`;
-// };
 
 const Appointment: React.FC = () => {
   const [patient, setPatient] = useState({
@@ -64,10 +55,12 @@ const Appointment: React.FC = () => {
 
   const [medicineSearch, setMedicineSearch] = useState("");
   const [patientSearch, setPatientSearch] = useState("");
-  const [patientResults, setPatientResults] = useState<Appointment[]>([]);
+  const [patientResults, setPatientResults] = useState<Patient[]>([]);
   const [searchResults, setSearchResults] = useState<MedicineInfo[]>([]);
   const [selectedMedicines, setSelectedMedicines] = useState<MedicineInfo[]>([]);
+  const [Appointments, setAppointments] = useState<Appointment[]>([]);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -110,7 +103,7 @@ const Appointment: React.FC = () => {
         return;
       }
 
-      const results = await searchAppointmentsByPatientName(query);
+      const results = await searchPatientsByName(query);
       setPatientResults(results);
     } catch (error) {
       console.error("Error searching appointments:", error);
@@ -129,20 +122,36 @@ const Appointment: React.FC = () => {
     }
   };
 
-  // const handleSelectPatient = (appointment: Appointment) => {
-  //   setPatient({
-  //     name: appointment.patientName,
-  //     mobile: appointment.mobile,
-  //     age: appointment.age,
-  //     gender: appointment.gender,
-  //     address: appointment.address,
-  //     investigation: appointment.investigation || "",
-  //     diagnosis: appointment.diagnosis || "",
-  //     advice: appointment.advice || "",
-  //   });
-  //   setPatientSearch("");
-  //   setPatientResults([]);
-  // };
+  const handleSelectPatient = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setAppointments(patient.appointments || []); // Load appointments of the selected patient
+    setPatientSearch("");
+    setPatientResults([]);
+  };
+
+  const handleSelectAppointment = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setPatientSearch(""); // Clear the search input
+    setPatientResults([]); // Clear the search results
+  };
+
+  const handleAddSelectedAppointment = () => {
+    if (!selectedAppointment) return;
+
+    setPatient({
+      name: selectedAppointment.patientName,
+      // mobile: selectedAppointment.mobile,
+      age: selectedAppointment.age,
+      gender: selectedAppointment.gender,
+      // address: selectedAppointment.address,
+      investigation: "",
+      diagnosis: "",
+      advice: "",
+    });
+    // Clear the selected medicines
+    // setSelectedAppointment(null);
+    addToast("Appointment details added successfully!", "success");
+  };
 
   const handleMedicineSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
@@ -231,8 +240,8 @@ const Appointment: React.FC = () => {
       };
 
       await invoke("save_appointment", appointmentData);
-      await saveAppointmentToIndexedDB(appointmentData);
-
+      await addAppointmentToPatient(patient.name, appointmentData);
+      
       addToast("Appointment saved successfully!", "success");
       setPatient({
         name: "",
@@ -247,7 +256,9 @@ const Appointment: React.FC = () => {
       setSelectedMedicines([]);
       setMedicineSearch("");
       setSearchResults([]);
+      setAppointments([]);
       setSelectedAppointment(null);
+      setSelectedPatient(null);
 
     } catch (error: any) {
 
@@ -256,29 +267,7 @@ const Appointment: React.FC = () => {
     }
   };
 
-  const handleSelectPatient = (appointment: Appointment) => {
-    setSelectedAppointment(appointment);
-    setPatientSearch(""); // Clear the search input
-    setPatientResults([]); // Clear the search results
-  };
 
-  const handleAddSelectedAppointment = () => {
-    if (!selectedAppointment) return;
-
-    setPatient({
-      name: selectedAppointment.patientName,
-      // mobile: selectedAppointment.mobile,
-      age: selectedAppointment.age,
-      gender: selectedAppointment.gender,
-      // address: selectedAppointment.address,
-      investigation: "",
-      diagnosis: "",
-      advice: "",
-    });
-    // Clear the selected medicines
-    // setSelectedAppointment(null);
-    addToast("Appointment details added successfully!", "success");
-  };
 
   return (
     <div className="flex flex-col gap-4 bg-gray-100 p-4 min-h-screen">
@@ -289,65 +278,87 @@ const Appointment: React.FC = () => {
           <h2 className="text-xl font-bold mb-4">Patient Details</h2>
 
           {/* Patient Search */}
-          <div className="mb-4">
-            <input
-              type="text"
-              placeholder="Search Patient by Name"
-              value={patientSearch}
-              onChange={handlePatientSearchChange}
-              className="w-full p-2 border rounded"
-            />
-            {patientResults.length > 0 && (
-              <div className="border rounded mt-2 bg-white p-2">
-                {patientResults.map((appointment) => (
-                  <div
-                    key={appointment.id}
-                    className="p-4 border-b cursor-pointer hover:bg-gray-200"
-                    onClick={() => handleSelectPatient(appointment)}
-                  >
-                    <h4 className="font-bold text-lg">{appointment.patientName}</h4>
-                    {/* <p>Mobile: {appointment.mobile}</p> */}
-                    <p>Age: {appointment.age} | Gender: {appointment.gender} | Date: {new Date(appointment.timestamp).toLocaleString()} </p>
-                  </div>
-                ))}
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Search Patient by Name"
+          value={patientSearch}
+          onChange={handlePatientSearchChange}
+          className="w-full p-2 border rounded"
+        />
+        {patientResults.length > 0 && (
+          <div className="border rounded mt-2 bg-white p-2">
+            {patientResults.map((patient) => (
+              <div
+                key={patient.id}
+                className="p-4 border-b cursor-pointer hover:bg-gray-200"
+                onClick={() => handleSelectPatient(patient)}
+              >
+                <h4 className="font-bold text-lg">{patient.name}</h4>
+                <p>Age: {patient.age} | Gender: {patient.gender}</p>
               </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Display Selected Patient's Appointments */}
+      {selectedPatient && (
+        <div className="mt-4">
+          <h3 className="text-lg font-bold mb-2">Appointments for {selectedPatient.name}:</h3>
+          <div className="border rounded bg-white p-4">
+            {Appointments.length > 0 ? (
+              Appointments.map((appointment, index) => (
+                <div
+                  key={index}
+                  className="p-4 border-b cursor-pointer hover:bg-gray-200"
+                  onClick={() => handleSelectAppointment(appointment)}
+                >
+                  <p><strong>Date:</strong> {new Date(appointment.timestamp).toLocaleString()}</p>
+                  <p><strong>Investigation:</strong> {appointment.investigation || "N/A"}</p>
+                  <p><strong>Diagnosis:</strong> {appointment.diagnosis || "N/A"}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500">No appointments found.</p>
             )}
           </div>
+        </div>
+      )}
 
-          {/* Selected Appointment Details */}
-          {selectedAppointment && (
-            <div className="mt-4 p-4 border rounded bg-gray-50">
-              <h3 className="text-lg font-bold mb-2">Selected Appointment Details:</h3>
-              <p><strong>Name:</strong> {selectedAppointment.patientName}</p>
-              {/* <p><strong>Mobile:</strong> {selectedAppointment.mobile}</p> */}
-              <p><strong>Age:</strong> {selectedAppointment.age}</p>
-              <p><strong>Gender:</strong> {selectedAppointment.gender}</p>
-              <p><strong>Date:</strong> {new Date(selectedAppointment.timestamp).toLocaleString()}</p>
-              <p><strong>Investigation:</strong> {selectedAppointment.investigation}</p>
-              <p><strong>Diagnosis:</strong> {selectedAppointment.diagnosis}</p>
-              <p><strong>Advice:</strong> {selectedAppointment.advice}</p>
-              <div>
-                <strong>Medicines:</strong>
-                {selectedAppointment.medicines.length > 0 ? (
-                  <ul className="list-disc pl-5 mt-1">
-                    {selectedAppointment.medicines.map((medicine, index) => (
-                      <li key={index}>
-                        {medicine.name} - {medicine.quantity} unit(s)
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-500 mt-1">No medicines prescribed.</p>
-                )}
-              </div>
-              <button
-                onClick={handleAddSelectedAppointment}
-                className="bg-green-500 text-white px-4 py-2 rounded mt-2 hover:bg-green-600"
-              >
-                Add to Current Appointment
-              </button>
-            </div>
-          )}
+      {/* Selected Appointment Details */}
+      {selectedAppointment && (
+        <div className="mt-4 p-4 border rounded bg-gray-50">
+          <h3 className="text-lg font-bold mb-2">Selected Appointment Details:</h3>
+          <p><strong>Name:</strong> {selectedAppointment.patientName}</p>
+          <p><strong>Age:</strong> {selectedAppointment.age}</p>
+          <p><strong>Gender:</strong> {selectedAppointment.gender}</p>
+          <p><strong>Date:</strong> {new Date(selectedAppointment.timestamp).toLocaleString()}</p>
+          <p><strong>Investigation:</strong> {selectedAppointment.investigation}</p>
+          <p><strong>Diagnosis:</strong> {selectedAppointment.diagnosis}</p>
+          <p><strong>Advice:</strong> {selectedAppointment.advice}</p>
+          <div>
+            <strong>Medicines:</strong>
+            {selectedAppointment.medicines.length > 0 ? (
+              <ul className="list-disc pl-5 mt-1">
+                {selectedAppointment.medicines.map((medicine, index) => (
+                  <li key={index}>
+                    {medicine.name} - {medicine.quantity} unit(s)
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500 mt-1">No medicines prescribed.</p>
+            )}
+          </div>
+          <button
+            onClick={handleAddSelectedAppointment}
+            className="bg-green-500 text-white px-4 py-2 rounded mt-2 hover:bg-green-600"
+          >
+            Add to Current Appointment
+          </button>
+        </div>
+      )}
 
           {/* Patient Form */}
           <div className="space-y-4 mt-4">
@@ -534,3 +545,7 @@ const Appointment: React.FC = () => {
 };
 
 export default Appointment;
+function searchPatientByName(query: string) {
+  throw new Error("Function not implemented.");
+}
+
