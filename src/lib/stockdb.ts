@@ -128,6 +128,17 @@ export async function fetchExpiringMedicines(): Promise<OriginalMedicine[]> {
     .toArray();
 }
 
+// Fetch medicines that have already expired
+export async function fetchExpiredMedicines(): Promise<OriginalMedicine[]> {
+  const today = new Date();
+
+  return await db.medicines
+    .where("expiry_date")
+    .below(today.toISOString())
+    .toArray();
+}
+
+
 // Fetch medicines with low quantity (less than 10)
 export async function fetchLowQuantityMedicines(): Promise<OriginalMedicine[]> {
   return await db.medicines

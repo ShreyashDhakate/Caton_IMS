@@ -110,25 +110,7 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
    
   }
 
-  useEffect(() => {
-    const syncAndSchedule = async () => {
-      try {
-        await syncMedicinesToMongoDB(); // Run immediately
-      } catch (error) {
-        console.error("Error syncing medicines:", error);
-      }
-      const intervalId = setInterval(async () => {
-        try {
-          await syncMedicinesToMongoDB();
-        } catch (error) {
-          console.error("Error syncing medicines:", error);
-        }
-      }, 600000);
-  
-      return () => clearInterval(intervalId);
-    };
-    syncAndSchedule();
-  }, []);
+
    // const appointmentId = location.state?.appointmentId;
    if (appointmentId) {
     const appointmentKey = `appointment_${appointmentId}`;
@@ -147,6 +129,25 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
   }
 }, [location.state, navigate]);
 
+useEffect(() => {
+  const syncAndSchedule = async () => {
+    try {
+      await syncMedicinesToMongoDB(); // Run immediately
+    } catch (error) {
+      console.error("Error syncing medicines:", error);
+    }
+    const intervalId = setInterval(async () => {
+      try {
+        await syncMedicinesToMongoDB();
+      } catch (error) {
+        console.error("Error syncing medicines:", error);
+      }
+    }, 600000);
+
+    return () => clearInterval(intervalId);
+  };
+  syncAndSchedule();
+}, []);
 
 const handleSearchMedicine = async (query: string) => {
   try {
@@ -162,7 +163,7 @@ const handleSearchMedicine = async (query: string) => {
   } catch (error) {
     console.error("Error searching medicines:", error);
     addToast("Failed to search medicines locally.","error");
-  }
+  }
 };
 
   useEffect(() => {

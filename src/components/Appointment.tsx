@@ -18,6 +18,13 @@ interface MedicineInfo {
   purchasePrice: number;
 }
 
+interface Patient {
+  id: string; // Unique ID for the patient
+  name: string;
+  age: number;
+  gender: string;
+  appointments: Appointment[]; // List of appointments
+}
 
 export interface Appointment {
   id: string;
@@ -264,9 +271,9 @@ const Appointment: React.FC = () => {
       age: selectedAppointment.age,
       gender: selectedAppointment.gender,
       // address: selectedAppointment.address,
-      investigation: selectedAppointment.investigation || "",
-      diagnosis: selectedAppointment.diagnosis || "",
-      advice: selectedAppointment.advice || "",
+      investigation: "",
+      diagnosis: "",
+      advice: "",
     });
     // Clear the selected medicines
     // setSelectedAppointment(null);
