@@ -142,7 +142,7 @@ export async function fetchExpiredMedicines(): Promise<OriginalMedicine[]> {
 // Fetch medicines with low quantity (less than 10)
 export async function fetchLowQuantityMedicines(): Promise<OriginalMedicine[]> {
   return await db.medicines
-    .filter((medicine) => medicine.quantity < 10)
+    .filter((medicine) => medicine.quantity < 25)
     .toArray();
 }
 
