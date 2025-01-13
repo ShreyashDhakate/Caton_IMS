@@ -26,6 +26,21 @@ const MedicineManager: React.FC = () => {
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false); // Toggle Remove Dialog
   const [loading, setLoading] = useState(false);
 
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSyncMedicines = async () => {
+    if (isSyncing) return; // Prevent multiple clicks
+
+    setIsSyncing(true); // Set the syncing state to true
+    try {
+      await syncMedicinesToMongoDB(); // Call the imported function
+      console.log("Medicines synced successfully!");
+    } catch (error) {
+      console.error("Error syncing medicines:", error);
+    } finally {
+      setIsSyncing(false); // Reset the syncing state
+    }
+  };
 
   const loaderOptions = {
     loop: true,
@@ -101,8 +116,18 @@ const MedicineManager: React.FC = () => {
 
   return (
     <div className="p-4">
-      <h1 className="text-3xl font-bold mb-6 text-indigo-600">Medicine Manager</h1>
-
+<div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-indigo-600">Medicine Manager</h1>
+        <button
+          onClick={handleSyncMedicines}
+          className={`${
+            isSyncing ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-600"
+          } text-white px-4 py-2 rounded`}
+          disabled={isSyncing} // Disable the button while syncing
+        >
+          {isSyncing ? "Syncing..." : "Sync Medicines"}
+        </button>
+      </div>
       {/* Medicine Table */}
       {loading ? (
         // Render loader when loading

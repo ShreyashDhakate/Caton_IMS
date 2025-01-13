@@ -44,13 +44,13 @@ const Navbar: React.FC = () => {
                       </button>
                       {activeDropdown === 'medicine' && (
                         <div className="absolute bg-white w-[12rem] shadow-md rounded-md mt-2 z-10">
-                          <Link
+                          {/* <Link
                             to="/editmedicine"
                             onClick={() => toggleDropdown('')}
                             className="block px-4 py-2 text-gray-800 hover:bg-gray-200"
                           >
                             Edit Medicine Details
-                          </Link>
+                          </Link> */}
                           <Link
                             to="/medmanager"
                             onClick={() => toggleDropdown('')}
@@ -58,19 +58,26 @@ const Navbar: React.FC = () => {
                           >
                             Medicine Stock
                           </Link>
-                          <Link
+                          {/* <Link
                             to="/all-medicines"
                             onClick={() => toggleDropdown('')}
                             className="block px-4 py-2 text-gray-800 hover:bg-gray-200"
                           >
                             All Stock
-                          </Link>
+                          </Link> */}
                           <Link
                             to="/expiringmedicines"
                             onClick={() => toggleDropdown('')}
                             className="block px-4 py-2 text-gray-800 hover:bg-gray-200"
                           >
                             Expiring Medicines
+                          </Link>
+                          <Link
+                            to="/lowstockmedicines"
+                            onClick={() => toggleDropdown('')}
+                            className="block px-4 py-2 text-gray-800 hover:bg-gray-200"
+                          >
+                            Low Stock Medicines
                           </Link>
                         </div>
                       )}
@@ -111,12 +118,18 @@ const Navbar: React.FC = () => {
                   </>
                 )}
                 {role === 'Doctor' && (
-                  <Link to="/appointment" className="text-white hover:text-gray-300">
+                  <><Link to="/appointment" className="text-white hover:text-gray-300">
                     Appointment
-                  </Link>
+                  </Link><Link to="/doctormedicinesmanager" className="text-white hover:text-gray-300">
+                      Medicines
+                    </Link></>
+
                 )}
                 <Link to="/history" className="text-white hover:text-gray-300">
                   Analytics
+                </Link>
+                <Link to="/contactus" className="text-white hover:text-gray-300">
+                  ContactUs
                 </Link>
                 <Link to="/patients" className="text-white hover:text-gray-300">
                   Patients
