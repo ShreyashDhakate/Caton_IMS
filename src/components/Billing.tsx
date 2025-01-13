@@ -7,6 +7,7 @@ import BillingSummary from "./BillingSummary";
 import { printBill } from "../hooks/printBill";
 import { fetchMedicineById, searchMedicines, syncMedicinesToMongoDB, updateMedicine } from "../lib/stockdb";
 import { salesDb } from "../lib/db";
+import React from "react";
 
 
 interface Props {
@@ -43,9 +44,7 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
   >([]);
   const [paymentMode, setPaymentMode] = useState<"offline" | "online">("offline");
   const [customerName, setCustomerName] = useState("");
-  const [openPrintDialog, setOpenPrintDialog] = useState(false);
-  const [confirmDialog, setConfirmDialog] = useState(false);
-
+  const [openDialog, setOpenDialog] = useState(false);
   const [billingId] = useState(Math.floor(Math.random() * 100000));
 
   const hospitalName: string = localStorage.getItem("hospital") ?? "";

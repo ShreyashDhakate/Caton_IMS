@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import { addMedicine } from "../lib/stockdb";
 import { searchMedicines, syncMedicinesToMongoDB } from "../lib/stockdb";
 import { useToast } from "./ui/sonner";
+import ConfirmDialog from "./ConfirmDialog.tsx";
 
 interface Medicine {
   id: string;
@@ -44,13 +45,14 @@ const StockAdd: React.FC = () => {
 
   const [searchResults, setSearchResults] = useState<Medicine[]>([]);
   const [activeMedicineId, setActiveMedicineId] = useState<string | null>(null);
+  const [isDialogOpen, setDialogOpen] = useState(false);
 
   const handleSearchMedicine = async (query: string) => {
     try {
       const results = await searchMedicines(query);
       setSearchResults(results);
     } catch (error) {
-      addToast("Failed to search medicines locally.","error");
+      addToast("Failed to search medicines locally.", "error");
     }
   };
 
@@ -68,11 +70,82 @@ const StockAdd: React.FC = () => {
           console.error("Error syncing medicines:", error);
         }
       }, 600000);
-  
+
       return () => clearInterval(intervalId);
     };
     syncAndSchedule();
   }, []);
+
+  // const handleSubmit = async () => {
+  //   try {
+  //     for (const purchase of purchases) {
+  //       for (const medicine of purchase.medicines) {
+  //         if (
+  //           !medicine.name.trim() ||
+  //           !medicine.batchNumber.trim() ||
+  //           !medicine.expiryDate.trim() ||
+  //           medicine.quantity === null ||
+  //           medicine.purchasePrice === null ||
+  //           medicine.sellingPrice === null
+  //         ) {
+  //           addToast("Please fill in all fields for each medicine.", "info");
+  //           return;
+  //         }
+  //       }
+  //     }
+
+  //     // Confirmation dialog before proceeding with submission
+  //     const userConfirmed = window.confirm("Are you sure you want to confirm the purchase?");
+  //     if (!userConfirmed) {
+  //       return;
+  //     }
+
+  //     // Submit each medicine after confirmation
+  //     for (const purchase of purchases) {
+  //       for (const medicine of purchase.medicines) {
+  //         await addMedicine({
+  //           id: crypto.randomUUID(),
+  //           user_id: localStorage.getItem("userId") || "default_user",
+  //           name: medicine.name,
+  //           batch_number: medicine.batchNumber,
+  //           expiry_date: medicine.expiryDate,
+  //           quantity: Number(medicine.quantity),
+  //           purchase_price: Number(medicine.purchasePrice),
+  //           selling_price: Number(medicine.sellingPrice),
+  //           wholesaler_name: purchase.wholesalerName,
+  //           purchase_date: purchase.purchaseDate,
+  //         });
+
+  //         addToast(`Medicine saved locally: ${medicine.name}`, "success");
+  //       }
+  //     }
+
+  //     // Reset state to clear input fields after successful submission
+  //     setPurchases([
+  //       {
+  //         id: crypto.randomUUID(),
+  //         wholesalerName: "",
+  //         purchaseDate: dayjs().format("YYYY-MM-DD"),
+  //         medicines: [
+  //           {
+  //             id: crypto.randomUUID(),
+  //             name: "",
+  //             batchNumber: "",
+  //             expiryDate: "",
+  //             quantity: null,
+  //             purchasePrice: null,
+  //             sellingPrice: null,
+  //           },
+  //         ],
+  //       },
+  //     ]);
+
+  //     addToast("All data submitted successfully!", "success");
+  //   } catch (error) {
+  //     console.error("Error saving medicines:", error);
+  //     addToast("Failed to save medicines locally.", "error");
+  //   }
+  // };
 
   const handleSubmit = async () => {
     try {
@@ -86,10 +159,27 @@ const StockAdd: React.FC = () => {
             medicine.purchasePrice === null ||
             medicine.sellingPrice === null
           ) {
-            addToast("Please fill in all fields for each medicine.","info");
+            addToast("Please fill in all fields for each medicine.", "info");
             return;
           }
-  
+        }
+      }
+
+      // Open the confirmation dialog
+      setDialogOpen(true);
+    } catch (error) {
+      console.error("Error validating medicines:", error);
+      addToast("Failed to validate medicines.", "error");
+    }
+  };
+
+  const handleConfirm = async () => {
+    setDialogOpen(false);
+
+    try {
+      // Submit the purchase
+      for (const purchase of purchases) {
+        for (const medicine of purchase.medicines) {
           await addMedicine({
             id: crypto.randomUUID(),
             user_id: localStorage.getItem("userId") || "default_user",
@@ -102,12 +192,10 @@ const StockAdd: React.FC = () => {
             wholesaler_name: purchase.wholesalerName,
             purchase_date: purchase.purchaseDate,
           });
-  
-          addToast(`Medicine saved locally: ${medicine.name}`,"success");
         }
       }
-  
-      // Reset state to clear input fields after successful submission
+
+      // Reset the form
       setPurchases([
         {
           id: crypto.randomUUID(),
@@ -126,14 +214,14 @@ const StockAdd: React.FC = () => {
           ],
         },
       ]);
-  
-      addToast("All data submitted successfully!","success");
+
+      addToast("All data submitted successfully!", "success");
     } catch (error) {
       console.error("Error saving medicines:", error);
-      addToast("Failed to save medicines locally.","error");
+      addToast("Failed to save medicines locally.", "error");
     }
   };
-  
+
 
   const handleMedicineChange = (
     purchaseId: string,
@@ -145,11 +233,11 @@ const StockAdd: React.FC = () => {
       prev.map((purchase) =>
         purchase.id === purchaseId
           ? {
-              ...purchase,
-              medicines: purchase.medicines.map((medicine) =>
-                medicine.id === medicineId ? { ...medicine, [field]: value } : medicine
-              ),
-            }
+            ...purchase,
+            medicines: purchase.medicines.map((medicine) =>
+              medicine.id === medicineId ? { ...medicine, [field]: value } : medicine
+            ),
+          }
           : purchase
       )
     );
@@ -169,27 +257,27 @@ const StockAdd: React.FC = () => {
       prev.map((purchase) =>
         purchase.id === purchaseId
           ? {
-              ...purchase,
-              medicines: purchase.medicines.map((medicine) =>
-                medicine.id === medicineId
-                  ? {
-                      ...medicine,
-                      name: selected.name,
-                      batchNumber: selected.batchNumber || "",
-                      expiryDate: selected.expiryDate || "",
-                      purchasePrice: selected.purchasePrice || null,
-                      sellingPrice: selected.sellingPrice || null,
-                    }
-                  : medicine
-              ),
-            }
+            ...purchase,
+            medicines: purchase.medicines.map((medicine) =>
+              medicine.id === medicineId
+                ? {
+                  ...medicine,
+                  name: selected.name,
+                  batchNumber: selected.batchNumber || "",
+                  expiryDate: selected.expiryDate || "",
+                  purchasePrice: selected.purchasePrice || null,
+                  sellingPrice: selected.sellingPrice || null,
+                }
+                : medicine
+            ),
+          }
           : purchase
       )
     );
 
     setActiveMedicineId(null);
     setSearchResults([]);
-    addToast(`Selected medicine: ${selected.name}`,"success");
+    addToast(`Selected medicine: ${selected.name}`, "success");
   };
 
   return (
@@ -307,8 +395,8 @@ const StockAdd: React.FC = () => {
                   }
                 >
                   <span className="inline-block w-5 h-5 border-2 border-red-600 rounded-full text-center leading-4">
-    ×
-  </span>
+                    ×
+                  </span>
                 </button>
               </div>
             </div>
@@ -320,31 +408,31 @@ const StockAdd: React.FC = () => {
                 prev.map((p) =>
                   p.id === purchase.id
                     ? {
-                        ...p,
-                        medicines: [
-                          ...p.medicines,
-                          {
-                            id: crypto.randomUUID(),
-                            name: "",
-                            batchNumber: "",
-                            expiryDate: "",
-                            quantity: null,
-                            purchasePrice: null,
-                            sellingPrice: null,
-                          },
-                        ],
-                      }
+                      ...p,
+                      medicines: [
+                        ...p.medicines,
+                        {
+                          id: crypto.randomUUID(),
+                          name: "",
+                          batchNumber: "",
+                          expiryDate: "",
+                          quantity: null,
+                          purchasePrice: null,
+                          sellingPrice: null,
+                        },
+                      ],
+                    }
                     : p
                 )
               )
             }
           >
             <span
-    className="inline-block w-5 h-5 border-2 border-blue-600 rounded-full text-center leading-4 mr-2"
-  >
-    +
-  </span>
-  Add Medicine
+              className="inline-block w-5 h-5 border-2 border-blue-600 rounded-full text-center leading-4 mr-2"
+            >
+              +
+            </span>
+            Add Medicine
           </button>
           <hr className="my-4" />
         </div>
@@ -355,9 +443,17 @@ const StockAdd: React.FC = () => {
       >
         Submit
       </button>
+
+      <ConfirmDialog
+        open={isDialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onConfirm={handleConfirm}
+        title="Confirm Purchase"
+        message="Are you sure you want to confirm the purchase?"
+      />
     </div>
   );
-  
+
 };
 
 export default StockAdd;
