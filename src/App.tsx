@@ -6,7 +6,7 @@ import "./index.css";
 import LoginPage from "./components/Login";
 import SignupPage from "./components/SignupPage";
 import { ToastProvider } from "./components/ui/sonner";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AuthProvider, useAuth } from "./context/AuthContext.tsx";
 import StockAdd from "./components/StockAdd";
 import Appointment from "./components/Appointment";
 import History from "./components/History";
@@ -16,11 +16,10 @@ import ComingSoonPage from "./components/CommingSoon";
 import BillingParent from "./components/BillingParent";
 import welcomebg from "/welcomebg.jpeg";
 import MedicineManager from "./components/MedicineManager";
+import DoctorMedicinesManager from "./components/DoctorMedicinesManager.tsx"
 import ExpiringMedicines from "./components/ExpiringMedicines";
 import LowStockMedicines from "./components/LowStockMedicines.tsx";
 import ProfilePage from "./components/ProfilePage";
-// import ContactUs from "./components/ContactUs.tsx";
-import DoctorMedicinesManager from "./components/DoctorMedicinesManager";
 // Custom festival backgrounds
 // const festivalBackgrounds = {
 //   diwali: "https://example.com/diwali-bg.jpg",
@@ -92,7 +91,6 @@ const ProtectedRoutes: React.FC = () => {
       <Route path="/history" element={<History />} />
       <Route path="/patients" element={<Patients />} />
       <Route path="/profile" element={<ProfilePage/>} />
-      {/* <Route path="/contactus" element={<ContactUs/>} /> */}
       <Route path="*" element={<ComingSoonPage />} />
     </Routes>
   );
