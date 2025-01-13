@@ -2,9 +2,9 @@ import React, { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useToast } from "./ui/sonner";
 import {
-  saveAppointmentToIndexedDB,
-  searchAppointmentsByPatientName,
+  addAppointmentToPatient,
   searchDoctorMedicines,
+  searchPatientsByName,
   syncDoctorMedicinesFromMongoDB,
 } from "../lib/doctorstock";
 
@@ -18,9 +18,15 @@ interface MedicineInfo {
   purchasePrice: number;
 }
 
+interface Patient {
+  id: string; // Unique ID for the patient
+  name: string;
+  age: number;
+  gender: string;
+  appointments: Appointment[]; // List of appointments
+}
 
 export interface Appointment {
-  id: string;
   patientName: string;
   // mobile: string;
   age: number;
@@ -34,14 +40,6 @@ export interface Appointment {
   timestamp: string;
 }
 
-// // Function to format the timestamp
-// const formatDate = (timestamp: string): string => {
-//   const date = new Date(timestamp);
-//   const day = date.getDate().toString().padStart(2, "0");
-//   const month = (date.getMonth() + 1).toString().padStart(2, "0");
-//   const year = date.getFullYear().toString().slice(-2);
-//   return `${day}-${month}-${year}`;
-// };
 
 const Appointment: React.FC = () => {
   const [patient, setPatient] = useState({
@@ -57,10 +55,12 @@ const Appointment: React.FC = () => {
 
   const [medicineSearch, setMedicineSearch] = useState("");
   const [patientSearch, setPatientSearch] = useState("");
-  const [patientResults, setPatientResults] = useState<Appointment[]>([]);
+  const [patientResults, setPatientResults] = useState<Patient[]>([]);
   const [searchResults, setSearchResults] = useState<MedicineInfo[]>([]);
   const [selectedMedicines, setSelectedMedicines] = useState<MedicineInfo[]>([]);
+  const [Appointments, setAppointments] = useState<Appointment[]>([]);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -103,7 +103,7 @@ const Appointment: React.FC = () => {
         return;
       }
 
-      const results = await searchAppointmentsByPatientName(query);
+      const results = await searchPatientsByName(query);
       setPatientResults(results);
     } catch (error) {
       console.error("Error searching appointments:", error);
@@ -122,20 +122,36 @@ const Appointment: React.FC = () => {
     }
   };
 
-  // const handleSelectPatient = (appointment: Appointment) => {
-  //   setPatient({
-  //     name: appointment.patientName,
-  //     mobile: appointment.mobile,
-  //     age: appointment.age,
-  //     gender: appointment.gender,
-  //     address: appointment.address,
-  //     investigation: appointment.investigation || "",
-  //     diagnosis: appointment.diagnosis || "",
-  //     advice: appointment.advice || "",
-  //   });
-  //   setPatientSearch("");
-  //   setPatientResults([]);
-  // };
+  const handleSelectPatient = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setAppointments(patient.appointments || []); // Load appointments of the selected patient
+    setPatientSearch("");
+    setPatientResults([]);
+  };
+
+  const handleSelectAppointment = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setPatientSearch(""); // Clear the search input
+    setPatientResults([]); // Clear the search results
+  };
+
+  const handleAddSelectedAppointment = () => {
+    if (!selectedAppointment) return;
+
+    setPatient({
+      name: selectedAppointment.patientName,
+      // mobile: selectedAppointment.mobile,
+      age: selectedAppointment.age,
+      gender: selectedAppointment.gender,
+      // address: selectedAppointment.address,
+      investigation: "",
+      diagnosis: "",
+      advice: "",
+    });
+    // Clear the selected medicines
+    // setSelectedAppointment(null);
+    addToast("Appointment details added successfully!", "success");
+  };
 
   const handleMedicineSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
@@ -200,7 +216,7 @@ const Appointment: React.FC = () => {
         return;
       }
 
-      if (!patient.name ) {
+      if (!patient.name) {
         addToast("Patient name is required.", "info");
         return;
       }
@@ -224,7 +240,7 @@ const Appointment: React.FC = () => {
       };
 
       await invoke("save_appointment", appointmentData);
-      await saveAppointmentToIndexedDB(appointmentData);
+      await addAppointmentToPatient(patient.name, appointmentData);
 
       addToast("Appointment saved successfully!", "success");
       setPatient({
@@ -240,7 +256,9 @@ const Appointment: React.FC = () => {
       setSelectedMedicines([]);
       setMedicineSearch("");
       setSearchResults([]);
+      setAppointments([]);
       setSelectedAppointment(null);
+      setSelectedPatient(null);
 
     } catch (error: any) {
 
@@ -249,29 +267,7 @@ const Appointment: React.FC = () => {
     }
   };
 
-  const handleSelectPatient = (appointment: Appointment) => {
-    setSelectedAppointment(appointment);
-    setPatientSearch(""); // Clear the search input
-    setPatientResults([]); // Clear the search results
-  };
 
-  const handleAddSelectedAppointment = () => {
-    if (!selectedAppointment) return;
-
-    setPatient({
-      name: selectedAppointment.patientName,
-      // mobile: selectedAppointment.mobile,
-      age: selectedAppointment.age,
-      gender: selectedAppointment.gender,
-      // address: selectedAppointment.address,
-      investigation: selectedAppointment.investigation || "",
-      diagnosis: selectedAppointment.diagnosis || "",
-      advice: selectedAppointment.advice || "",
-    });
-    // Clear the selected medicines
-    // setSelectedAppointment(null);
-    addToast("Appointment details added successfully!", "success");
-  };
 
   return (
     <div className="flex flex-col gap-4 bg-gray-100 p-4 min-h-screen">
@@ -292,30 +288,52 @@ const Appointment: React.FC = () => {
             />
             {patientResults.length > 0 && (
               <div className="border rounded mt-2 bg-white p-2">
-                {patientResults.map((appointment) => (
+                {patientResults.map((patient) => (
                   <div
-                    key={appointment.id}
+                    key={patient.id}
                     className="p-4 border-b cursor-pointer hover:bg-gray-200"
-                    onClick={() => handleSelectPatient(appointment)}
+                    onClick={() => handleSelectPatient(patient)}
                   >
-                    <h4 className="font-bold text-lg">{appointment.patientName}</h4>
-                    {/* <p>Mobile: {appointment.mobile}</p> */}
-                    <p>Age: {appointment.age} | Gender: {appointment.gender} | Date: {new Date(appointment.timestamp).toLocaleString()} </p>
+                    <h4 className="font-bold text-lg">{patient.name}</h4>
+                    <p>Age: {patient.age} | Gender: {patient.gender}</p>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
+          {/* Display Selected Patient's Appointments */}
+          {selectedPatient && (
+            <div className="mt-4">
+              <h3 className="text-lg font-bold mb-2">Appointments for {selectedPatient.name}:</h3>
+              <div className="border rounded bg-white p-4">
+                {Appointments.length > 0 ? (
+                  Appointments.map((appointment, index) => (
+                    <div
+                      key={index}
+                      className="p-4 border-b cursor-pointer hover:bg-gray-200"
+                      onClick={() => handleSelectAppointment(appointment)}
+                    >
+                      <p><strong>Date:</strong> {new Date(appointment.timestamp).toLocaleString()}</p>
+                      <p><strong>Investigation:</strong> {appointment.investigation || "N/A"}</p>
+                      <p><strong>Diagnosis:</strong> {appointment.diagnosis || "N/A"}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500">No appointments found.</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Selected Appointment Details */}
           {selectedAppointment && (
             <div className="mt-4 p-4 border rounded bg-gray-50">
               <h3 className="text-lg font-bold mb-2">Selected Appointment Details:</h3>
               <p><strong>Name:</strong> {selectedAppointment.patientName}</p>
-              {/* <p><strong>Mobile:</strong> {selectedAppointment.mobile}</p> */}
               <p><strong>Age:</strong> {selectedAppointment.age}</p>
               <p><strong>Gender:</strong> {selectedAppointment.gender}</p>
-              <p><strong>Address:</strong> {new Date(selectedAppointment.timestamp).toLocaleString()}</p>
+              <p><strong>Date:</strong> {new Date(selectedAppointment.timestamp).toLocaleString()}</p>
               <p><strong>Investigation:</strong> {selectedAppointment.investigation}</p>
               <p><strong>Diagnosis:</strong> {selectedAppointment.diagnosis}</p>
               <p><strong>Advice:</strong> {selectedAppointment.advice}</p>
@@ -343,75 +361,109 @@ const Appointment: React.FC = () => {
           )}
 
           {/* Patient Form */}
-          <div className="space-y-3 mt-4">
-            <input
-              type="text"
-              name="name"
-              placeholder="Patient Name"
-              value={patient.name}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-            />
-            <input
-              type="number"
-              name="age"
-              placeholder="Age"
-              value={patient.age}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-            />
-            <select
-              name="gender"
-              value={patient.gender}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-            >
-              <option value="">Select Gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-            </select>
-            {/* <input
-              type="text"
-              name="mobile"
-              placeholder="Mobile Number"
-              value={patient.mobile}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-            /> */}
-            {/* <textarea
-              name="address"
-              placeholder="Address"
-              value={patient.address}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-              rows={3}
-            /> */}
-            <textarea
-              name="investigation"
-              placeholder="Investigation"
-              value={patient.investigation}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-              rows={2}
-            />
-            <textarea
-              name="diagnosis"
-              placeholder="Diagnosis"
-              value={patient.diagnosis}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-              rows={2}
-            />
-            <textarea
-              name="advice"
-              placeholder="Advice"
-              value={patient.advice}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded"
-              rows={2}
-            />
-          </div>
+          {/* Patient Form */}
+<div className="space-y-6 mt-6 bg-gray-50 p-6 rounded-lg shadow-lg">
+  {/* Patient Name */}
+  <div className="flex flex-col">
+    <label htmlFor="name" className="text-sm font-medium text-gray-800">
+      Patient Name
+    </label>
+    <input
+      type="text"
+      id="name"
+      name="name"
+      placeholder="Enter patient name"
+      value={patient.name}
+      onChange={handleInputChange}
+      className="w-full p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+    />
+  </div>
+
+  {/* Age and Gender */}
+  <div className="flex gap-6">
+    <div className="flex-1 flex flex-col">
+      <label htmlFor="age" className="text-sm font-medium text-gray-800">
+        Age
+      </label>
+      <input
+        type="number"
+        id="age"
+        name="age"
+        placeholder="Enter age"
+        value={patient.age}
+        onChange={handleInputChange}
+        className="w-full p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      />
+    </div>
+    <div className="flex-1 flex flex-col">
+      <label htmlFor="gender" className="text-sm font-medium text-gray-800">
+        Gender
+      </label>
+      <select
+        id="gender"
+        name="gender"
+        value={patient.gender}
+        onChange={handleInputChange}
+        className="w-full p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      >
+        <option value="">Select Gender</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+  </div>
+
+  {/* Investigation */}
+  <div className="flex flex-col">
+    <label htmlFor="investigation" className="text-sm font-medium text-gray-800">
+      Investigation
+    </label>
+    <textarea
+      id="investigation"
+      name="investigation"
+      placeholder="Enter investigation details"
+      value={patient.investigation}
+      onChange={handleInputChange}
+      className="w-full p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      rows={2}
+    />
+  </div>
+
+  {/* Diagnosis */}
+  <div className="flex flex-col">
+    <label htmlFor="diagnosis" className="text-sm font-medium text-gray-800">
+      Diagnosis
+    </label>
+    <textarea
+      id="diagnosis"
+      name="diagnosis"
+      placeholder="Enter diagnosis details"
+      value={patient.diagnosis}
+      onChange={handleInputChange}
+      className="w-full p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      rows={2}
+    />
+  </div>
+
+  {/* Advice */}
+  <div className="flex flex-col">
+    <label htmlFor="advice" className="text-sm font-medium text-gray-800">
+      Advice
+    </label>
+    <textarea
+      id="advice"
+      name="advice"
+      placeholder="Enter advice"
+      value={patient.advice}
+      onChange={handleInputChange}
+      className="w-full p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      rows={2}
+    />
+  </div>
+</div>
+
+
         </div>
 
         {/* Medicine Section */}
@@ -495,3 +547,4 @@ const Appointment: React.FC = () => {
 };
 
 export default Appointment;
+

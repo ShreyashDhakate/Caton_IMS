@@ -5,11 +5,11 @@ import { db } from "./db"; // Adjust the path to your actual file
 type OriginalMedicine = {
   id: string; // Required
   user_id: string;
+  
   name: string;
   batch_number: string;
   expiry_date: string;
   quantity: number;
-  local_id:string;
   purchase_price: number;
   selling_price: number;
   wholesaler_name: string;
@@ -19,6 +19,7 @@ type OriginalMedicine = {
 // Required format interfaces
 export interface Medicine {
   id: string;
+  
   name: string;
   batchNumber: string;
   expiryDate: string;
@@ -26,7 +27,19 @@ export interface Medicine {
   purchasePrice: number;
   sellingPrice: number;
 }
-
+interface MongoDBMedicine {
+  _id: { $oid: string };
+  local_id: string;
+  user_id: string;
+  name: string;
+  batch_number: string;
+  expiry_date: string;
+  quantity: number;
+  purchase_price: number;
+  selling_price: number;
+  wholesaler_name: string;
+  purchase_date: string;
+}
 export interface Wholesaler {
   id: string;
   wholesalerName: string;
@@ -117,10 +130,21 @@ export async function fetchExpiringMedicines(): Promise<OriginalMedicine[]> {
     .toArray();
 }
 
+// Fetch medicines that have already expired
+export async function fetchExpiredMedicines(): Promise<OriginalMedicine[]> {
+  const today = new Date();
+
+  return await db.medicines
+    .where("expiry_date")
+    .below(today.toISOString())
+    .toArray();
+}
+
+
 // Fetch medicines with low quantity (less than 10)
 export async function fetchLowQuantityMedicines(): Promise<OriginalMedicine[]> {
   return await db.medicines
-    .filter((medicine) => medicine.quantity < 10)
+    .filter((medicine) => medicine.quantity < 25)
     .toArray();
 }
 
@@ -152,7 +176,7 @@ export async function syncMedicinesToMongoDB(): Promise<void> {
     console.log("Medicines to sync to MongoDB:", indexedDBMedicines);
 
     // Fetch all medicines from MongoDB
-    const mongoDBMedicines: OriginalMedicine[] = await invoke("get_all_medicines", {
+    const mongoDBMedicines: MongoDBMedicine[] = await invoke("get_all_medicines", {
       hospitalId: userId,
     });
 
@@ -253,4 +277,3 @@ export async function deletePurchase(wholesalerName: string, purchaseDate: strin
     throw new Error("Failed to delete purchase");
   }
 }
-

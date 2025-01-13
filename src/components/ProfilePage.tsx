@@ -137,16 +137,21 @@ const ProfilePage = () => {
 };
 
 const ProfileTab = () => {
-    const [editable, setEditable] = useState(false);
-    const [fields, setFields] = useState({
+  const [editable, setEditable] = useState(false);
+  const [fields, setFields] = useState({
     name: localStorage.getItem('name') || '',
     hospital: localStorage.getItem('hospital') || '',
     email: localStorage.getItem('email') || '',
     phone: localStorage.getItem('phone') || '',
     address: localStorage.getItem('address') || '',
+    degree: localStorage.getItem('degree') || '',
+    consultationField: localStorage.getItem('consultationField') || '',
+    registrationNumber: localStorage.getItem('registrationNumber') || '',
+    consultingTiming: localStorage.getItem('consultingTiming') || '',
+    consultingLocation: localStorage.getItem('consultingLocation') || '',
   });
 
-  const handleInputChange = (field: keyof typeof fields, value: string) => {
+  const handleInputChange = (field: string, value: string) => {
     setFields({
       ...fields,
       [field]: value,
@@ -160,64 +165,66 @@ const ProfileTab = () => {
     setEditable(false);
 
     try {
-      const response = await invoke<string>("update_user_details", {
-        name: fields.name, // Example mapping, adjust based on your backend
-        mobile: fields.phone, 
-        hospital: fields.hospital, 
-        address: fields.address, 
-        email: fields.email,  
+      const response = await invoke('update_user_details', {
+        name: fields.name,
+        mobile: fields.phone,
+        hospital: fields.hospital,
+        address: fields.address,
+        email: fields.email,
       });
-      console.log("Response from API:", response);
+      console.log('Response from API:', response);
     } catch (error) {
-      console.error("Error while saving profile:", error);
+      console.error('Error while saving profile:', error);
     }
   };
 
-  
-    return (
-        <div>
-        <h2 className="text-2xl font-bold mb-4">Profile</h2>
-        <form className="space-y-4">
-          {Object.entries(fields).map(([key, value]) => (
-            <div key={key}>
-              <label className="block text-sm font-medium mb-1" htmlFor={key}>
-                {key.charAt(0).toUpperCase() + key.slice(1)}
-              </label>
-              <input
-                type="text"
-                id={key}
-                name={key}
-                value={value}
-                onChange={(e) => handleInputChange(key as keyof typeof fields, e.target.value)}
-                disabled={!editable}
-                className={`w-full p-2 border ${
-                  editable ? 'border-blue-300' : 'border-gray-300'
-                } rounded`}
-              />
-            </div>
-          ))}
-          {editable ? (
-            <button
-              type="button"
-              onClick={handleSave}
-              className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
-            >
-              Save Changes
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setEditable(true)}
-              className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600"
-            >
-              Edit Profile
-            </button>
-          )}
-        </form>
-      </div>
-    );
-  };
-  
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">Profile</h2>
+      <form className="space-y-4">
+        {Object.entries(fields).map(([key, value]) => (
+          <div key={key}>
+            <label className="block text-sm font-medium mb-1" htmlFor={key}>
+              {key
+                .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+                .replace(/^./, str => str.toUpperCase())} {/* Capitalize first letter */}
+            </label>
+            <input
+              type="text"
+              id={key}
+              name={key}
+              value={value}
+              onChange={(e) => handleInputChange(key, e.target.value)}
+              disabled={!editable}
+              className={`w-full p-2 border ${
+                editable ? 'border-blue-300' : 'border-gray-300'
+              } rounded`}
+            />
+          </div>
+        ))}
+        {editable ? (
+          <button
+            type="button"
+            onClick={handleSave}
+            className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+          >
+            Save Changes
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditable(true)}
+            className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600"
+          >
+            Edit Profile
+          </button>
+        )}
+      </form>
+    </div>
+  );
+};
+
+
 
 const BackupTab = () => (
   <div>
