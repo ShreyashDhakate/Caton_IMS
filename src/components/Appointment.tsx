@@ -557,4 +557,3 @@ const Appointment: React.FC = () => {
 };
 
 export default Appointment;
-

@@ -5,6 +5,7 @@ import { db } from "./db"; // Adjust the path to your actual file
 type OriginalMedicine = {
   id: string; // Required
   user_id: string;
+  
   name: string;
   batch_number: string;
   expiry_date: string;
@@ -18,6 +19,7 @@ type OriginalMedicine = {
 // Required format interfaces
 export interface Medicine {
   id: string;
+  
   name: string;
   batchNumber: string;
   expiryDate: string;
@@ -275,4 +277,3 @@ export async function deletePurchase(wholesalerName: string, purchaseDate: strin
     throw new Error("Failed to delete purchase");
   }
 }
-

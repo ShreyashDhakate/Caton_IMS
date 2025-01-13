@@ -128,6 +128,7 @@ const Navbar: React.FC = () => {
                 <Link to="/history" className="text-white hover:text-gray-300">
                   Analytics
                 </Link>
+
                 <Link to="/patients" className="text-white hover:text-gray-300">
                   Patients
                 </Link>
