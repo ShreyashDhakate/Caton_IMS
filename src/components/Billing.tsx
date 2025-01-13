@@ -111,7 +111,6 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
    
   }
 
-
    // const appointmentId = location.state?.appointmentId;
    if (appointmentId) {
     const appointmentKey = `appointment_${appointmentId}`;
@@ -458,4 +457,3 @@ const handleSearchMedicine = async (query: string) => {
 };
 
 export default Billing;
-

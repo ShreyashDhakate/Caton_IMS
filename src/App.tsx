@@ -20,6 +20,7 @@ import ExpiringMedicines from "./components/ExpiringMedicines";
 import LowStockMedicines from "./components/LowStockMedicines.tsx";
 import ProfilePage from "./components/ProfilePage";
 // import ContactUs from "./components/ContactUs.tsx";
+import DoctorMedicinesManager from "./components/DoctorMedicinesManager";
 // Custom festival backgrounds
 // const festivalBackgrounds = {
 //   diwali: "https://example.com/diwali-bg.jpg",
@@ -67,7 +68,16 @@ const ProtectedRoutes: React.FC = () => {
         }
       />
       
-      {role === "Doctor" && <Route path="/appointment" element={<Appointment />} />}
+      {role === "Doctor" && 
+      (
+        <>
+        <Route path="/appointment" element={<Appointment />} />
+        <Route path="/doctormedicinesmanager" element={<DoctorMedicinesManager />} />
+        </>
+      )
+      
+      
+      }
       {role === "Pharmacist" && (
         <>
           <Route path="/stockadd" element={<StockAdd />} />

@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useToast } from "./ui/sonner";
 import {
   addAppointmentToPatient,
+  fetchMedicineById,
   searchDoctorMedicines,
   searchPatientsByName,
   syncDoctorMedicinesFromMongoDB,
@@ -183,18 +184,21 @@ const Appointment: React.FC = () => {
     setSelectedMedicines((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleQuantityChange = (id: string, newQuantity: number) => {
+  const handleQuantityChange = async (id: string, newQuantity: number) => {
+    // Ensure the quantity is at least 1
     if (newQuantity < 1) {
       addToast("Quantity must be at least 1.", "info");
       return;
     }
-
-    const originalMedicine = searchResults.find((medicine) => medicine.id === id);
+  
+    // Find the original medicine in the search results to validate stock availability
+    const originalMedicine = await fetchMedicineById(id);
     if (!originalMedicine) {
-      addToast("Medicine not found in search results.", "error");
+      addToast("Medicine not found in Database.", "error");
       return;
     }
-
+  
+    // Check if the entered quantity exceeds the available stock
     if (newQuantity > originalMedicine.quantity) {
       addToast(
         `Entered quantity (${newQuantity}) exceeds available stock (${originalMedicine.quantity}).`,
@@ -202,11 +206,17 @@ const Appointment: React.FC = () => {
       );
       return;
     }
-
+  
+    // Update the quantity in the selected medicines array
     setSelectedMedicines((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, quantity: newQuantity } : item))
+      prev.map((medicine) =>
+        medicine.id === id
+          ? { ...medicine, quantity: newQuantity }
+          : medicine
+      )
     );
   };
+  
 
   const handleSaveAppointment = async () => {
     try {

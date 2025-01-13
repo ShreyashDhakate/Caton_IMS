@@ -118,16 +118,19 @@ const Navbar: React.FC = () => {
                   </>
                 )}
                 {role === 'Doctor' && (
-                  <Link to="/appointment" className="text-white hover:text-gray-300">
+                  <><Link to="/appointment" className="text-white hover:text-gray-300">
                     Appointment
-                  </Link>
+                  </Link><Link to="/doctormedicinesmanager" className="text-white hover:text-gray-300">
+                      Medicines
+                    </Link></>
+
                 )}
                 <Link to="/history" className="text-white hover:text-gray-300">
                   Analytics
                 </Link>
-                <Link to="/contactus" className="text-white hover:text-gray-300">
+                {/* <Link to="/contactus" className="text-white hover:text-gray-300">
                   ContactUs
-                </Link>
+                </Link> */}
                 <Link to="/patients" className="text-white hover:text-gray-300">
                   Patients
                 </Link>

@@ -238,3 +238,19 @@ export async function syncDoctorMedicinesFromMongoDB(): Promise<void> {
   }
 }
 
+// Fetch all medicines
+export async function fetchAllMedicines(): Promise<Medicine[]> {
+  return await doctorDb.medicines.toArray();
+}
+// Fetch a single medicine by ID
+export async function fetchMedicineById(id: string): Promise<Medicine | undefined> {
+  try {
+    console.log("Fetching medicine from IndexedDB with ID:", id);
+    const medicine = await doctorDb.medicines.get(id);
+    console.log("Fetched medicine:", medicine);
+    return medicine;
+  } catch (error) {
+    console.error("Error fetching medicine from IndexedDB:", error);
+    throw error; // Ensure errors propagate correctly
+  }
+}

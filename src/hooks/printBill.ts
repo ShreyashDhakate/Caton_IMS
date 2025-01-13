@@ -1,4 +1,4 @@
-import { MedicineInfo } from "@/components/Billing";
+import { MedicineInfo } from "../components/Billing";
 
 export const printBill = (
   selectedMedicines: { medicine: MedicineInfo; quantity: number }[],
@@ -34,9 +34,7 @@ export const printBill = (
     const consultingLocation =
       localStorage.getItem("consultingLocation") || "N/A";
 
-      const doc = printWindow.document;
-      doc.open();
-      doc.write(`
+    printWindow.document.write(`
         <!DOCTYPE html>
         <html>
           <head>
