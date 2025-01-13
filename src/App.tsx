@@ -16,6 +16,7 @@ import ComingSoonPage from "./components/CommingSoon";
 import BillingParent from "./components/BillingParent";
 import welcomebg from "/welcomebg.jpeg";
 import MedicineManager from "./components/MedicineManager";
+import DoctorMedicinesManager from "./components/DoctorMedicinesManager";
 import ExpiringMedicines from "./components/ExpiringMedicines";
 import LowStockMedicines from "./components/LowStockMedicines.tsx";
 import ProfilePage from "./components/ProfilePage";
@@ -67,7 +68,16 @@ const ProtectedRoutes: React.FC = () => {
         }
       />
       
-      {role === "Doctor" && <Route path="/appointment" element={<Appointment />} />}
+      {role === "Doctor" && 
+      (
+        <>
+        <Route path="/appointment" element={<Appointment />} />
+        <Route path="/doctormedicinesmanager" element={<DoctorMedicinesManager />} />
+        </>
+      )
+      
+      
+      }
       {role === "Pharmacist" && (
         <>
           <Route path="/stockadd" element={<StockAdd />} />

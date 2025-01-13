@@ -42,7 +42,9 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
     { medicine: MedicineInfo; quantity: number }[]
   >([]);
   const [customerName, setCustomerName] = useState("");
-  const [openDialog, setOpenDialog] = useState(false);
+  const [openPrintDialog, setOpenPrintDialog] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState(false);
+
   const [billingId] = useState(Math.floor(Math.random() * 100000));
 
   const hospitalName: string = localStorage.getItem("hospital") ?? "";
@@ -269,7 +271,8 @@ const handleSearchMedicine = async (query: string) => {
         }))
       );
       addToast("Purchase confirmed and inventory updated!","success");
-      setOpenDialog(true);
+      setConfirmDialog(false);
+      setOpenPrintDialog(true);
       // Update inventory by reducing batch quantities
       for (const item of selectedMedicines) {
         await updateMedicineQuantity(item.medicine.id, item.quantity);
@@ -317,12 +320,8 @@ const handleSearchMedicine = async (query: string) => {
     setSelectedMedicines([]);
   setCustomerName(""); // Clear customer name
   setPatientDetails(null); // Clear patient details including disease and precautions
-  setOpenDialog(false); // Close the dialog
+  setOpenPrintDialog(false); // Close the dialog
   addToast("Bill printed successfully!","info");
-  };
-
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
   };
 
   return (
@@ -393,43 +392,67 @@ const handleSearchMedicine = async (query: string) => {
         setSelectedMedicines={setSelectedMedicines}
       />
 
-      <div className="flex items-center justify-center mt-4 space-x-4">
+<div className="flex items-center justify-center mt-4 space-x-4">
+  <button
+    onClick={() => setConfirmDialog(true)}
+    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+  >
+    Confirm Purchase
+  </button>
+  <button
+    onClick={handleResetForm}
+    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+  >
+    Reset
+  </button>
+</div>
+
+{confirmDialog && (
+  <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+    <div className="bg-white rounded p-4">
+      <h4 className="font-bold">Confirm Purchase</h4>
+      <p>Are you sure you want to confirm purchase?</p>
+      <div className="flex justify-end mt-4">
         <button
-          onClick={handleConfirmPurchase}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          onClick={() => setConfirmDialog(false)}
+          className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 mr-2"
         >
-          Confirm Purchase
+          Cancel
         </button>
         <button
-          onClick={handleResetForm}
-          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+          // onClick={() => setOpenDialog(true)}
+          onClick={handleConfirmPurchase}
+          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
         >
-          Reset
+          Yes, Confirm
         </button>
       </div>
+    </div>
+  </div>
+)}
 
-      {openDialog && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-          <div className="bg-white rounded p-4">
-            <h4 className="font-bold">Confirm Purchase</h4>
-            <p>Are you sure you want to print the bill?</p>
-            <div className="flex justify-end mt-4">
-              <button
-                onClick={handleCloseDialog}
-                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 mr-2"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handlePrintBill}
-                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-              >
-                Yes, Print
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+{openPrintDialog && (
+  <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+    <div className="bg-white rounded p-4">
+      <h4 className="font-bold">Print Bill</h4>
+      <p>Are you sure you want to print the bill?</p>
+      <div className="flex justify-end mt-4">
+        <button
+          onClick={()=>setOpenPrintDialog(false)}
+          className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 mr-2"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handlePrintBill}
+          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+        >
+          Yes, Print
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };
