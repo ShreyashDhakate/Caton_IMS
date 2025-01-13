@@ -34,10 +34,13 @@ export const printBill = (
     const consultingLocation =
       localStorage.getItem("consultingLocation") || "N/A";
 
-    printWindow.document.write(`
+      const doc = printWindow.document;
+      doc.open();
+      doc.write(`
         <!DOCTYPE html>
         <html>
           <head>
+            <meta charset="UTF-8">
             <title>Billing Summary</title>
             <style>
               body {
