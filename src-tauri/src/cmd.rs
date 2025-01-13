@@ -268,6 +268,46 @@ pub struct NewSubscription {
 //     Ok(())
 // }
 
+// #[tauri::command]
+// pub async fn new_subscription(
+//     username: String,
+//     name: String,
+//     email: String,
+//     mob: String,
+//     months: u32,
+//     db: State<'_, DbState>,
+// ) -> Result<(), String> {
+//     const PRICE_PER_MONTH: u32 = 2500;
+
+//     let total_price = months * PRICE_PER_MONTH;
+
+
+//     let new_subscription = NewSubscription {
+//         id: Some(ObjectId::new()),
+//         username: username.clone(),
+//         name: name.clone(),
+//         email: email.clone(),
+//         mobile: mob.clone(),
+//         months, 
+//         total_price,
+//         subscription_date: Utc::now(),
+//     };
+
+//     // Access the `new_subscriptions` collection in the `users_db` database
+//     let new_subscriptions_collection: &Collection<NewSubscription> = &db
+//         .db
+//         .collection("new_subscriptions");
+
+//     // Insert the new subscription document into the `new_subscriptions` collection
+//     new_subscriptions_collection
+//         .insert_one(new_subscription, None)
+//         .await
+//         .map_err(|e| format!("Failed to create subscription entry: {}", e))?;
+
+//     Ok(())
+// }
+
+
 #[tauri::command]
 pub async fn new_subscription(
     username: String,
@@ -276,21 +316,36 @@ pub async fn new_subscription(
     mob: String,
     months: u32,
     db: State<'_, DbState>,
-) -> Result<(), String> {
+) -> Result<(i64, bool), String> {
     const PRICE_PER_MONTH: u32 = 2500;
 
+    // Calculate the total price for the subscription
     let total_price = months * PRICE_PER_MONTH;
 
+    // Current date as the subscription start date
+    let subscription_date = Utc::now();
 
+    // Calculate the subscription expiration date
+    let subscription_duration = chrono::Duration::days((months * 30).into());
+    let expiration_date = subscription_date + subscription_duration;
+
+    // Calculate the remaining days
+    let today = Utc::now();
+    let remaining_days = (expiration_date - today).num_days();
+
+    // Determine if the user is in the "red zone" (10 or fewer days remaining)
+    let is_red_zone = remaining_days <= 10;
+
+    // Create a new subscription entry
     let new_subscription = NewSubscription {
         id: Some(ObjectId::new()),
         username: username.clone(),
         name: name.clone(),
         email: email.clone(),
         mobile: mob.clone(),
-        months, 
+        months,
         total_price,
-        subscription_date: Utc::now(),
+        subscription_date,
     };
 
     // Access the `new_subscriptions` collection in the `users_db` database
@@ -304,42 +359,39 @@ pub async fn new_subscription(
         .await
         .map_err(|e| format!("Failed to create subscription entry: {}", e))?;
 
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn get_remaining_days(
-    username: String,
-    db: State<'_, DbState>,
-) -> Result<(i64, bool), String> {
-    let user_collection: &Collection<User> = &db.db.collection("users");
-
-    // Find the user by username
-    let user = user_collection
-        .find_one(doc! { "username": &username }, None)
-        .await
-        .map_err(|e| format!("Database error: {}", e))?
-        .ok_or("User not found")?;
-
-    // Ensure user has subscription information
-    let subscription_date_str = user.approval_date.ok_or("Subscription date not found")?;
-    let months = user.months.ok_or("Subscription duration not found")?;
-
-    // Parse subscription date string to DateTime<Utc>
-    let subscription_date = DateTime::parse_from_rfc3339(&subscription_date_str)
-        .map_err(|e| format!("Invalid subscription date format: {}", e))?
-        .with_timezone(&Utc);
-
-    // Calculate subscription end date
-    let subscription_end_date = subscription_date + Duration::days((months * 30) as i64);
-
-    // Calculate remaining days
-    let now = Utc::now();
-    let remaining_days = (subscription_end_date - now).num_days();
-
-    // Determine if subscription is in the red zone
-    let is_red_zone = remaining_days <= 10;
-
+    // Return the remaining days and "red zone" status
     Ok((remaining_days, is_red_zone))
 }
 
+
+// #[tauri::command]
+// pub async fn check_subscription_status(
+//     email: String,
+//     db: State<'_, DbState>,
+// ) -> Result<(i64, bool), String> {
+//     let user_collection: &Collection<User> = &db.db.collection("users");
+
+//     // Find the user by email
+//     let user = user_collection
+//         .find_one(doc! { "email": &email }, None)
+//         .await
+//         .map_err(|e| format!("Database error: {}", e))?
+//         .ok_or("User not found")?;
+
+//     // Extract subscription details
+//     let approval_date = user.approval_date.ok_or("Approval date not found")?;
+//     let months = user.months.unwrap_or(0); // Default to 0 months if not specified
+
+//     // Calculate subscription duration and expiration date
+//     let subscription_duration = Duration::days((months * 30) as i64);
+//     let expiration_date = approval_date + subscription_duration;
+
+//     // Calculate remaining days
+//     let today = Utc::now();
+//     let remaining_days = (expiration_date - today).num_days();
+
+//     // Determine if the user is in the "red zone" (10 or fewer days remaining)
+//     let is_red_zone = remaining_days <= 10;
+
+//     Ok((remaining_days, is_red_zone))
+// }

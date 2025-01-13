@@ -46,11 +46,12 @@ const LoginPage: React.FC = () => {
 
       localStorage.setItem("userId", parsedResponse.userId);
       localStorage.setItem("hospital", parsedResponse.hospital);
-      // localStorage.setItem("phone", parsedResponse.phone);
+      localStorage.setItem("phone", parsedResponse.phone);
       localStorage.setItem("address", parsedResponse.address);
       localStorage.setItem("name", parsedResponse.name);
       localStorage.setItem("email", parsedResponse.email);
       localStorage.setItem("role", role);
+      localStorage.setItem("months", parsedResponse.months);
 
       addToast("Login successful!","success");
       login();

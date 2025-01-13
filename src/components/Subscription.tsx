@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 
 interface SubscriptionProps {
-  username: string; // Username to fetch the subscription details
+  username: string;
+  email: string;
+  mob: string;
+  months: number;
 }
 
-const Subscription: React.FC<SubscriptionProps> = ({ username }) => {
+const Subscription: React.FC<SubscriptionProps> = ({ username, email, mob, months }) => {
   const [remainingDays, setRemainingDays] = useState<number | null>(null);
   const [isRedZone, setIsRedZone] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -17,16 +20,16 @@ const Subscription: React.FC<SubscriptionProps> = ({ username }) => {
         setIsLoading(true);
         setError(null);
 
-        // Invoke the backend function
-        const response = await invoke<{
-          remainingDays: number;
-          isRedZone: boolean;
-        }>('get_remaining_days', { username });
+        // Fetch subscription status from the backend
+        const response: { remaining_days: number; is_red_zone: boolean } = await invoke(
+          "new_subscription",
+          { username, email, mob, months }
+        );
 
-        setRemainingDays(response.remainingDays);
-        setIsRedZone(response.isRedZone);
+        setRemainingDays(response.remaining_days);
+        setIsRedZone(response.is_red_zone);
       } catch (err: any) {
-        setError(err.message || 'Failed to fetch subscription status.');
+        setError(err.message || "Failed to fetch subscription status.");
       } finally {
         setIsLoading(false);
       }
@@ -37,7 +40,7 @@ const Subscription: React.FC<SubscriptionProps> = ({ username }) => {
     // Optional: Refresh daily
     const interval = setInterval(fetchRemainingDays, 24 * 60 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [username]);
+  }, [username, email, mob, months]);
 
   if (isLoading) {
     return <p>Loading subscription status...</p>;

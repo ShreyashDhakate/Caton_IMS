@@ -1,6 +1,7 @@
 // src-tauri/src/model.rs
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
+// use chrono::{DateTime, Utc};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
@@ -19,7 +20,7 @@ pub struct User {
     pub regiNumber: String,
     pub otp: Option<String>,
     pub otp_expiry: Option<String>,
-    pub approval_date: Option<String>, 
-    pub months: Option<u32>,     
-    pub total_price: Option<f64>, 
+    // pub months: Option<i32>, 
+    // pub approval_date: Option<DateTime<Utc>>, 
+    // pub total_price: Option<f64>, 
 }

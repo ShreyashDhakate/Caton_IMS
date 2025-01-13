@@ -61,7 +61,8 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
     medicines: MedicineDetail[];
   } | null>(null);
 
-  // const username = localStorage.getItem("username") ?? "";
+
+  // const email = localStorage.getItem("email") ?? "";
 
   useEffect(() => {
     const appointmentId = location?.state?.appointmentId;
@@ -306,7 +307,9 @@ const handleSearchMedicine = async (query: string) => {
       <div className="text-sm text-gray-600">{hospitalAddress}</div>
       <div className="text-sm text-gray-600">{hospitalPhone}</div>
 
-      {/* <div className="mt-4"> <Subscription username={username} /> </div> */}
+      {/* <div className="mt-4">
+        <Subscription email={email} />
+      </div> */}
 
       {patientDetails && (
         <div className="mt-4">
