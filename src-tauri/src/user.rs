@@ -34,8 +34,8 @@ pub async fn login_user(
             let user_response = json!({
                 "userId": user.id.unwrap_or_else(|| ObjectId::new()).to_string(),
                 "hospital": user.hospital,
-                // "phone": user.mobileOne,
-                "phoneTwo": user.mobileTwo,
+                "phone": user.mobileOne,
+                // "phoneTwo": user.mobileTwo,
                 "address": user.address,
                 "name": user.name,
                 "email":user.email

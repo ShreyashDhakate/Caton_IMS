@@ -1,11 +1,12 @@
 // ProfilePage.jsx
 import  { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext.tsx';
 import { useToast } from "./ui/sonner";
 import { invoke } from "@tauri-apps/api/core";
 import QRCode from "react-qr-code";
-
+import { salesDb } from "../lib/db.ts";
+import React from 'react';
 
 
 
@@ -70,6 +71,15 @@ const ProfilePage = () => {
             >
               Subscription
             </button>
+            <button
+  onClick={() => setCurrentTab('deleteData')}
+  className={`py-2 px-4 w-full text-left ${
+    currentTab === 'deleteData' ? 'bg-gray-700' : ''
+  } hover:bg-gray-700 rounded`}
+>
+  Delete Data
+</button>
+
           </div>
         </div>
         <button
@@ -82,10 +92,17 @@ const ProfilePage = () => {
 
       {/* Main Content */}
       <div className="w-5/6 bg-gray-100 p-6 overflow-y-auto">
-        {currentTab === 'profile' && <ProfileTab />}
-        {currentTab === 'backup' && <BackupTab />}
-        {currentTab === 'subscription' && <SubscriptionTab />}
-      </div>
+  {currentTab === 'profile' && <ProfileTab />}
+  {currentTab === 'backup' && <BackupTab />}
+  {currentTab === 'subscription' && <SubscriptionTab />}
+  {currentTab === 'deleteData' && (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">Delete Sales Data</h2>
+      <ClearSalesData />
+    </div>
+  )}
+</div>
+
 
 
       {/* Logout Confirmation Dialog */}
@@ -341,7 +358,32 @@ const SubscriptionOption = ({ duration, price, features, onSubscribe }: Subscrip
   </li>
 );
 
+const ClearSalesData = () => {
+  const clearSalesDatabase = async () => {
+    try {
+      await salesDb.sales.clear(); // Clears all data from the sales table
+      console.log("Sales database cleared!");
+    } catch (error) {
+      console.error("Error clearing sales database:", error);
+    }
+  };
 
+  return (
+    <button
+      onClick={clearSalesDatabase}
+      style={{
+        padding: "0.5rem 1rem",
+        backgroundColor: "#FF5733",
+        color: "#fff",
+        border: "none",
+        borderRadius: "4px",
+        cursor: "pointer",
+      }}
+    >
+      Clear Sales Data
+    </button>
+  );
+};
 
 
 

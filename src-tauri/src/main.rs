@@ -1,6 +1,10 @@
 #![cfg_attr(
     all(not(debug_assertions), target_os = "windows"),
+<<<<<<< HEAD
     windows_subsystem = "windows"
+=======
+    windows_subsystem="windows"
+>>>>>>> 0d192eeb5139dfe0addcb01be09fbefc0cceb20f
 )]
 
 mod database;
