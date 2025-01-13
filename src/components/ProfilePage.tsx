@@ -1,11 +1,12 @@
 // ProfilePage.jsx
 import  { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext.tsx';
 import { useToast } from "./ui/sonner";
 import { invoke } from "@tauri-apps/api/core";
 import QRCode from "react-qr-code";
 import { salesDb } from "../lib/db.ts";
+import React from 'react';
 
 
 

@@ -7,6 +7,7 @@ import BillingSummary from "./BillingSummary";
 import { printBill } from "../hooks/printBill";
 import { fetchMedicineById, searchMedicines, syncMedicinesToMongoDB, updateMedicine } from "../lib/stockdb";
 import { salesDb } from "../lib/db";
+import React from "react";
 
 
 interface Props {

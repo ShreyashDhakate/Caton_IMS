@@ -1,4 +1,5 @@
 import { MedicineInfo } from "../components/Billing";
+
 export const printBill = (
   selectedMedicines: { medicine: MedicineInfo; quantity: number }[],
   customerName: string,
