@@ -7,6 +7,7 @@ import BillingSummary from "./BillingSummary";
 import { printBill } from "../hooks/printBill";
 import { fetchMedicineById, searchMedicines, updateMedicine } from "../lib/stockdb";
 import { salesDb } from "../lib/db";
+// import Subscription from "./Subscription";
 
 
 interface Props {
@@ -59,6 +60,8 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
     advice: string;
     medicines: MedicineDetail[];
   } | null>(null);
+
+  // const username = localStorage.getItem("username") ?? "";
 
   useEffect(() => {
     const appointmentId = location?.state?.appointmentId;
@@ -302,6 +305,8 @@ const handleSearchMedicine = async (query: string) => {
       <div className="font-bold text-2xl">{hospitalName}</div>
       <div className="text-sm text-gray-600">{hospitalAddress}</div>
       <div className="text-sm text-gray-600">{hospitalPhone}</div>
+
+      {/* <div className="mt-4"> <Subscription username={username} /> </div> */}
 
       {patientDetails && (
         <div className="mt-4">

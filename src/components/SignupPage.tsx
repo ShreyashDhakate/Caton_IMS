@@ -162,14 +162,11 @@ const SignupPage: React.FC = () => {
   );
 };
 
-
-
-// Define the type for SubscriptionOptionProps
-interface SubscriptionOptionProps {
-  duration: string;
-  price: string;
-  features: string[];
-}
+// interface SubscriptionOptionProps {
+//   duration: number;
+//   price: string;
+//   features: string[];
+// }
 
 interface SubscriptionTabProps {
   username: string;
@@ -177,9 +174,13 @@ interface SubscriptionTabProps {
   email: string;
   mob: string;
 }
+
 const SubscriptionTab: React.FC<SubscriptionTabProps> = ({ username, name, email, mob }) => {
+  const [months, setMonths] = useState(1); // Number of months selected
   const [showQRCode, setShowQRCode] = useState(false);
   const [submitted, setSubmitted] = useState(false); // State to control thank-you message visibility
+
+  const totalAmount = months * 2500; // Calculate the total price
 
   const handleSendSubscriptionDetails = async () => {
     try {
@@ -188,6 +189,8 @@ const SubscriptionTab: React.FC<SubscriptionTabProps> = ({ username, name, email
         name,
         email,
         mob,
+        months,
+        totalAmount,
       });
 
       console.log("Subscription details sent successfully:", response);
@@ -203,46 +206,46 @@ const SubscriptionTab: React.FC<SubscriptionTabProps> = ({ username, name, email
   };
 
   return (
-    <div className="p-6  rounded-lg ">
+    <div className="p-6 rounded-lg">
       {!submitted ? (
         <>
           <h2 className="text-2xl font-bold mb-4">Get a Subscription</h2>
-          
-          <h3 className="text-xl font-semibold mb-2">new Subscription</h3>
           <p className="mb-4">
-            Choose your subscription plan to access all features including
-            personalized billing, appointment fetching, printed bills, and more!
+            Choose the number of months for your subscription plan. Each month costs Rs. 2500.
           </p>
-          <ul className="space-y-2">
-            <SubscriptionOption
-              duration="1 Month"
-              price="2500/-"
-              features={[
-                "Access to all features",
-                "Appointment fetching",
-                "Personalized billing portal",
-                "Printed bill option",
-                "Exclusive doctor and patient access",
-                "Priority support",
-              ]}
-              onSubscribe={handleSubscribeClick}
+          <div className="mb-4">
+            <label className="block mb-2 font-bold">Number of Months:</label>
+            <input
+              type="number"
+              min="1"
+              value={months}
+              onChange={(e) => setMonths(Number(e.target.value))}
+              className="w-full p-2 border rounded-md"
             />
-          </ul>
+          </div>
+          <p className="mb-4 font-semibold">Total Amount: Rs. {totalAmount}</p>
+
           {showQRCode && (
-            <>
-              <div className="flex justify-center my-8">
-                <QRCode
-                  value="upi://pay?pa=shreyashdhakate20@oksbi&am=2500"
-                  size={200}
-                />
-              </div>
-              <button
-                onClick={handleSendSubscriptionDetails}
-                className="bg-teal-500 text-white py-2 px-4 rounded hover:bg-teal-600 mt-4"
-              >
-                Apply for Subscription
-              </button>
-            </>
+            <div className="flex justify-center my-8">
+              <QRCode
+                value={`upi://pay?pa=shreyashdhakate20@oksbi&am=${totalAmount}`}
+                size={200}
+              />
+            </div>
+          )}
+          <button
+            onClick={handleSubscribeClick}
+            className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 mr-4"
+          >
+            Generate QR Code
+          </button>
+          {showQRCode && (
+            <button
+              onClick={handleSendSubscriptionDetails}
+              className="bg-teal-500 text-white py-2 px-4 rounded hover:bg-teal-600"
+            >
+              Apply for Subscription
+            </button>
           )}
         </>
       ) : (
@@ -259,32 +262,5 @@ const SubscriptionTab: React.FC<SubscriptionTabProps> = ({ username, name, email
     </div>
   );
 };
-
-const SubscriptionOption = ({
-  duration,
-  price,
-  features,
-  onSubscribe,
-}: SubscriptionOptionProps & { onSubscribe: () => void }) => (
-  <li className="flex items-center justify-between bg-white p-4 rounded shadow">
-    <div>
-      <span className="block font-bold">{duration}</span>
-      <span>{price}</span>
-      <ul className="mt-2 space-y-1">
-        {features.map((feature, index) => (
-          <li key={index} className="text-sm text-gray-600">
-            ✔ {feature}
-          </li>
-        ))}
-      </ul>
-    </div>
-    <button
-      onClick={onSubscribe} // Call the onSubscribe function when clicked
-      className="bg-blue-500 text-white py-1 px-3 rounded hover:bg-blue-600"
-    >
-      Subscribe
-    </button>
-  </li>
-);
 
 export default SignupPage;

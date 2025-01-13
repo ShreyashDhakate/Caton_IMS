@@ -19,4 +19,7 @@ pub struct User {
     pub regiNumber: String,
     pub otp: Option<String>,
     pub otp_expiry: Option<String>,
+    pub approval_date: Option<String>, 
+    pub months: Option<u32>,     
+    pub total_price: Option<f64>, 
 }

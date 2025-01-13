@@ -54,7 +54,7 @@ const Patients: React.FC = () => {
   // Poll the backend every 5 seconds for updates
   useEffect(() => {
     fetchAppointments(); // Initial fetch
-    const interval = setInterval(fetchAppointments, 5000); // Poll every 5 seconds
+    const interval = setInterval(fetchAppointments, 1000); // Poll every 5 seconds
 
     return () => clearInterval(interval); // Cleanup interval on unmount
   }, []);

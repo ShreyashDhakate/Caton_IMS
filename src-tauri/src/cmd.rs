@@ -2,7 +2,7 @@ use tauri::State;
 use crate::user::{login_user, send_otp, validate_otp};
 use crate::model::User;
 use crate::db::DbState; // Import your DbState struct
-use chrono::Utc;
+use chrono::{DateTime, Duration, Utc};
 use std::sync::Mutex;
 use mongodb::{bson::doc, bson::oid::ObjectId, Collection};
 
@@ -224,7 +224,49 @@ pub struct NewSubscription {
     pub email: String,
     pub mobile: String,
     pub subscription_date: chrono::DateTime<Utc>,
+    pub months: u32, // Add the months field
+    pub total_price: u32,
 }
+
+// #[tauri::command]
+// pub async fn new_subscription(
+//     username: String,
+//     name: String,
+//     email: String,
+//     mob: String,
+//     months: u32,
+//     db: State<'_, DbState>,
+// ) -> Result<(), String> {
+//     // Prepare the new subscription data
+
+//     const price_per_month: u32 = 2500;
+
+//     let totalPrice = months*price_per_month;
+
+//     let new_subscription = NewSubscription {
+//         id: Some(ObjectId::new()),
+//         username: username.clone(),
+//         name: name.clone(),
+//         email: email.clone(),
+//         mobile: mob.clone(),
+//         months,
+//         totalPrice,
+//         subscription_date: Utc::now(),
+//     };
+
+//     // Access the `new_subscriptions` collection in the `users_db` database
+//     let new_subscriptions_collection: &Collection<NewSubscription> = &db
+//         .db
+//         .collection("new_subscriptions");
+
+//     // Insert the new subscription document into the `new_subscriptions` collection
+//     new_subscriptions_collection
+//         .insert_one(new_subscription, None)
+//         .await
+//         .map_err(|e| format!("Failed to create subscription entry: {}", e))?;
+
+//     Ok(())
+// }
 
 #[tauri::command]
 pub async fn new_subscription(
@@ -232,15 +274,22 @@ pub async fn new_subscription(
     name: String,
     email: String,
     mob: String,
+    months: u32,
     db: State<'_, DbState>,
 ) -> Result<(), String> {
-    // Prepare the new subscription data
+    const PRICE_PER_MONTH: u32 = 2500;
+
+    let total_price = months * PRICE_PER_MONTH;
+
+
     let new_subscription = NewSubscription {
         id: Some(ObjectId::new()),
         username: username.clone(),
         name: name.clone(),
         email: email.clone(),
         mobile: mob.clone(),
+        months, 
+        total_price,
         subscription_date: Utc::now(),
     };
 
@@ -257,3 +306,40 @@ pub async fn new_subscription(
 
     Ok(())
 }
+
+#[tauri::command]
+pub async fn get_remaining_days(
+    username: String,
+    db: State<'_, DbState>,
+) -> Result<(i64, bool), String> {
+    let user_collection: &Collection<User> = &db.db.collection("users");
+
+    // Find the user by username
+    let user = user_collection
+        .find_one(doc! { "username": &username }, None)
+        .await
+        .map_err(|e| format!("Database error: {}", e))?
+        .ok_or("User not found")?;
+
+    // Ensure user has subscription information
+    let subscription_date_str = user.approval_date.ok_or("Subscription date not found")?;
+    let months = user.months.ok_or("Subscription duration not found")?;
+
+    // Parse subscription date string to DateTime<Utc>
+    let subscription_date = DateTime::parse_from_rfc3339(&subscription_date_str)
+        .map_err(|e| format!("Invalid subscription date format: {}", e))?
+        .with_timezone(&Utc);
+
+    // Calculate subscription end date
+    let subscription_end_date = subscription_date + Duration::days((months * 30) as i64);
+
+    // Calculate remaining days
+    let now = Utc::now();
+    let remaining_days = (subscription_end_date - now).num_days();
+
+    // Determine if subscription is in the red zone
+    let is_red_zone = remaining_days <= 10;
+
+    Ok((remaining_days, is_red_zone))
+}
+
