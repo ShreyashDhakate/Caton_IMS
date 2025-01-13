@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import loader from "./animations/loader.json"
-import Lottie from "react-lottie";
+import Lottie from "lottie-react";
+import { fetchAllMedicines, updateMedicine, deleteLocalMedicine, syncMedicinesToMongoDB } from "../lib/stockdb";
 // Define the Medicine type to match the backend structure
 type Medicine = {
-  id?: string; // Optional, matches `Option<ObjectId>` in Rust
+  [x: string]: any;
+  // _id?: { $oid: string }; // Optional, matches `Option<ObjectId>` in Rust
+  id: string;
   user_id: string;
   name: string;
   batch_number: string;
@@ -24,6 +26,21 @@ const MedicineManager: React.FC = () => {
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false); // Toggle Remove Dialog
   const [loading, setLoading] = useState(false);
 
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSyncMedicines = async () => {
+    if (isSyncing) return; // Prevent multiple clicks
+
+    setIsSyncing(true); // Set the syncing state to true
+    try {
+      await syncMedicinesToMongoDB(); // Call the imported function
+      console.log("Medicines synced successfully!");
+    } catch (error) {
+      console.error("Error syncing medicines:", error);
+    } finally {
+      setIsSyncing(false); // Reset the syncing state
+    }
+  };
 
   const loaderOptions = {
     loop: true,
@@ -34,67 +51,94 @@ const MedicineManager: React.FC = () => {
     },
   };
 
-  // Fetch medicines from the backend
+
+
+  const hospitalId = localStorage.getItem("userId");
+  console.log(hospitalId);
+
   const fetchMedicines = async () => {
-    const hospitalId = localStorage.getItem("userId");
     setLoading(true);
     try {
-      const result = await invoke<{ id: string; user_id: string; name: string; batch_number: string; expiry_date: string; quantity: number; purchase_price: number; selling_price: number; wholesaler_name: string; purchase_date: string; }[]>(
-        "fetch_medicine",
-        { hospitalId }
-      );
-  
-      const transformedResult: Medicine[] = result.map((medicine) => ({
-        ...medicine,
-        id: medicine.id, // Transform `id` into `{ $oid: string }`
-      }));
-  
-      setMedicines(transformedResult);
+      const medicines = await fetchAllMedicines();
+      console.log(medicines);
+      setMedicines(medicines);
     } catch (error) {
-      console.error("Error fetching medicines:", error);
+      console.error("Error fetching medicines from IndexedDB:", error);
     } finally {
       setLoading(false);
     }
   };
-  
-  
 
+  useEffect(() => {
+      fetchMedicines();
+    }, [hospitalId]);
   // Update stock of a medicine
   const updateStock = async (updatedMedicine: Medicine) => {
+    setMedicines((prev) =>
+      prev.map((medicine) =>
+        medicine.id === updatedMedicine.id ? updatedMedicine : medicine
+      )
+    );
+    setIsEditDialogOpen(false);
     try {
-      await invoke("update_stock", { medicine: updatedMedicine });
+      await updateMedicine(updatedMedicine.id, updatedMedicine);
       fetchMedicines();
-      setIsEditDialogOpen(false);
     } catch (error) {
-      console.error("Error updating stock:", error);
+      console.error("Error updating medicine in IndexedDB:", error);
     }
   };
 
   // Delete a medicine
   const deleteMedicine = async (medicineId: string) => {
+    setMedicines((prev) => prev.filter((medicine) => medicine.id !== medicineId));
     console.log(medicineId);
     try {
-      await invoke("delete_medicine", { id: medicineId });
+      await deleteLocalMedicine(medicineId);
       fetchMedicines();
       setIsRemoveDialogOpen(false);
     } catch (error) {
-      console.error("Error deleting medicine:", error);
+      console.error("Error deleting medicine from IndexedDB:", error);
     }
   };
 
   useEffect(() => {
-    fetchMedicines(); // Fetch medicines on component mount
+    const intervalId = setInterval(async () => {
+      try {
+        await syncMedicinesToMongoDB();
+        console.log("Synced medicines to MongoDB");
+      } catch (error) {
+        console.error("Error syncing medicines:", error);
+      }
+    }, 60000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   return (
     <div className="p-4">
-      <h1 className="text-3xl font-bold mb-6 text-indigo-600">Medicine Manager</h1>
-
+<div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-indigo-600">Medicine Manager</h1>
+        <button
+          onClick={handleSyncMedicines}
+          className={`${
+            isSyncing ? "bg-gray-400 cursor-not-allowed" : "bg-green-500 hover:bg-green-600"
+          } text-white px-4 py-2 rounded`}
+          disabled={isSyncing} // Disable the button while syncing
+        >
+          {isSyncing ? "Syncing..." : "Sync Medicines"}
+        </button>
+      </div>
       {/* Medicine Table */}
       {loading ? (
         // Render loader when loading
         <div className="flex justify-center items-center h-64">
-          <Lottie options={loaderOptions} height={150} width={150} />
+          <Lottie
+            animationData={loaderOptions.animationData}
+            loop={loaderOptions.loop}
+            autoplay={loaderOptions.autoplay}
+            style={{ width: 150, height: 150 }}
+          />
+
         </div>
       ) : (
         // Medicine Table
@@ -121,7 +165,7 @@ const MedicineManager: React.FC = () => {
           <tbody>
             {medicines.map((medicine) => (
               <tr key={medicine.id} className="hover:bg-gray-100">
-                <td className="border border-gray-300 px-4 py-2">{medicine.id}</td>
+                <td className="border border-gray-300 px-4 py-2">{medicine.name}</td>
                 <td className="border border-gray-300 px-4 py-2">{medicine.batch_number}</td>
                 <td className="border border-gray-300 px-4 py-2">{medicine.expiry_date}</td>
                 <td className="border border-gray-300 px-4 py-2">{medicine.quantity}</td>
@@ -137,7 +181,7 @@ const MedicineManager: React.FC = () => {
                       setIsRemoveDialogOpen(true);
                     }}
                   >
-                    Remove{medicine.id}
+                    Remove
                   </button>
                   <button
                     className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -161,136 +205,136 @@ const MedicineManager: React.FC = () => {
           <div className="bg-white p-6 rounded shadow-md w-1/2">
             <h2 className="text-2xl font-bold mb-4">Edit Medicine</h2>
             <form
-  onSubmit={(e) => {
-    e.preventDefault();
-    if (medicineToEdit) updateStock(medicineToEdit);
-  }}
->
-  <div className="flex flex-col mb-4">
-    <label className="mb-1">Name</label>
-    <input
-      type="text"
-      value={medicineToEdit?.name}
-      onChange={(e) =>
-        setMedicineToEdit({ ...medicineToEdit, name: e.target.value })
-      }
-      className="border px-2 py-1"
-    />
-  </div>
-  <div className="flex flex-col mb-4">
-    <label className="mb-1">Batch Number</label>
-    <input
-      type="text"
-      value={medicineToEdit?.batch_number}
-      onChange={(e) =>
-        setMedicineToEdit({
-          ...medicineToEdit,
-          batch_number: e.target.value,
-        })
-      }
-      className="border px-2 py-1"
-    />
-  </div>
-  <div className="flex flex-col mb-4">
-    <label className="mb-1">Expiry Date</label>
-    <input
-      type="date"
-      value={medicineToEdit?.expiry_date}
-      onChange={(e) =>
-        setMedicineToEdit({
-          ...medicineToEdit,
-          expiry_date: e.target.value,
-        })
-      }
-      className="border px-2 py-1"
-    />
-  </div>
-  <div className="flex flex-col mb-4">
-    <label className="mb-1">Quantity</label>
-    <input
-      type="number"
-      value={medicineToEdit?.quantity}
-      onChange={(e) =>
-        setMedicineToEdit({
-          ...medicineToEdit,
-          quantity: parseInt(e.target.value, 10),
-        })
-      }
-      className="border px-2 py-1"
-    />
-  </div>
-  <div className="flex flex-col mb-4">
-    <label className="mb-1">Purchase Price</label>
-    <input
-      type="number"
-      value={medicineToEdit?.purchase_price}
-      onChange={(e) =>
-        setMedicineToEdit({
-          ...medicineToEdit,
-          purchase_price: parseFloat(e.target.value),
-        })
-      }
-      className="border px-2 py-1"
-    />
-  </div>
-  <div className="flex flex-col mb-4">
-    <label className="mb-1">Selling Price</label>
-    <input
-      type="number"
-      value={medicineToEdit?.selling_price}
-      onChange={(e) =>
-        setMedicineToEdit({
-          ...medicineToEdit,
-          selling_price: parseFloat(e.target.value),
-        })
-      }
-      className="border px-2 py-1"
-    />
-  </div>
-  <div className="flex flex-col mb-4">
-    <label className="mb-1">Wholesaler Name</label>
-    <input
-      type="text"
-      value={medicineToEdit?.wholesaler_name}
-      onChange={(e) =>
-        setMedicineToEdit({
-          ...medicineToEdit,
-          wholesaler_name: e.target.value,
-        })
-      }
-      className="border px-2 py-1"
-    />
-  </div>
-  <div className="flex flex-col mb-4">
-    <label className="mb-1">Purchase Date</label>
-    <input
-      type="date"
-      value={medicineToEdit?.purchase_date}
-      onChange={(e) =>
-        setMedicineToEdit({
-          ...medicineToEdit,
-          purchase_date: e.target.value,
-        })
-      }
-      className="border px-2 py-1"
-    />
-  </div>
-  <div className="flex justify-end space-x-2">
-    <button
-      type="button"
-      onClick={() => setIsEditDialogOpen(false)}
-      className="px-4 py-2 bg-gray-500 text-white rounded"
-    >
-      Cancel
-    </button>
-    <button
-      type="submit"
-      className="px-4 py-2 bg-indigo-600 text-white rounded"
-    >
-      Save
-    </button>
-  </div>
-</form>
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (medicineToEdit) updateStock(medicineToEdit);
+              }}
+            >
+              <div className="flex flex-col mb-4">
+                <label className="mb-1">Name</label>
+                <input
+                  type="text"
+                  value={medicineToEdit?.name}
+                  onChange={(e) =>
+                    setMedicineToEdit({ ...medicineToEdit, name: e.target.value })
+                  }
+                  className="border px-2 py-1"
+                />
+              </div>
+              <div className="flex flex-col mb-4">
+                <label className="mb-1">Batch Number</label>
+                <input
+                  type="text"
+                  value={medicineToEdit?.batch_number}
+                  onChange={(e) =>
+                    setMedicineToEdit({
+                      ...medicineToEdit,
+                      batch_number: e.target.value,
+                    })
+                  }
+                  className="border px-2 py-1"
+                />
+              </div>
+              <div className="flex flex-col mb-4">
+                <label className="mb-1">Expiry Date</label>
+                <input
+                  type="date"
+                  value={medicineToEdit?.expiry_date}
+                  onChange={(e) =>
+                    setMedicineToEdit({
+                      ...medicineToEdit,
+                      expiry_date: e.target.value,
+                    })
+                  }
+                  className="border px-2 py-1"
+                />
+              </div>
+              <div className="flex flex-col mb-4">
+                <label className="mb-1">Quantity</label>
+                <input
+                  type="number"
+                  value={medicineToEdit?.quantity}
+                  onChange={(e) =>
+                    setMedicineToEdit({
+                      ...medicineToEdit,
+                      quantity: parseInt(e.target.value, 10),
+                    })
+                  }
+                  className="border px-2 py-1"
+                />
+              </div>
+              <div className="flex flex-col mb-4">
+                <label className="mb-1">Purchase Price</label>
+                <input
+                  type="number"
+                  value={medicineToEdit?.purchase_price}
+                  onChange={(e) =>
+                    setMedicineToEdit({
+                      ...medicineToEdit,
+                      purchase_price: parseFloat(e.target.value),
+                    })
+                  }
+                  className="border px-2 py-1"
+                />
+              </div>
+              <div className="flex flex-col mb-4">
+                <label className="mb-1">Selling Price</label>
+                <input
+                  type="number"
+                  value={medicineToEdit?.selling_price}
+                  onChange={(e) =>
+                    setMedicineToEdit({
+                      ...medicineToEdit,
+                      selling_price: parseFloat(e.target.value),
+                    })
+                  }
+                  className="border px-2 py-1"
+                />
+              </div>
+              <div className="flex flex-col mb-4">
+                <label className="mb-1">Wholesaler Name</label>
+                <input
+                  type="text"
+                  value={medicineToEdit?.wholesaler_name}
+                  onChange={(e) =>
+                    setMedicineToEdit({
+                      ...medicineToEdit,
+                      wholesaler_name: e.target.value,
+                    })
+                  }
+                  className="border px-2 py-1"
+                />
+              </div>
+              <div className="flex flex-col mb-4">
+                <label className="mb-1">Purchase Date</label>
+                <input
+                  type="date"
+                  value={medicineToEdit?.purchase_date}
+                  onChange={(e) =>
+                    setMedicineToEdit({
+                      ...medicineToEdit,
+                      purchase_date: e.target.value,
+                    })
+                  }
+                  className="border px-2 py-1"
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditDialogOpen(false)}
+                  className="px-4 py-2 bg-gray-500 text-white rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
 
           </div>
         </div>

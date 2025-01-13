@@ -1,362 +1,145 @@
-// import React, { useEffect, useState } from "react";
-// import { TextField, Button, IconButton, Typography, Divider } from "@mui/material";
-// import { AddCircleOutline, DeleteOutline } from "@mui/icons-material";
-// import dayjs from "dayjs";
-// import { invoke } from "@tauri-apps/api/core";
-// import { useInitializeDatabase } from "../hooks/useInitializeDatabase.ts.ts";
-// import { toast } from 'sonner';
-
-// interface Medicine {
-//   id: number;
-//   name: string;
-//   batchNumber: string;
-//   expiryDate: string;
-//   quantity: number;
-//   purchasePrice: number;
-//   sellingPrice: number;
-// }
-
-// interface WholesalerPurchase {
-//   id: number;
-//   wholesalerName: string;
-//   purchaseDate: string;
-//   medicines: Medicine[];
-// }
-
-// const StockAdd: React.FC = () => {
-//   const [purchases, setPurchases] = useState<WholesalerPurchase[]>([{
-//     id: 1,
-//     wholesalerName: "",
-//     purchaseDate: dayjs().format("YYYY-MM-DD"),
-//     medicines: [{
-//       id: Date.now(),
-//       name: "",
-//       batchNumber: "",
-//       expiryDate: "",
-//       quantity: 0,
-//       purchasePrice: 0,
-//       sellingPrice: 0,
-//     }],
-//   }]);
-
-//   const { initializeDatabase } = useInitializeDatabase();
-
-//   useEffect(() => {
-//     initializeDatabase();
-//   }, [initializeDatabase]);
-
-//   const validateMedicineFields = (medicine: Medicine) => {
-//     return (
-//       medicine.name.trim() !== "" &&
-//       medicine.batchNumber.trim() !== "" &&
-//       medicine.expiryDate.trim() !== "" &&
-//       medicine.quantity > 0 &&
-//       medicine.purchasePrice > 0 &&
-//       medicine.sellingPrice > 0
-//     );
-//   };
-
-//   const handlePurchaseChange = (id: number, field: keyof WholesalerPurchase, value: string) => {
-//     setPurchases((prev) =>
-//       prev.map((purchase) => (purchase.id === id ? { ...purchase, [field]: value } : purchase))
-//     );
-//   };
-
-//   const handleMedicineChange = (
-//     purchaseId: number,
-//     medicineId: number,
-//     field: keyof Medicine,
-//     value: string | number
-//   ) => {
-//     setPurchases((prev) =>
-//       prev.map((purchase) =>
-//         purchase.id === purchaseId
-//           ? {
-//               ...purchase,
-//               medicines: purchase.medicines.map((medicine) =>
-//                 medicine.id === medicineId ? { ...medicine, [field]: value } : medicine
-//               ),
-//             }
-//           : purchase
-//       )
-//     );
-//   };
-
-//   const addMedicine = (purchaseId: number) => {
-//     setPurchases((prev) =>
-//       prev.map((purchase) =>
-//         purchase.id === purchaseId
-//           ? {
-//               ...purchase,
-//               medicines: [
-//                 ...purchase.medicines,
-//                 {
-//                   id: Date.now(),
-//                   name: "",
-//                   batchNumber: "",
-//                   expiryDate: "",
-//                   quantity: 0,
-//                   purchasePrice: 0,
-//                   sellingPrice: 0,
-//                 },
-//               ],
-//             }
-//           : purchase
-//       )
-//     );
-//   };
-
-//   const removeMedicine = (purchaseId: number, medicineId: number) => {
-//     setPurchases((prev) =>
-//       prev.map((purchase) =>
-//         purchase.id === purchaseId
-//           ? { ...purchase, medicines: purchase.medicines.filter((medicine) => medicine.id !== medicineId) }
-//           : purchase
-//       )
-//     );
-//   };
-
-//   const handleSubmit = async () => {
-//     try {
-//       const userId = localStorage.getItem('userId');
-//       for (const purchase of purchases) {
-//         for (const medicine of purchase.medicines) {
-//           if (!validateMedicineFields(medicine)) {
-//             toast.error("Please fill in all the compulsory fields for each medicine.");
-//             return;
-//           }
-
-//           await invoke("insert_medicine", {
-//             name: medicine.name,
-//             hospitalId:  userId,
-//             batchNumber: medicine.batchNumber,
-//             expiryDate: medicine.expiryDate,
-//             quantity: medicine.quantity,
-//             purchasePrice: medicine.purchasePrice,
-//             sellingPrice: medicine.sellingPrice,
-//             wholesalerName: purchase.wholesalerName,
-//             purchaseDate: purchase.purchaseDate,
-//           });
-//         }
-//       }
-//       toast.success("Purchase confirmed and medicines added successfully!");
-//     } catch (error) {
-//       console.error("Error adding medicines:", error);
-//       toast.error("Failed to confirm purchase.");
-//     }
-//   };
-
-//   return (
-//     <div className="p-6 mx-auto bg-white shadow-lg rounded-lg">
-//       <Typography variant="h4" className="text-center font-bold mb-8">
-//         Add New Stock
-//       </Typography>
-
-//       {purchases.map((purchase) => (
-//         <div key={purchase.id} className="mb-10">
-//           <div className="grid grid-cols-2 gap-4 mb-6">
-//             <TextField
-//               label="Wholesaler Name"
-//               value={purchase.wholesalerName}
-//               onChange={(e) => handlePurchaseChange(purchase.id, "wholesalerName", e.target.value)}
-//               size="small"
-//               fullWidth
-//             />
-//             <TextField
-//               label="Purchase Date"
-//               type="date"
-//               value={purchase.purchaseDate}
-//               onChange={(e) => handlePurchaseChange(purchase.id, "purchaseDate", e.target.value)}
-//               InputLabelProps={{ shrink: true }}
-//               size="small"
-//               fullWidth
-//             />
-//           </div>
-
-//           <Typography variant="h6" className="font-semibold mb-4">
-//             Medicines List
-//           </Typography>
-//           {purchase.medicines.map((medicine) => (
-//             <div key={medicine.id} className="grid grid-cols-7 gap-4 mb-4">
-//               <TextField
-//                 label="Medicine Name"
-//                 value={medicine.name}
-//                 onChange={(e) => handleMedicineChange(purchase.id, medicine.id, "name", e.target.value)}
-//                 size="small"
-//               />
-//               <TextField
-//                 label="Batch Number"
-//                 value={medicine.batchNumber}
-//                 onChange={(e) => handleMedicineChange(purchase.id, medicine.id, "batchNumber", e.target.value)}
-//                 size="small"
-//               />
-//               <TextField
-//                 label="Expiry Date"
-//                 type="date"
-//                 value={medicine.expiryDate}
-//                 onChange={(e) => handleMedicineChange(purchase.id, medicine.id, "expiryDate", e.target.value)}
-//                 InputLabelProps={{ shrink: true }}
-//                 size="small"
-//               />
-//               <TextField
-//                 label="Quantity"
-//                 type="number"
-//                 value={medicine.quantity}
-//                 onChange={(e) => handleMedicineChange(purchase.id, medicine.id, "quantity", +e.target.value)}
-//                 size="small"
-//               />
-//               <TextField
-//                 label="Purchase Price"
-//                 type="number"
-//                 value={medicine.purchasePrice}
-//                 onChange={(e) => handleMedicineChange(purchase.id, medicine.id, "purchasePrice", +e.target.value)}
-//                 size="small"
-//               />
-//               <TextField
-//                 label="Selling Price"
-//                 type="number"
-//                 value={medicine.sellingPrice}
-//                 onChange={(e) => handleMedicineChange(purchase.id, medicine.id, "sellingPrice", +e.target.value)}
-//                 size="small"
-//               />
-//               <IconButton onClick={() => removeMedicine(purchase.id, medicine.id)} color="error">
-//                 <DeleteOutline />
-//               </IconButton>
-//             </div>
-//           ))}
-
-//           <Button
-//             startIcon={<AddCircleOutline />}
-//             variant="outlined"
-//             size="small"
-//             onClick={() => addMedicine(purchase.id)}
-//             className="mb-4"
-//           >
-//             Add Medicine
-//           </Button>
-//         </div>
-//       ))}
-
-//       <Divider className="mb-6" />
-
-//       <Button variant="contained" onClick={handleSubmit} color="primary" fullWidth>
-//         Confirm Purchase
-//       </Button>
-//     </div>
-//   );
-// };
-
-// export default StockAdd;
-import React, { useState } from "react";
-import {
-  TextField,
-  Button,
-  IconButton,
-  Typography,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-} from "@mui/material";
-import { AddCircleOutline, DeleteOutline } from "@mui/icons-material";
+import React, { useEffect, useState } from "react";
 import dayjs from "dayjs";
-import { invoke } from "@tauri-apps/api/core";
-import { toast } from "sonner";
+import { addMedicine } from "../lib/stockdb";
+import { searchMedicines, syncMedicinesToMongoDB } from "../lib/stockdb";
+import { useToast } from "./ui/sonner";
 
 interface Medicine {
-  id: number;
+  id: string;
   name: string;
   batchNumber: string;
   expiryDate: string;
-  quantity: number;
-  purchasePrice: number;
-  sellingPrice: number;
+  quantity: number | null;
+  purchasePrice: number | null;
+  sellingPrice: number | null;
 }
 
 interface WholesalerPurchase {
-  id: number;
+  id: string;
   wholesalerName: string;
   purchaseDate: string;
   medicines: Medicine[];
 }
-interface BackendMedicine {
-  _id?: { $oid: string };
-  name: string;
-  batch_number: string;
-  expiry_date: string;
-  quantity: number;
-  purchase_price: number;
-  selling_price: number;
-}
 
 const StockAdd: React.FC = () => {
+  const { addToast } = useToast();
   const [purchases, setPurchases] = useState<WholesalerPurchase[]>([
     {
-      id: 1,
+      id: crypto.randomUUID(),
       wholesalerName: "",
       purchaseDate: dayjs().format("YYYY-MM-DD"),
       medicines: [
         {
-          id: Date.now(),
+          id: crypto.randomUUID(),
           name: "",
           batchNumber: "",
           expiryDate: "",
-          quantity: 0,
-          purchasePrice: 0,
-          sellingPrice: 0,
+          quantity: null,
+          purchasePrice: null,
+          sellingPrice: null,
         },
       ],
     },
   ]);
 
   const [searchResults, setSearchResults] = useState<Medicine[]>([]);
-  const [activeMedicineId, setActiveMedicineId] = useState<number | null>(null);
+  const [activeMedicineId, setActiveMedicineId] = useState<string | null>(null);
 
   const handleSearchMedicine = async (query: string) => {
     try {
-      if (!query.trim()) {
-        setSearchResults([]);
-        return;
-      }
-
-      const userId = localStorage.getItem("userId");
-      const results: BackendMedicine[] = await invoke("search_medicines", {
-        query,
-        hospitalId: userId,
-      });
-
-      // Map backend keys (snake_case) to frontend keys (camelCase)
-    const mappedResults: Medicine[] = results.map((medicine) => ({
-      id: medicine._id?.$oid
-        ? parseInt(medicine._id.$oid, 16) // Convert _id.$oid to a number hash
-        : Date.now(),
-      name: medicine.name,
-      batchNumber: medicine.batch_number, // Convert backend to frontend format
-      expiryDate: medicine.expiry_date,
-      quantity: medicine.quantity,
-      purchasePrice: medicine.purchase_price,
-      sellingPrice: medicine.selling_price,
-    }));
-
-    console.log("Mapped Results:", mappedResults);
-    setSearchResults(mappedResults);
-
-      results.forEach((result) => {
-        console.log(result.batch_number);
-        console.log(result.quantity);
-      });
-
+      const results = await searchMedicines(query);
+      setSearchResults(results);
     } catch (error) {
-      console.error("Error searching medicines:", error);
-      toast.error("Failed to fetch search results.");
+      addToast("Failed to search medicines locally.","error");
     }
   };
 
+  useEffect(() => {
+    const syncAndSchedule = async () => {
+      try {
+        await syncMedicinesToMongoDB(); // Run immediately
+      } catch (error) {
+        console.error("Error syncing medicines:", error);
+      }
+      const intervalId = setInterval(async () => {
+        try {
+          await syncMedicinesToMongoDB();
+        } catch (error) {
+          console.error("Error syncing medicines:", error);
+        }
+      }, 600000);
+  
+      return () => clearInterval(intervalId);
+    };
+    syncAndSchedule();
+  }, []);
+
+  const handleSubmit = async () => {
+    try {
+      for (const purchase of purchases) {
+        for (const medicine of purchase.medicines) {
+          if (
+            !medicine.name.trim() ||
+            !medicine.batchNumber.trim() ||
+            !medicine.expiryDate.trim() ||
+            medicine.quantity === null ||
+            medicine.purchasePrice === null ||
+            medicine.sellingPrice === null
+          ) {
+            addToast("Please fill in all fields for each medicine.","info");
+            return;
+          }
+  
+          await addMedicine({
+            id: crypto.randomUUID(),
+            user_id: localStorage.getItem("userId") || "default_user",
+            name: medicine.name,
+            batch_number: medicine.batchNumber,
+            expiry_date: medicine.expiryDate,
+            quantity: Number(medicine.quantity),
+            purchase_price: Number(medicine.purchasePrice),
+            selling_price: Number(medicine.sellingPrice),
+            wholesaler_name: purchase.wholesalerName,
+            purchase_date: purchase.purchaseDate,
+          });
+  
+          addToast(`Medicine saved locally: ${medicine.name}`,"success");
+        }
+      }
+  
+      // Reset state to clear input fields after successful submission
+      setPurchases([
+        {
+          id: crypto.randomUUID(),
+          wholesalerName: "",
+          purchaseDate: dayjs().format("YYYY-MM-DD"),
+          medicines: [
+            {
+              id: crypto.randomUUID(),
+              name: "",
+              batchNumber: "",
+              expiryDate: "",
+              quantity: null,
+              purchasePrice: null,
+              sellingPrice: null,
+            },
+          ],
+        },
+      ]);
+  
+      addToast("All data submitted successfully!","success");
+    } catch (error) {
+      console.error("Error saving medicines:", error);
+      addToast("Failed to save medicines locally.","error");
+    }
+  };
+  
+
   const handleMedicineChange = (
-    purchaseId: number,
-    medicineId: number,
+    purchaseId: string,
+    medicineId: string,
     field: keyof Medicine,
-    value: string | number
+    value: string | number | null
   ) => {
     setPurchases((prev) =>
       prev.map((purchase) =>
@@ -378,8 +161,8 @@ const StockAdd: React.FC = () => {
   };
 
   const handleSelectMedicine = (
-    purchaseId: number,
-    medicineId: number,
+    purchaseId: string,
+    medicineId: string,
     selected: Medicine
   ) => {
     setPurchases((prev) =>
@@ -394,8 +177,8 @@ const StockAdd: React.FC = () => {
                       name: selected.name,
                       batchNumber: selected.batchNumber || "",
                       expiryDate: selected.expiryDate || "",
-                      purchasePrice: selected.purchasePrice || 0,
-                      sellingPrice: selected.sellingPrice || 0,
+                      purchasePrice: selected.purchasePrice || null,
+                      sellingPrice: selected.sellingPrice || null,
                     }
                   : medicine
               ),
@@ -406,186 +189,132 @@ const StockAdd: React.FC = () => {
 
     setActiveMedicineId(null);
     setSearchResults([]);
-    toast.success(`Selected medicine: ${selected.name}`);
-  };
-
-  const handleSubmit = async () => {
-    try {
-      const userId = localStorage.getItem("userId");
-
-      for (const purchase of purchases) {
-        for (const medicine of purchase.medicines) {
-          if (
-            !medicine.name.trim() ||
-            !medicine.batchNumber.trim() ||
-            !medicine.expiryDate.trim() ||
-            medicine.quantity <= 0 ||
-            medicine.purchasePrice <= 0 ||
-            medicine.sellingPrice <= 0
-          ) {
-            toast.error("Please fill in all fields for each medicine.");
-            return;
-          }
-
-          // const existingMedicine = searchResults.find(
-          //   (result) => result.name.toLowerCase() === medicine.name.toLowerCase()
-          // );
-
-          // if (existingMedicine) {
-          //   await invoke("add_batch", {
-          //     medicineId: existingMedicine.id,
-          //     batchNumber: medicine.batchNumber,
-          //     expiryDate: medicine.expiryDate,
-          //     quantity: medicine.quantity,
-          //     purchasePrice: medicine.purchasePrice,
-          //     sellingPrice: medicine.sellingPrice,
-          //     wholesalerName: purchase.wholesalerName,
-          //     purchaseDate: purchase.purchaseDate,
-          //     hospitalId: userId,
-          //   });
-          //   toast.success(`Batch added to existing medicine: ${medicine.name}`);
-          // } else {
-            await invoke("insert_medicine", {
-              name: medicine.name,
-              batchNumber: medicine.batchNumber,
-              expiryDate: medicine.expiryDate,
-              quantity: medicine.quantity,
-              purchasePrice: medicine.purchasePrice,
-              sellingPrice: medicine.sellingPrice,
-              wholesalerName: purchase.wholesalerName,
-              purchaseDate: purchase.purchaseDate,
-              hospitalId: userId,
-            });
-            toast.success(`New medicine added: ${medicine.name}`);
-          // }
-        }
-      }
-    } catch (error) {
-      console.error("Error processing purchases:", error);
-      toast.error("Failed to confirm purchase.");
-    }
+    addToast(`Selected medicine: ${selected.name}`,"success");
   };
 
   return (
-    <div className="p-6 mx-auto bg-white shadow-lg rounded-lg">
-      <Typography variant="h4" className="text-center font-bold mb-8">
-        Add New Stock
-      </Typography>
-
+    <div className="p-6 mx-auto bg-white shadow-md rounded-lg width-full">
+      <h2 className="text-2xl font-bold text-center mb-8">Add New Stock</h2>
       {purchases.map((purchase) => (
         <div key={purchase.id} className="mb-10">
           <div className="grid grid-cols-2 gap-4 mb-6">
-            <TextField
-              label="Wholesaler Name"
-              value={purchase.wholesalerName}
-              onChange={(e) =>
-                setPurchases((prev) =>
-                  prev.map((p) => (p.id === purchase.id ? { ...p, wholesalerName: e.target.value } : p))
-                )
-              }
-              size="small"
-              fullWidth
-            />
-            <TextField
-              label="Purchase Date"
-              type="date"
-              value={purchase.purchaseDate}
-              onChange={(e) =>
-                setPurchases((prev) =>
-                  prev.map((p) => (p.id === purchase.id ? { ...p, purchaseDate: e.target.value } : p))
-                )
-              }
-              InputLabelProps={{ shrink: true }}
-              size="small"
-              fullWidth
-            />
+            <div>
+              <label htmlFor={`wholesalerName-${purchase.id}`} className="block mb-1 font-medium">
+                Wholesaler Name
+              </label>
+              <input
+                id={`wholesalerName-${purchase.id}`}
+                className="border rounded p-2 w-full"
+                placeholder="Wholesaler Name"
+                value={purchase.wholesalerName}
+                onChange={(e) =>
+                  setPurchases((prev) =>
+                    prev.map((p) =>
+                      p.id === purchase.id ? { ...p, wholesalerName: e.target.value } : p
+                    )
+                  )
+                }
+              />
+            </div>
+            <div>
+              <label htmlFor={`purchaseDate-${purchase.id}`} className="block mb-1 font-medium">
+                Purchase Date
+              </label>
+              <input
+                id={`purchaseDate-${purchase.id}`}
+                type="date"
+                className="border rounded p-2 w-full"
+                value={purchase.purchaseDate}
+                onChange={(e) =>
+                  setPurchases((prev) =>
+                    prev.map((p) =>
+                      p.id === purchase.id ? { ...p, purchaseDate: e.target.value } : p
+                    )
+                  )
+                }
+              />
+            </div>
           </div>
-
-          <Typography variant="h6" className="font-semibold mb-4">
-            Medicines List
-          </Typography>
+          <h3 className="text-lg font-semibold mb-4">Medicines List</h3>
           {purchase.medicines.map((medicine) => (
             <div key={medicine.id} className="mb-4">
-              <TextField
-                label="Medicine Name"
-                value={medicine.name}
-                onChange={(e) => handleMedicineChange(purchase.id, medicine.id, "name", e.target.value)}
-                size="small"
-                fullWidth
-              />
+              <div>
+                <label htmlFor={`medicineName-${medicine.id}`} className="block mb-1 font-medium">
+                  Medicine Name
+                </label>
+                <input
+                  id={`medicineName-${medicine.id}`}
+                  className="border rounded p-2 w-full mb-2"
+                  placeholder="Medicine Name"
+                  value={medicine.name}
+                  onChange={(e) =>
+                    handleMedicineChange(purchase.id, medicine.id, "name", e.target.value)
+                  }
+                />
+              </div>
               {activeMedicineId === medicine.id && searchResults.length > 0 && (
-                <List style={{ border: "1px solid #ccc", borderRadius: 4 }}>
+                <ul className="border rounded p-2 bg-gray-100">
                   {searchResults.map((result) => (
-                    <ListItem
+                    <li
                       key={result.id}
-                      component="div"
+                      className="p-2 hover:bg-gray-200 cursor-pointer"
                       onClick={() => handleSelectMedicine(purchase.id, medicine.id, result)}
                     >
-                      <ListItemText
-                        primary={`${result.name} (Qty: ${result.quantity}, Batch: ${result.batchNumber})`}
-                        secondary={`Expiry: ${result.expiryDate}`}
-                      />
-                    </ListItem>
+                      {result.name} (Qty: {result.quantity}, Batch: {result.batchNumber})
+                    </li>
                   ))}
-                </List>
+                </ul>
               )}
               <div className="grid grid-cols-6 gap-4 mt-4">
-                <TextField
-                  label="Batch Number"
-                  value={medicine.batchNumber}
-                  onChange={(e) => handleMedicineChange(purchase.id, medicine.id, "batchNumber", e.target.value)}
-                  size="small"
-                />
-                <TextField
-                  label="Expiry Date"
-                  type="date"
-                  value={medicine.expiryDate}
-                  onChange={(e) => handleMedicineChange(purchase.id, medicine.id, "expiryDate", e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                  size="small"
-                />
-                <TextField
-                  label="Quantity"
-                  type="number"
-                  value={medicine.quantity}
-                  onChange={(e) => handleMedicineChange(purchase.id, medicine.id, "quantity", +e.target.value)}
-                  size="small"
-                />
-                <TextField
-                  label="Purchase Price"
-                  type="number"
-                  value={medicine.purchasePrice}
-                  onChange={(e) => handleMedicineChange(purchase.id, medicine.id, "purchasePrice", +e.target.value)}
-                  size="small"
-                />
-                <TextField
-                  label="Selling Price"
-                  type="number"
-                  value={medicine.sellingPrice}
-                  onChange={(e) => handleMedicineChange(purchase.id, medicine.id, "sellingPrice", +e.target.value)}
-                  size="small"
-                />
-                <IconButton
+                {[
+                  { label: "Batch Number", field: "batchNumber" },
+                  { label: "Expiry Date", field: "expiryDate", type: "date" },
+                  { label: "Quantity", field: "quantity", type: "number" },
+                  { label: "Purchase Price", field: "purchasePrice", type: "number" },
+                  { label: "Selling Price", field: "sellingPrice", type: "number" },
+                ].map(({ label, field, type }) => (
+                  <div key={field}>
+                    <label htmlFor={`${field}-${medicine.id}`} className="block mb-1 font-medium">
+                      {label}
+                    </label>
+                    <input
+                      id={`${field}-${medicine.id}`}
+                      placeholder={label}
+                      type={type || "text"}
+                      className="border rounded p-2"
+                      value={(medicine as any)[field] ?? ""}
+                      onChange={(e) =>
+                        handleMedicineChange(
+                          purchase.id,
+                          medicine.id,
+                          field as keyof Medicine,
+                          e.target.value === "" ? null : e.target.value
+                        )
+                      }
+                    />
+                  </div>
+                ))}
+                <button
+                  className="text-red-600 hover:text-red-800"
                   onClick={() =>
                     setPurchases((prev) =>
                       prev.map((p) =>
                         p.id === purchase.id
-                          ? {
-                              ...p,
-                              medicines: p.medicines.filter((m) => m.id !== medicine.id),
-                            }
+                          ? { ...p, medicines: p.medicines.filter((m) => m.id !== medicine.id) }
                           : p
                       )
                     )
                   }
-                  color="error"
                 >
-                  <DeleteOutline />
-                </IconButton>
+                  <span className="inline-block w-5 h-5 border-2 border-red-600 rounded-full text-center leading-4">
+    ×
+  </span>
+                </button>
               </div>
             </div>
           ))}
-          <Button
+          <button
+            className="text-blue-600 hover:text-blue-800 flex items-center"
             onClick={() =>
               setPurchases((prev) =>
                 prev.map((p) =>
@@ -595,13 +324,13 @@ const StockAdd: React.FC = () => {
                         medicines: [
                           ...p.medicines,
                           {
-                            id: Date.now(),
+                            id: crypto.randomUUID(),
                             name: "",
                             batchNumber: "",
                             expiryDate: "",
-                            quantity: 0,
-                            purchasePrice: 0,
-                            sellingPrice: 0,
+                            quantity: null,
+                            purchasePrice: null,
+                            sellingPrice: null,
                           },
                         ],
                       }
@@ -609,18 +338,26 @@ const StockAdd: React.FC = () => {
                 )
               )
             }
-            startIcon={<AddCircleOutline />}
           >
-            Add Medicine
-          </Button>
-          <Divider className="my-4" />
+            <span
+    className="inline-block w-5 h-5 border-2 border-blue-600 rounded-full text-center leading-4 mr-2"
+  >
+    +
+  </span>
+  Add Medicine
+          </button>
+          <hr className="my-4" />
         </div>
       ))}
-      <Button onClick={handleSubmit} variant="contained" color="primary" fullWidth>
+      <button
+        onClick={handleSubmit}
+        className="bg-blue-600 text-white p-3 rounded hover:bg-blue-800 w-full"
+      >
         Submit
-      </Button>
+      </button>
     </div>
   );
+  
 };
 
 export default StockAdd;

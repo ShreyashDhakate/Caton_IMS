@@ -26,6 +26,7 @@ pub async fn initialize_db() -> Result<String, String> {
 pub struct Medicine {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
+    pub local_id: String,
     pub user_id: String,
     pub name: String,
     pub batch_number: String,
@@ -39,6 +40,7 @@ pub struct Medicine {
 
 #[command]
 pub async fn insert_medicine(
+    local_id: String,
     name: String,
     batch_number: String,
     expiry_date: String,
@@ -55,6 +57,7 @@ pub async fn insert_medicine(
 
     let new_medicine = Medicine {
         id: None,
+        local_id,
         user_id: hospital_id,
         name,
         batch_number,
@@ -155,13 +158,13 @@ pub async fn reduce_batch(
 }
 
 #[command]
-pub async fn delete_medicine(medicine_id: &str, hospital_id: &str) -> Result<String, String> {
+pub async fn delete_medicine(local_id: &str, hospital_id: &str) -> Result<String, String> {
     let db = get_db_connection().await;
     let collection: Collection<Medicine> = db.collection("medicines");
 
     // Filter to find the specific medicine by ID and user ID
     let filter = doc! {
-        "_id": ObjectId::parse_str(medicine_id).map_err(|_| "Invalid medicine ID".to_string())?,
+        "local_id": local_id,
         "user_id": hospital_id
     };
 
@@ -278,11 +281,33 @@ pub async fn update_stock(
     Ok("Stock updated successfully.".to_string())
 }
 
+#[command]
+pub async fn check_medicine_batch(
+    name: String,
+    local_id: String,
+    hospital_id: String,
+) -> Result<bool, String> {
+    let db = get_db_connection().await;
+    let collection: Collection<Medicine> = db.collection("medicines");
+
+    // Build filter document using name, batch_number, and hospital_id
+    let filter = doc! {
+        "name": name,
+        "local_id": local_id,
+        "user_id": hospital_id,
+    };
+
+    match collection.find_one(filter, None).await {
+        Ok(Some(_)) => Ok(true), // Batch exists
+        Ok(None) => Ok(false),  // Batch does not exist
+        Err(e) => Err(e.to_string()), // Error during the query
+    }
+}
 
 
 #[command]
 pub async fn update_batch(
-    medicine_id: String,
+    local_id: String,
     batch_number: String,
     quantity: Option<u32>,
     expiry_date: Option<String>,
@@ -297,7 +322,7 @@ pub async fn update_batch(
     let collection: Collection<Medicine> = db.collection("medicines");
 
     let filter = doc! {
-        "_id": ObjectId::parse_str(&medicine_id).map_err(|_| "Invalid medicine ID".to_string())?,
+        "local_id": local_id,
         "user_id": hospital_id,
         "batch_number": batch_number.clone(),
     };
@@ -323,42 +348,6 @@ pub async fn update_batch(
     Ok("Batch updated successfully.".to_string())
 }
 
-#[command]
-pub async fn delete_batch(
-    medicine_id: String,
-    batch_number: String, // Specify the batch to delete
-    hospital_id: String,
-) -> Result<String, String> {
-    // let user_id = get_user_id(session.user_id.clone()).await?;
-    let db = get_db_connection().await;
-    let collection: Collection<Medicine> = db.collection("medicines");
-
-    // Filter to find the medicine by ID and user ID
-    let filter = doc! {
-        "_id": ObjectId::parse_str(&medicine_id).map_err(|_| "Invalid medicine ID".to_string())?,
-        "user_id": hospital_id,
-    };
-
-    // Update to pull the specific batch from the batches array
-    let update = doc! {
-        "$pull": { "batches": { "batch_number": batch_number } }
-    };
-
-    // Apply the update
-    let result = collection.update_one(filter, update, None).await.map_err(|e| e.to_string())?;
-
-    // If no batches remain, delete the entire medicine document
-    if result.matched_count > 0 {
-        let remaining_batches_filter = doc! {
-            "_id": ObjectId::parse_str(&medicine_id).unwrap(),
-            "batches": { "$size": 0 }
-        };
-
-        collection.delete_one(remaining_batches_filter, None).await.map_err(|e| e.to_string())?;
-    }
-
-    Ok("Batch deleted successfully.".to_string())
-}
 
 #[command]
 pub async fn search_medicines(
@@ -390,10 +379,12 @@ pub async fn search_medicines(
 //     pub name: String,
 //     pub quantity: u32,
 // }
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MedicineDetail {
     pub id: String, // Medicine ID
     pub quantity: u32,
+    pub name: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -401,26 +392,50 @@ pub struct Appointment {
     #[serde(rename = "_id")]
     pub id: ObjectId,
     pub patient_name: String,
-    pub mobile: String,
-    pub disease: String,
-    pub precautions: String,
-    pub medicines: Vec<MedicineDetail>, // Updated to store only IDs and quantities
+    pub age: Option<u32>,          // New field
+    pub gender: Option<String>,   // New field
+    // pub address: Option<String>,  // New field
+    // pub mobile: String,
+    pub investigation: Option<String>, // New field
+    pub diagnosis: Option<String>,     // New field
+    pub advice: Option<String>,        // New field
+    pub medicines: Vec<MedicineDetail>,
     pub hospital_id: String,
     pub date_created: String,
+}
+
+#[derive(Serialize, Debug)]
+pub struct AppointmentResponse {
+    pub id: String,
+    pub hospital_id: String,
+    pub patient_name: String,
+    pub age: Option<u32>,
+    pub gender: Option<String>,
+    // pub address: Option<String>,
+    // pub mobile: String,
+    pub investigation: Option<String>,
+    pub diagnosis: Option<String>,
+    pub advice: Option<String>,
+    pub medicines: Vec<MedicineDetail>,
+    pub date_created: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[command]
 pub async fn save_appointment(
     patient_name: String,
-    mobile: String,
-    disease: String,
-    precautions: String,
-    medicines: Vec<MedicineDetail>, // Adjusted to accept only medicine IDs and quantities
+    age: Option<u32>,          // New field
+    gender: Option<String>,    // New field
+    // address: Option<String>,   // New field
+    // mobile: String,
+    investigation: Option<String>, // New field
+    diagnosis: Option<String>,     // New field
+    advice: Option<String>,        // New field
+    medicines: Vec<MedicineDetail>,
     hospital_id: String,
 ) -> Result<String, String> {
     // Validate required fields
-    if patient_name.trim().is_empty() || mobile.trim().is_empty() {
-        return Err("Patient name and mobile number are required.".to_string());
+    if patient_name.trim().is_empty()  {
+        return Err("Patient name is required.".to_string());
     }
 
     // Prepare the database connection
@@ -432,10 +447,14 @@ pub async fn save_appointment(
     let new_appointment = Appointment {
         id: ObjectId::new(), // Generates a new ObjectId
         patient_name,
-        mobile,
-        disease,
-        precautions,
-        medicines, // Only medicine IDs and quantities are stored
+        age,
+        gender,
+        // address,
+        // mobile,
+        investigation,
+        diagnosis,
+        advice,
+        medicines,
         hospital_id,
         date_created: Utc::now().to_rfc3339(), // Generate current timestamp
     };
@@ -453,19 +472,6 @@ pub async fn save_appointment(
 async fn get_appointments_collection() -> Result<Collection<Appointment>, mongodb::error::Error> {
     let db = get_db_connection().await; // Replace with your database connection logic
     Ok(db.collection::<Appointment>("appointments"))
-}
-
-// Fetch all appointments from the database
-
-#[derive(Serialize, Debug)]
-pub struct AppointmentResponse {
-    pub id: String,
-    pub hospital_id: String,
-    pub patient_name: String,
-    pub disease: String,
-    pub precautions: String,
-    pub medicines: Vec<MedicineDetail>,
-    pub date_created: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[command]
@@ -489,20 +495,26 @@ pub async fn get_all_appointments(hospital_id: &str) -> Result<Vec<AppointmentRe
                 id: appointment.id.to_hex(),
                 hospital_id: appointment.hospital_id,
                 patient_name: appointment.patient_name,
-                disease: appointment.disease,
-                precautions: appointment.precautions,
+                age: appointment.age,
+                gender: appointment.gender,
+                // address: appointment.address,
+                // mobile: appointment.mobile,
+                investigation: appointment.investigation,
+                diagnosis: appointment.diagnosis,
+                advice: appointment.advice,
                 medicines: appointment
                     .medicines
                     .iter()
                     .map(|m| MedicineDetail {
                         id: m.id.clone(),
                         quantity: m.quantity,
+                        name: m.name.clone(),
                     })
                     .collect(),
                 date_created: appointment
-                .date_created
-                .parse::<chrono::DateTime<chrono::Utc>>()
-                .ok(),
+                    .date_created
+                    .parse::<chrono::DateTime<chrono::Utc>>()
+                    .ok(),
             })
         })
         .try_collect()
@@ -511,6 +523,7 @@ pub async fn get_all_appointments(hospital_id: &str) -> Result<Vec<AppointmentRe
 
     Ok(appointments)
 }
+
 
 #[command]
 pub async fn delete_appointments_older_than_one_hour() -> Result<String, String> {
@@ -531,10 +544,12 @@ pub async fn delete_appointments_older_than_one_hour() -> Result<String, String>
         .await
         .map_err(|e| format!("Error deleting old appointments: {}", e))?;
 
-    Ok(format!(
+    Ok(
+        format!(
         "Deleted {} appointments older than 1 hour.",
         delete_result.deleted_count
-    ))
+    )
+)
 }
 
 
@@ -559,4 +574,27 @@ pub async fn get_medicine_by_id(medicine_id: String) -> Result<Medicine, String>
 
     // Step 4: Return the retrieved medicine
     Ok(medicine)
+}
+
+#[command]
+pub async fn get_all_medicines(hospital_id: String) -> Result<Vec<Medicine>, String> {
+    let db = get_db_connection().await;
+    let collection: Collection<Medicine> = db.collection("medicines");
+
+    // Query to filter medicines by the hospital's user ID
+    let filter = doc! { "user_id": &hospital_id };
+
+    // Fetch all medicines matching the filter
+    let cursor = collection
+        .find(filter, None)
+        .await
+        .map_err(|e| e.to_string())?;
+    
+    // Collect all medicines into a Vec
+    let medicines: Vec<Medicine> = cursor
+        .try_collect()
+        .await
+        .map_err(|e| e.to_string())?;
+    
+    Ok(medicines)
 }

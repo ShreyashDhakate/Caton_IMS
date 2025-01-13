@@ -1,78 +1,164 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { TextField, Button, Box, Typography } from "@mui/material";
-import { toast } from "sonner";
-
-interface BackendMedicine {
-  _id?: { $oid: string };
-  name: string;
-  batch_number: string;
-  expiry_date: string;
-  quantity: number;
-  purchase_price: number;
-  selling_price: number;
-}
+import { useToast } from "./ui/sonner";
+import {
+  addAppointmentToPatient,
+  fetchMedicineById,
+  searchDoctorMedicines,
+  searchPatientsByName,
+  syncDoctorMedicinesFromMongoDB,
+} from "../lib/doctorstock";
 
 interface MedicineInfo {
-  id: string; // Added ID field
+  id: string;
   name: string;
   batchNumber: string;
   quantity: number;
   sellingPrice: number;
   expiryDate: string;
+  purchasePrice: number;
 }
+
+interface Patient {
+  id: string; // Unique ID for the patient
+  name: string;
+  age: number;
+  gender: string;
+  appointments: Appointment[]; // List of appointments
+}
+
+export interface Appointment {
+  patientName: string;
+  // mobile: string;
+  age: number;
+  gender: string;
+  // address: string;
+  investigation: string | null;
+  diagnosis: string | null;
+  advice: string | null;
+  medicines: { id: string; quantity: number; name: string }[];
+  hospitalId: string;
+  timestamp: string;
+}
+
 
 const Appointment: React.FC = () => {
   const [patient, setPatient] = useState({
     name: "",
-    mobile: "",
-    disease: "",
-    precautions: "",
+    // mobile: "",
+    age: 0,
+    gender: "",
+    // address: "",
+    investigation: "",
+    diagnosis: "",
+    advice: "",
   });
 
   const [medicineSearch, setMedicineSearch] = useState("");
+  const [patientSearch, setPatientSearch] = useState("");
+  const [patientResults, setPatientResults] = useState<Patient[]>([]);
   const [searchResults, setSearchResults] = useState<MedicineInfo[]>([]);
   const [selectedMedicines, setSelectedMedicines] = useState<MedicineInfo[]>([]);
+  const [Appointments, setAppointments] = useState<Appointment[]>([]);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const { addToast } = useToast();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        await syncDoctorMedicinesFromMongoDB();
+        console.log("Doctor's IndexedDB synced with MongoDB.");
+      } catch (error) {
+        console.error("Error syncing data to IndexedDB:", error);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 3600000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setPatient((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSearchMedicine = async (query: string) => {
     try {
+      const results = await searchDoctorMedicines(query);
+      setSearchResults(results);
+    } catch (error) {
+      console.error("Error searching medicines:", error);
+      addToast("Failed to search medicines locally.", "error");
+    }
+  };
+
+  const handleSearchPatient = async (query: string) => {
+    try {
       if (!query.trim()) {
-        setSearchResults([]);
+        setPatientResults([]);
         return;
       }
 
-      const userId = localStorage.getItem("userId");
-      const results: BackendMedicine[] = await invoke("search_medicines", {
-        query,
-        hospitalId: userId,
-      });
-
-      const mappedResults: MedicineInfo[] = results.map((medicine) => ({
-        id: medicine._id?.$oid || "", // Extracting the ID
-        name: medicine.name,
-        batchNumber: medicine.batch_number,
-        quantity: medicine.quantity,
-        sellingPrice: medicine.selling_price,
-        expiryDate: medicine.expiry_date,
-      }));
-
-      setSearchResults(mappedResults);
+      const results = await searchPatientsByName(query);
+      setPatientResults(results);
     } catch (error) {
-      console.error("Error searching medicines:", error);
-      toast.error("Failed to fetch search results.");
+      console.error("Error searching appointments:", error);
+      addToast("Failed to search appointments locally.", "error");
     }
+  };
+
+  const handlePatientSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setPatientSearch(query);
+
+    if (query.length > 0) {
+      handleSearchPatient(query);
+    } else {
+      setPatientResults([]);
+    }
+  };
+
+  const handleSelectPatient = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setAppointments(patient.appointments || []); // Load appointments of the selected patient
+    setPatientSearch("");
+    setPatientResults([]);
+  };
+
+  const handleSelectAppointment = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setPatientSearch(""); // Clear the search input
+    setPatientResults([]); // Clear the search results
+  };
+
+  const handleAddSelectedAppointment = () => {
+    if (!selectedAppointment) return;
+
+    setPatient({
+      name: selectedAppointment.patientName,
+      // mobile: selectedAppointment.mobile,
+      age: selectedAppointment.age,
+      gender: selectedAppointment.gender,
+      // address: selectedAppointment.address,
+      investigation: "",
+      diagnosis: "",
+      advice: "",
+    });
+    // Clear the selected medicines
+    // setSelectedAppointment(null);
+    addToast("Appointment details added successfully!", "success");
   };
 
   const handleMedicineSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setMedicineSearch(query);
 
-    if (query.length > 2) {
+    if (query.length > 0) {
       handleSearchMedicine(query);
     } else {
       setSearchResults([]);
@@ -80,39 +166,53 @@ const Appointment: React.FC = () => {
   };
 
   const handleAddMedicine = (medicine: MedicineInfo) => {
-    if (!selectedMedicines.find((item) => item.id === medicine.id)) {
-      setSelectedMedicines((prev) => [...prev, { ...medicine, quantity: 1 }]);
-    }
+    setSelectedMedicines((prev) => {
+      const existingMedicine = prev.find((item) => item.id === medicine.id);
+
+      if (existingMedicine) {
+        return prev.map((item) =>
+          item.id === medicine.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...prev, { ...medicine, quantity: 1 }];
+    });
   };
 
   const handleRemoveMedicine = (index: number) => {
     setSelectedMedicines((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleQuantityChange = (id: string, newQuantity: number) => {
+  const handleQuantityChange = async (id: string, newQuantity: number) => {
+    // Ensure the quantity is at least 1
     if (newQuantity < 1) {
-      toast.error("Quantity must be at least 1.");
+      addToast("Quantity must be at least 1.", "info");
       return;
     }
   
-    // Find the original medicine in the search results
-    const originalMedicine = searchResults.find((medicine) => medicine.id === id);
-  
+    // Find the original medicine in the search results to validate stock availability
+    const originalMedicine = await fetchMedicineById(id);
     if (!originalMedicine) {
-      toast.error("Medicine not found in search results.");
+      addToast("Medicine not found in Database.", "error");
       return;
     }
   
+    // Check if the entered quantity exceeds the available stock
     if (newQuantity > originalMedicine.quantity) {
-      toast.error(
-        `Entered quantity (${newQuantity}) exceeds available stock (${originalMedicine.quantity}).`
+      addToast(
+        `Entered quantity (${newQuantity}) exceeds available stock (${originalMedicine.quantity}).`,
+        "error"
       );
       return;
     }
   
+    // Update the quantity in the selected medicines array
     setSelectedMedicines((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, quantity: newQuantity } : item
+      prev.map((medicine) =>
+        medicine.id === id
+          ? { ...medicine, quantity: newQuantity }
+          : medicine
       )
     );
   };
@@ -122,170 +222,339 @@ const Appointment: React.FC = () => {
     try {
       const userId = localStorage.getItem("userId");
       if (!userId) {
-        toast.error("User ID is missing. Please log in again.");
+        addToast("User ID is missing. Please log in again.", "info");
         return;
       }
 
-      if (!patient.name || !patient.mobile) {
-        toast.error("Patient name and mobile number are required.");
+      if (!patient.name) {
+        addToast("Patient name is required.", "info");
         return;
       }
 
       if (selectedMedicines.length === 0) {
-        toast.error("Please select at least one medicine.");
+        addToast("Please select at least one medicine.", "info");
         return;
       }
 
-      await invoke("save_appointment", {
+      const appointmentData = {
         patientName: patient.name,
-        mobile: patient.mobile,
-        disease: patient.disease || null,
-        precautions: patient.precautions || null,
-        medicines: selectedMedicines.map(({ id, quantity }) => ({
-          id,
-          quantity,
-        })), // Saving only ID and quantity
+        // mobile: patient.mobile,
+        age: Number(patient.age),
+        gender: patient.gender,
+        // address: patient.address,
+        investigation: patient.investigation || null,
+        diagnosis: patient.diagnosis || null,
+        advice: patient.advice || null,
+        medicines: selectedMedicines.map(({ id, name, quantity }) => ({ id, name, quantity })),
         hospitalId: userId,
-      });
+      };
 
-      toast.success("Appointment saved successfully!");
-      setPatient({ name: "", mobile: "", disease: "", precautions: "" });
+      await invoke("save_appointment", appointmentData);
+      await addAppointmentToPatient(patient.name, appointmentData);
+
+      addToast("Appointment saved successfully!", "success");
+      setPatient({
+        name: "",
+        // mobile: "",
+        age: 0,
+        gender: "",
+        // address: "",
+        investigation: "",
+        diagnosis: "",
+        advice: "",
+      });
       setSelectedMedicines([]);
       setMedicineSearch("");
       setSearchResults([]);
+      setAppointments([]);
+      setSelectedAppointment(null);
+      setSelectedPatient(null);
+
     } catch (error: any) {
-      toast.error(`Failed to save appointment: ${error.message}`);
+
+      addToast(`Failed to save appointment: ${error.message}`, "error");
       console.error("Error saving appointment:", error);
     }
   };
 
-  return (
-    <div className="flex flex-wrap items-center justify-between bg-gray-100 p-5 h-[70vh]">
-      {/* Patient Details Section */}
-      <Box className="flex flex-col justify-between w-[50%] h-[70vh] bg-white p-6 shadow-lg rounded-lg">
-        <Typography variant="h5" className="mb-6 font-semibold">
-          Patient Details
-        </Typography>
-        <TextField
-          label="Patient Name"
-          variant="outlined"
-          name="name"
-          value={patient.name}
-          onChange={handleInputChange}
-          className="mb-4"
-          fullWidth
-        />
-        <TextField
-          label="Mobile Number"
-          variant="outlined"
-          name="mobile"
-          value={patient.mobile}
-          onChange={handleInputChange}
-          className="mb-4"
-          fullWidth
-        />
-        <TextField
-          label="Disease"
-          variant="outlined"
-          name="disease"
-          value={patient.disease}
-          onChange={handleInputChange}
-          className="mb-4"
-          fullWidth
-        />
-        <TextField
-          label="Precautions"
-          variant="outlined"
-          name="precautions"
-          value={patient.precautions}
-          onChange={handleInputChange}
-          className="mb-4"
-          fullWidth
-          multiline
-          rows={4}
-        />
-      </Box>
 
-      {/* Medicine Search Section */}
-      <Box className="flex flex-col w-[48%] h-[70vh] bg-white p-6 shadow-lg rounded-lg">
-        <Typography variant="h5" className="mb-6 font-semibold">
-          Search Medicines
-        </Typography>
-        <TextField
-          label="Search for Medicines"
-          variant="outlined"
-          value={medicineSearch}
-          onChange={handleMedicineSearchChange}
-          className="mb-4"
-          fullWidth
-        />
-        <Box className="mb-4">
-          {searchResults.map((medicine, index) => (
-            <Box
-              key={index}
-              className="flex items-center justify-between border-b py-2 cursor-pointer hover:bg-gray-200"
-              onClick={() => handleAddMedicine(medicine)}
-            >
-              <Typography variant="body2" className="flex-1">
-                {medicine.name} | Batch: {medicine.batchNumber} | Qty:{" "}
-                {medicine.quantity} | Price: ₹{medicine.sellingPrice} | Exp:{" "}
-                {medicine.expiryDate}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-        <Box>
-          <Typography variant="subtitle1" className="mt-4 mb-2">
-            Selected Medicines:
-          </Typography>
-          <ul>
-            {selectedMedicines.map((medicine, index) => (
-              <li key={index} className="flex items-center justify-between mb-2">
-                <span>
-                  {medicine.name} (Batch: {medicine.batchNumber})
-                </span>
-                <Box className="flex items-center">
-                  <TextField
-                    type="number"
-                    variant="outlined"
-                    size="small"
-                    value={medicine.quantity}
-                    onChange={(e) =>
-                      handleQuantityChange(
-                        medicine.id,
-                        parseInt(e.target.value) || 1
-                      )
-                    }
-                    className="w-20 mr-4"
-                  />
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    size="small"
-                    onClick={() => handleRemoveMedicine(index)}
+
+  return (
+    <div className="flex flex-col gap-4 bg-gray-100 p-4 min-h-screen">
+      {/* Container for Two Sections */}
+      <div className="flex flex-wrap md:flex-nowrap gap-4">
+        {/* Patient Section */}
+        <div className="bg-white shadow-md rounded-lg p-6 w-full md:w-1/2 h-[75vh] overflow-auto">
+          <h2 className="text-xl font-bold mb-4">Patient Details</h2>
+
+          {/* Patient Search */}
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Search Patient by Name"
+              value={patientSearch}
+              onChange={handlePatientSearchChange}
+              className="w-full p-2 border rounded"
+            />
+            {patientResults.length > 0 && (
+              <div className="border rounded mt-2 bg-white p-2">
+                {patientResults.map((patient) => (
+                  <div
+                    key={patient.id}
+                    className="p-4 border-b cursor-pointer hover:bg-gray-200"
+                    onClick={() => handleSelectPatient(patient)}
                   >
-                    Remove
-                  </Button>
-                </Box>
-              </li>
-            ))}
-          </ul>
-        </Box>
-      </Box>
+                    <h4 className="font-bold text-lg">{patient.name}</h4>
+                    <p>Age: {patient.age} | Gender: {patient.gender}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Display Selected Patient's Appointments */}
+          {selectedPatient && (
+            <div className="mt-4">
+              <h3 className="text-lg font-bold mb-2">Appointments for {selectedPatient.name}:</h3>
+              <div className="border rounded bg-white p-4">
+                {Appointments.length > 0 ? (
+                  Appointments.map((appointment, index) => (
+                    <div
+                      key={index}
+                      className="p-4 border-b cursor-pointer hover:bg-gray-200"
+                      onClick={() => handleSelectAppointment(appointment)}
+                    >
+                      <p><strong>Date:</strong> {new Date(appointment.timestamp).toLocaleString()}</p>
+                      <p><strong>Investigation:</strong> {appointment.investigation || "N/A"}</p>
+                      <p><strong>Diagnosis:</strong> {appointment.diagnosis || "N/A"}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500">No appointments found.</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Selected Appointment Details */}
+          {selectedAppointment && (
+            <div className="mt-4 p-4 border rounded bg-gray-50">
+              <h3 className="text-lg font-bold mb-2">Selected Appointment Details:</h3>
+              <p><strong>Name:</strong> {selectedAppointment.patientName}</p>
+              <p><strong>Age:</strong> {selectedAppointment.age}</p>
+              <p><strong>Gender:</strong> {selectedAppointment.gender}</p>
+              <p><strong>Date:</strong> {new Date(selectedAppointment.timestamp).toLocaleString()}</p>
+              <p><strong>Investigation:</strong> {selectedAppointment.investigation}</p>
+              <p><strong>Diagnosis:</strong> {selectedAppointment.diagnosis}</p>
+              <p><strong>Advice:</strong> {selectedAppointment.advice}</p>
+              <div>
+                <strong>Medicines:</strong>
+                {selectedAppointment.medicines.length > 0 ? (
+                  <ul className="list-disc pl-5 mt-1">
+                    {selectedAppointment.medicines.map((medicine, index) => (
+                      <li key={index}>
+                        {medicine.name} - {medicine.quantity} unit(s)
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500 mt-1">No medicines prescribed.</p>
+                )}
+              </div>
+              <button
+                onClick={handleAddSelectedAppointment}
+                className="bg-green-500 text-white px-4 py-2 rounded mt-2 hover:bg-green-600"
+              >
+                Add to Current Appointment
+              </button>
+            </div>
+          )}
+
+          {/* Patient Form */}
+          {/* Patient Form */}
+<div className="space-y-6 mt-6 bg-gray-50 p-6 rounded-lg shadow-lg">
+  {/* Patient Name */}
+  <div className="flex flex-col">
+    <label htmlFor="name" className="text-sm font-medium text-gray-800">
+      Patient Name
+    </label>
+    <input
+      type="text"
+      id="name"
+      name="name"
+      placeholder="Enter patient name"
+      value={patient.name}
+      onChange={handleInputChange}
+      className="w-full p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+    />
+  </div>
+
+  {/* Age and Gender */}
+  <div className="flex gap-6">
+    <div className="flex-1 flex flex-col">
+      <label htmlFor="age" className="text-sm font-medium text-gray-800">
+        Age
+      </label>
+      <input
+        type="number"
+        id="age"
+        name="age"
+        placeholder="Enter age"
+        value={patient.age}
+        onChange={handleInputChange}
+        className="w-full p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      />
+    </div>
+    <div className="flex-1 flex flex-col">
+      <label htmlFor="gender" className="text-sm font-medium text-gray-800">
+        Gender
+      </label>
+      <select
+        id="gender"
+        name="gender"
+        value={patient.gender}
+        onChange={handleInputChange}
+        className="w-full p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      >
+        <option value="">Select Gender</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+  </div>
+
+  {/* Investigation */}
+  <div className="flex flex-col">
+    <label htmlFor="investigation" className="text-sm font-medium text-gray-800">
+      Investigation
+    </label>
+    <textarea
+      id="investigation"
+      name="investigation"
+      placeholder="Enter investigation details"
+      value={patient.investigation}
+      onChange={handleInputChange}
+      className="w-full p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      rows={2}
+    />
+  </div>
+
+  {/* Diagnosis */}
+  <div className="flex flex-col">
+    <label htmlFor="diagnosis" className="text-sm font-medium text-gray-800">
+      Diagnosis
+    </label>
+    <textarea
+      id="diagnosis"
+      name="diagnosis"
+      placeholder="Enter diagnosis details"
+      value={patient.diagnosis}
+      onChange={handleInputChange}
+      className="w-full p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      rows={2}
+    />
+  </div>
+
+  {/* Advice */}
+  <div className="flex flex-col">
+    <label htmlFor="advice" className="text-sm font-medium text-gray-800">
+      Advice
+    </label>
+    <textarea
+      id="advice"
+      name="advice"
+      placeholder="Enter advice"
+      value={patient.advice}
+      onChange={handleInputChange}
+      className="w-full p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      rows={2}
+    />
+  </div>
+</div>
+
+
+        </div>
+
+        {/* Medicine Section */}
+        <div className="bg-white shadow-md rounded-lg p-6 w-full md:w-1/2 h-[75vh] overflow-auto">
+          <h2 className="text-xl font-bold mb-4">Medicine Details</h2>
+
+          {/* Medicine Search */}
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Search Medicine by Name"
+              value={medicineSearch}
+              onChange={handleMedicineSearchChange}
+              className="w-full p-2 border rounded"
+            />
+            {searchResults.length > 0 && (
+              <ul className="border rounded mt-2 bg-white">
+                {searchResults.map((medicine) => (
+                  <li
+                    key={medicine.id}
+                    className="py-2 px-4 border-b cursor-pointer hover:bg-gray-200"
+                    onClick={() => handleAddMedicine(medicine)}
+                  >
+                    {medicine.name} | Batch: {medicine.batchNumber} | Qty:{" "}
+                    {medicine.quantity} | Price: ₹{medicine.sellingPrice}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Selected Medicines */}
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Selected Medicines:</h3>
+            {selectedMedicines.length > 0 ? (
+              selectedMedicines.map((medicine, index) => (
+                <div
+                  key={index}
+                  className="flex justify-between items-center py-2"
+                >
+                  <span>
+                    {medicine.name} (Batch: {medicine.batchNumber})
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={medicine.quantity}
+                      onChange={(e) =>
+                        handleQuantityChange(medicine.id, parseInt(e.target.value))
+                      }
+                      className="w-16 p-1 border rounded"
+                    />
+                    <button
+                      onClick={() => handleRemoveMedicine(index)}
+                      className="bg-red-500 text-white rounded px-2 py-1 hover:bg-red-600"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500">No medicines selected.</p>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Save Button */}
-      <Box className="flex justify-center items-center w-full mt-12">
-        <Button
-          variant="contained"
-          color="primary"
+      <div className="flex justify-center mt-4">
+        <button
           onClick={handleSaveAppointment}
-          className="px-8"
+          className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600"
         >
           Save Appointment
-        </Button>
-      </Box>
+        </button>
+      </div>
     </div>
   );
+
 };
 
 export default Appointment;
+

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://schema.tauri.app/config/2.0.0-rc",
+  "productName": "caton",
+  "version": "0.1.0",
+  "identifier": "com.caton.app",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+  {
+        "title": "Caton",
+        "width": 800,
+        "height": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "visible": true
+  }
+]
+,
+    "security": {
+  "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:*"
+}
+
+  },
+  "bundle": {
+    "publisher": "Zip Software Services",
+    "active": true,
+    "targets": "all",
+    "icon": [
+      
+      "icons/icon.png",
+      "icons/icon.ico"
+    ]
+  }
+}

@@ -1,44 +1,24 @@
 import React, { useState } from "react";
-import {
-  Button,
-  TextField,
-  Typography,
-  Container,
-  Grid,
-} from "@mui/material";
 import QRCode from "react-qr-code";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { useToast } from "./ui/sonner";
 import { invoke } from "@tauri-apps/api/core";
 import Lottie from "react-lottie";
 import step1Animation from "./animations/growth.json";
 import step2Animation from "./animations/payment.json";
-import step3Animation from "./animations/push.json";
-import step4Animation from "./animations/success.json";
+import step3Animation from "./animations/success.json";
 
 const SignupPage: React.FC = () => {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(1); // State to manage the current step
   const [name, setName] = useState("");
-  const [otp, setOtp] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpVerified, setOtpVerified] = useState(false);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
-  const [address, setAddress] = useState("");
-  const [hospital, setHospital] = useState("");
-  const [passwordDoc, setPasswordDoc] = useState("");
-  const [passwordDocConfirm, setPasswordDocConfirm] = useState("");
-  const [passwordPharma, setPasswordPharma] = useState("");
-  const [passwordPharmaConfirm, setPasswordPharmaConfirm] = useState("");
+  const [isDataValid, setIsDataValid] = useState(false);
   const navigate = useNavigate();
+  const { addToast } = useToast();
 
-  const animations = [
-    step1Animation,
-    step2Animation,
-    step3Animation,
-    step4Animation,
-  ];
+  const animations = [step1Animation, step2Animation, step3Animation];
 
   const defaultOptions = {
     loop: step === 3,
@@ -49,371 +29,262 @@ const SignupPage: React.FC = () => {
     },
   };
 
-  const handleNextStep = () => setStep((prev) => prev + 1);
-  const handlePreviousStep = () =>
-    setStep((prev) => (prev > 1 ? prev - 1 : prev));
-
-  const handleSendOtp = async () => {
-    if (!email) {
-      toast.error("Please enter your email to receive OTP.");
-      return;
+  const validateData = () => {
+    if (!name || !email || !mobile) {
+      addToast("Please fill out all required fields.", "info");
+      return false;
     }
 
-    try {
-      await invoke("signup", { 
-        username,
-        name,
-        mobile,
-        address,
-        hospital,
-        passwordDoc,
-        passwordPharma,
-        email,
-       });
-      setOtpSent(true);
-      toast.success("OTP sent to your email!");
-    } catch (error: any) {
-      toast.error(`Failed to send OTP: ${error.message || error}`);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!otp) {
-      toast.error("Please enter the OTP.");
-      return;
-    }
-
-    try {
-      await invoke("verify_signup", { 
-        username,
-        name,
-        mobile,
-        address,
-        hospital,
-        passwordDoc,
-        passwordPharma,
-        email,
-        otp, });
-      setOtpVerified(true);
-      toast.success("OTP verified successfully!");
-      handleNextStep();
-    } catch (error: any) {
-      toast.error(`Invalid or expired OTP: ${error.message || error}`);
-    }
-  };
-
-  const handleSignup = async () => {
-    // Validate required fields
-    if (!name || !email || !mobile || !passwordDoc || !passwordPharma) {
-      toast.error("Please fill out all required fields.");
-      return;
-    }
-  
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      toast.error("Please enter a valid email address.");
-      return;
+      addToast("Please enter a valid email address.", "error");
+      return false;
     }
-  
-    // Validate mobile format (assuming 10-digit numbers for example)
+
     const mobileRegex = /^[0-9]{10}$/;
     if (!mobileRegex.test(mobile)) {
-      toast.error("Please enter a valid 10-digit mobile number.");
-      return;
+      addToast("Please enter a valid 10-digit mobile number.", "error");
+      return false;
     }
-  
-    // Ensure passwords match
-    if (passwordDoc !== passwordDocConfirm || passwordPharma !== passwordPharmaConfirm) {
-      toast.error("Passwords do not match!");
-      return;
-    }
-  
-    // Log the username value
-    console.log("Signup data being sent:", { username, name, email, mobile, passwordDoc, passwordPharma });
-  
-    try {
-      await invoke("signup", {
-        username,
-        name,
-        mobile,
-        address,
-        hospital,
-        passwordDoc,
-        passwordPharma,
-        email,
-      });
-      toast.success("Account created successfully!");
-      setStep(4);
-    } catch (error: any) {
-      console.error("Signup error:", error);
-      toast.error(`Signup failed: ${error.message || error}`);
+
+    return true;
+  };
+
+  const handleNextStep = () => {
+    if (step === 1) {
+      if (validateData()) {
+        setIsDataValid(true);
+        setStep(step + 1);
+      }
+    } else {
+      setStep(step + 1);
     }
   };
-  
-  
 
-  const handlePaymentDetection = () => {
-    toast.success("Payment received!");
-    handleNextStep();
+  const handlePreviousStep = () => {
+    setStep(step - 1);
   };
 
   return (
-    <Grid container style={{ height: "100vh" }}>
-      <Grid item xs={6} style={{ position: "relative" }}>
-        <div
-          style={{
-            position: "absolute",
-            top: 100,
-            left: 100,
-            width: "70%",
-            height: "70%",
-            zIndex: -1,
-          }}
-        >
-          {step !== 4 && (
+    <div className="flex h-[92vh]">
+      <div className="relative w-1/2">
+        <div className="absolute top-24 left-24 w-3/4 h-3/4 z-10">
+          {step !== 3 && (
             <Lottie options={defaultOptions} height="100%" width="100%" />
           )}
         </div>
-      </Grid>
+      </div>
 
-      <Grid item xs={6}>
-        <Container component="main" maxWidth="md" style={{ padding: "20px" }}>
-          {step === 1 && (
-            <>
-              <Typography variant="h5" align="center" style={{ marginBottom: "3rem" }}>
-                Step 1: Basic Information
-              </Typography>
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Name"
-                    fullWidth
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Username"
-                    fullWidth
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Email"
-                    fullWidth
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Mobile Number"
-                    fullWidth
-                    value={mobile}
-                    onChange={(e) => setMobile(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    onClick={handleSendOtp}
-                    disabled={otpSent}
-                  >
-                    {otpSent ? "OTP Sent" : "Send OTP"}
-                  </Button>
-                </Grid>
-                {otpSent && (
-                  <Grid item xs={12}>
-                    <TextField
-                      variant="outlined"
-                      label="Enter OTP"
-                      fullWidth
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
-                    />
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      fullWidth
-                      onClick={handleVerifyOtp}
-                    >
-                      Verify OTP
-                    </Button>
-                  </Grid>
-                )}
-              </Grid>
-            </>
-          )}
-
-          {step === 2 && (
-            <>
-              <Typography variant="h5" align="center">
-                Step 2: Payment Plan
-              </Typography>
-              <Typography align="center">
-                Pay ₹2000/month to enjoy these features:
-              </Typography>
-              <ul>
-                <li>24/7 Consultation</li>
-                <li>Access to exclusive features</li>
-                <li>Comprehensive medical records</li>
-              </ul>
-              <div style={{ display: "flex", justifyContent: "center", margin: "20px 0" }}>
-                <QRCode value="upi://pay?pa=shreyashdhakate20@oksbi&am=2000" size={200} />
-              </div>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    fullWidth
-                    onClick={handlePreviousStep}
-                  >
-                    Back
-                  </Button>
-                </Grid>
-                <Grid item xs={6}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    onClick={handlePaymentDetection}
-                  >
-                    I've Paid
-                  </Button>
-                </Grid>
-              </Grid>
-            </>
-          )}
-
-          {step === 3 && (
-            <>
-              <Typography variant="h5" align="center">
-                Step 3: Personal Details
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Pharmacy/Hospital Name"
-                    fullWidth
-                    value={hospital}
-                    onChange={(e) => setHospital(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Address"
-                    fullWidth
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Doctor Password"
-                    type="password"
-                    fullWidth
-                    value={passwordDoc}
-                    onChange={(e) => setPasswordDoc(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Confirm Doctor Password"
-                    type="password"
-                    fullWidth
-                    value={passwordDocConfirm}
-                    onChange={(e) => setPasswordDocConfirm(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Pharmacy Password"
-                    type="password"
-                    fullWidth
-                    value={passwordPharma}
-                    onChange={(e) => setPasswordPharma(e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    variant="outlined"
-                    label="Confirm Pharmacy Password"
-                    type="password"
-                    fullWidth
-                    value={passwordPharmaConfirm}
-                    onChange={(e) =>
-                      setPasswordPharmaConfirm(e.target.value)
-                    }
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    fullWidth
-                    onClick={handlePreviousStep}
-                  >
-                    Back
-                  </Button>
-                </Grid>
-
-                <Grid item xs={6}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    onClick={handleSignup}
-                  >
-                    Sign Up
-                  </Button>
-                </Grid>
-              </Grid>
-            </>
-          )}
-
-          {step === 4 && (
-            <Grid
-              container
-              alignItems="center"
-              justifyContent="center"
-              direction="column"
-              style={{ textAlign: "center" }}
-            >
-              <div style={{ width: "80%", height: "50%" }}>
-                <Lottie options={defaultOptions} height="100%" width="100%" />
-              </div>
-              <Typography variant="h3" align="center" style={{ fontWeight: "bold" }}>
-                Welcome to the board, Customer
-              </Typography>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => navigate("/login")}
+      <div className="w-1/2 bg-gray-50 p-8">
+        {step === 1 && (
+          <>
+            <h2 className="text-3xl font-bold text-center mb-12">
+              Step 1: Basic Information
+            </h2>
+            <div className="space-y-6">
+              <input
+                type="text"
+                placeholder="Name"
+                className="w-full p-3 border rounded-md"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Username"
+                className="w-full p-3 border rounded-md"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                className="w-full p-3 border rounded-md"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Mobile Number"
+                className="w-full p-3 border rounded-md"
+                value={mobile}
+                onChange={(e) => setMobile(e.target.value)}
+              />
+              <button
+                className="w-full p-3 bg-blue-500 text-white rounded-md"
+                onClick={handleNextStep}
               >
-                Go to Login
-              </Button>
-            </Grid>
-          )}
-        </Container>
-      </Grid>
-    </Grid>
+                NEXT
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 2 && isDataValid && (
+          <SubscriptionTab
+            username={username}
+            name={name}
+            email={email}
+            mob={mobile}
+          />
+        )}
+
+        {step === 3 && (
+          <div className="flex flex-col items-center justify-center text-center">
+            <div className="w-3/4 h-1/2">
+              <Lottie options={defaultOptions} height="100%" width="100%" />
+            </div>
+            <h3 className="text-4xl font-bold mt-6">
+              Your Application is Submitted, Customer!
+            </h3>
+            <h3 className="text-sm font-bold mt-6">
+              The user ID and password will be sent to your email within 24
+              hours. Stay tuned!
+            </h3>
+            <button
+              className="mt-6 p-3 bg-blue-500 text-white rounded-md"
+              onClick={() => navigate("/login")}
+            >
+              Go to Login
+            </button>
+          </div>
+        )}
+        {step > 1 && step < 3 && (
+          <button
+            className="mt-6 p-3 bg-gray-500 text-white rounded-md"
+            onClick={handlePreviousStep}
+          >
+            BACK
+          </button>
+        )}
+      </div>
+    </div>
   );
 };
+
+
+
+// Define the type for SubscriptionOptionProps
+interface SubscriptionOptionProps {
+  duration: string;
+  price: string;
+  features: string[];
+}
+
+interface SubscriptionTabProps {
+  username: string;
+  name: string;
+  email: string;
+  mob: string;
+}
+const SubscriptionTab: React.FC<SubscriptionTabProps> = ({ username, name, email, mob }) => {
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [submitted, setSubmitted] = useState(false); // State to control thank-you message visibility
+
+  const handleSendSubscriptionDetails = async () => {
+    try {
+      const response = await invoke("new_subscription", {
+        username,
+        name,
+        email,
+        mob,
+      });
+
+      console.log("Subscription details sent successfully:", response);
+      setSubmitted(true); // Show thank-you message on success
+    } catch (error) {
+      console.error("Failed to send subscription details:", error);
+      alert("Failed to send subscription details. Please try again.");
+    }
+  };
+
+  const handleSubscribeClick = () => {
+    setShowQRCode(true);
+  };
+
+  return (
+    <div className="p-6  rounded-lg ">
+      {!submitted ? (
+        <>
+          <h2 className="text-2xl font-bold mb-4">Get a Subscription</h2>
+          
+          <h3 className="text-xl font-semibold mb-2">new Subscription</h3>
+          <p className="mb-4">
+            Choose your subscription plan to access all features including
+            personalized billing, appointment fetching, printed bills, and more!
+          </p>
+          <ul className="space-y-2">
+            <SubscriptionOption
+              duration="1 Month"
+              price="2500/-"
+              features={[
+                "Access to all features",
+                "Appointment fetching",
+                "Personalized billing portal",
+                "Printed bill option",
+                "Exclusive doctor and patient access",
+                "Priority support",
+              ]}
+              onSubscribe={handleSubscribeClick}
+            />
+          </ul>
+          {showQRCode && (
+            <>
+              <div className="flex justify-center my-8">
+                <QRCode
+                  value="upi://pay?pa=shreyashdhakate20@oksbi&am=2500"
+                  size={200}
+                />
+              </div>
+              <button
+                onClick={handleSendSubscriptionDetails}
+                className="bg-teal-500 text-white py-2 px-4 rounded hover:bg-teal-600 mt-4"
+              >
+                Apply for Subscription
+              </button>
+            </>
+          )}
+        </>
+      ) : (
+        <div className="text-center fade-in animation">
+          <h3 className="text-lg font-bold text-green-600">
+            Your Application is Submitted
+          </h3>
+          <h3 className="text-sm font-bold mt-6">
+            The user ID and password will be sent to your email within 24
+            hours. Stay tuned!
+          </h3>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SubscriptionOption = ({
+  duration,
+  price,
+  features,
+  onSubscribe,
+}: SubscriptionOptionProps & { onSubscribe: () => void }) => (
+  <li className="flex items-center justify-between bg-white p-4 rounded shadow">
+    <div>
+      <span className="block font-bold">{duration}</span>
+      <span>{price}</span>
+      <ul className="mt-2 space-y-1">
+        {features.map((feature, index) => (
+          <li key={index} className="text-sm text-gray-600">
+            ✔ {feature}
+          </li>
+        ))}
+      </ul>
+    </div>
+    <button
+      onClick={onSubscribe} // Call the onSubscribe function when clicked
+      className="bg-blue-500 text-white py-1 px-3 rounded hover:bg-blue-600"
+    >
+      Subscribe
+    </button>
+  </li>
+);
 
 export default SignupPage;

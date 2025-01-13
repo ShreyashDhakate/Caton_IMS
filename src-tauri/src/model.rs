@@ -4,15 +4,19 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
+    #[serde(rename = "_id")] // Map `id` to MongoDB's `_id` field
     pub id: Option<ObjectId>,
     pub username: String,
     pub name: String,
-    pub mobile: String,
+    pub mobileOne: String,
+    pub mobileTwo: Option<String>,
     pub hospital: String,
     pub address: String,
     pub password_hash_doc: String,
     pub password_hash_pharma: String,
     pub email: String,
+    pub qualifications: String,
+    pub regiNumber: String,
     pub otp: Option<String>,
     pub otp_expiry: Option<String>,
 }

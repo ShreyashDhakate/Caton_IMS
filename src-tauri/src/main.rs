@@ -1,3 +1,8 @@
+#![cfg_attr(
+    all(not(debug_assertions), target_os = "windows"),
+    windows_subsystem = "windows"
+)]
+
 mod database;
 mod db;
 mod cmd;
@@ -7,11 +12,11 @@ mod commands;
 mod utils;
 use crate::db::init_db;
 use commands::{
-    initialize_db,reduce_batch, insert_medicine, update_batch, delete_batch, search_medicines,
+    initialize_db, insert_medicine, update_batch, search_medicines,
     save_appointment,fetch_medicine,get_all_appointments,get_stock,delete_medicine,update_stock,get_medicine_by_id,
-    delete_appointments_older_than_one_hour
+    delete_appointments_older_than_one_hour,check_medicine_batch,get_all_medicines
 };
-use crate::cmd::{SessionState, login, signup, logout, is_logged_in, verify_signup, forgot_password, reset_password};
+use crate::cmd::{SessionState, login,  logout, is_logged_in,  forgot_password, reset_password, update_user_details,renew_subscription,new_subscription};
 use std::env;
 use tauri::{Builder, generate_handler};
 use tokio::time::{interval, Duration};
@@ -47,11 +52,9 @@ async fn main() {
         .invoke_handler(generate_handler![
             initialize_db,
             insert_medicine,
-            reduce_batch,
             update_batch,
-            delete_batch,
             search_medicines,
-            signup,
+            
             login,
             logout,
             is_logged_in,
@@ -62,10 +65,15 @@ async fn main() {
             update_stock,
             get_medicine_by_id,
             fetch_medicine,
-            verify_signup, 
+             
             forgot_password, 
             reset_password,
-            delete_appointments_older_than_one_hour, // Add command to invoke manually if needed
+            delete_appointments_older_than_one_hour,
+            check_medicine_batch, // Add command to invoke manually if needed
+            get_all_medicines,
+            update_user_details,
+            renew_subscription,
+            new_subscription
         ])
         .run(tauri::generate_context!())
         .expect("Error while running Tauri application");

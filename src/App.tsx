@@ -5,7 +5,7 @@ import WelcomePage from "./components/WelcomePage";
 import "./index.css";
 import LoginPage from "./components/Login";
 import SignupPage from "./components/SignupPage";
-import { Toaster } from "./components/ui/sonner";
+import { ToastProvider } from "./components/ui/sonner";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import StockAdd from "./components/StockAdd";
 import Appointment from "./components/Appointment";
@@ -14,26 +14,33 @@ import Patients from "./components/Patients";
 import StockManager from "./components/StockManager";
 import ComingSoonPage from "./components/CommingSoon";
 import BillingParent from "./components/BillingParent";
+import welcomebg from "/welcomebg.jpeg";
 import MedicineManager from "./components/MedicineManager";
+import DoctorMedicinesManager from "./components/DoctorMedicinesManager";
+import ExpiringMedicines from "./components/ExpiringMedicines";
+import LowStockMedicines from "./components/LowStockMedicines.tsx";
+import ProfilePage from "./components/ProfilePage";
+import ContactUs from "./components/ContactUs.tsx";
 // Custom festival backgrounds
-const festivalBackgrounds = {
-  diwali: "https://example.com/diwali-bg.jpg",
-  christmas: "https://example.com/christmas-bg.jpg",
-  eid: "https://example.com/eid-bg.jpg",
-  default: "https://images.pexels.com/photos/326055/pexels-photo-326055.jpeg",
-};
+// const festivalBackgrounds = {
+//   diwali: "https://example.com/diwali-bg.jpg",
+//   christmas: "https://example.com/christmas-bg.jpg",
+//   eid: "https://example.com/eid-bg.jpg",
+//   default: "https://images.pexels.com/photos/326055/pexels-photo-326055.jpeg",
+// };
 
 const App: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
-        <Toaster />
+        <ToastProvider>
         <Navbar />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/*" element={<ProtectedRoutes />} />
         </Routes>
+        </ToastProvider>
       </Router>
     </AuthProvider>
   );
@@ -42,7 +49,7 @@ const App: React.FC = () => {
 const ProtectedRoutes: React.FC = () => {
   const { isLoggedIn } = useAuth(); // Safe to call here because it's within AuthProvider
   const role = localStorage.getItem("role"); // Retrieve the role from localStorage
-  const currentFestival = "default"; // Replace with dynamic logic as needed
+  // const currentFestival = "default"; // Replace with dynamic logic as needed
 
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
@@ -55,23 +62,37 @@ const ProtectedRoutes: React.FC = () => {
         element={
           <WelcomePage
             bgImage={
-              festivalBackgrounds[currentFestival] || festivalBackgrounds.default
+              welcomebg
             }
           />
         }
       />
       
-      {role === "Doctor" && <Route path="/appointment" element={<Appointment />} />}
+      {role === "Doctor" && 
+      (
+        <>
+        <Route path="/appointment" element={<Appointment />} />
+        <Route path="/doctormedicinesmanager" element={<DoctorMedicinesManager />} />
+        </>
+      )
+      
+      
+      }
       {role === "Pharmacist" && (
         <>
           <Route path="/stockadd" element={<StockAdd />} />
           <Route path="/billing" element={<BillingParent />} />
           <Route path="/stockmanager" element={<StockManager/>} />
           <Route path="/medmanager" element={<MedicineManager/>} />
+          <Route path="/expiringmedicines" element={<ExpiringMedicines/>} />
+          <Route path="/lowstockmedicines" element={<LowStockMedicines/>} />
+          <Route path="/profile" element={<ProfilePage/>} />
         </>
       )}
       <Route path="/history" element={<History />} />
       <Route path="/patients" element={<Patients />} />
+      <Route path="/profile" element={<ProfilePage/>} />
+      <Route path="/contactus" element={<ContactUs/>} />
       <Route path="*" element={<ComingSoonPage />} />
     </Routes>
   );
