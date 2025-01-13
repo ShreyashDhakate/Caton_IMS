@@ -9,46 +9,65 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import { salesDb } from "../lib/db.ts"; // Import Dexie instance
-import { chartConfig } from "./chartConfig.ts"; // Import the chart configuration
+import { salesDb } from "../lib/db.ts"; // Dexie instance
+import { chartConfig } from "./chartConfig.ts"; // Chart configuration
 
-// Utility to aggregate data by mode
-const aggregateData = (data: any[], mode: "daily" | "monthly" | "annually") => {
-  if (mode === "daily") return data;
+// Type definition for sales data and aggregated data
+type SaleEntry = {
+  purchase_date: string;
+  total_cost: number;
+  payment_mode: "offline" | "online";
+};
 
-  const aggregated: { [key: string]: { sales: number; date: string } } = {};
+type AggregatedSalesData = {
+  offline: number;
+  online: number;
+  date: string;
+};
+
+// Utility to aggregate sales data based on the view mode
+const aggregateData = (
+  data: SaleEntry[],
+  mode: "daily" | "monthly" | "annually"
+): AggregatedSalesData[] => {
+  const aggregated: { [key: string]: AggregatedSalesData } = {};
 
   data.forEach((entry) => {
     const date = new Date(entry.purchase_date);
     const key =
       mode === "monthly"
-        ? `${date.getFullYear()}-${date.getMonth() + 1}`
-        : `${date.getFullYear()}`;
+        ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+        : mode === "annually"
+        ? `${date.getFullYear()}`
+        : date.toISOString().split("T")[0];
 
     if (!aggregated[key]) {
-      aggregated[key] = { sales: 0, date: key };
+      aggregated[key] = { offline: 0, online: 0, date: key };
     }
 
-    aggregated[key].sales += entry.total_cost;
+    if (entry.payment_mode in aggregated[key]) {
+      aggregated[key][entry.payment_mode] += entry.total_cost;
+    }
   });
 
   return Object.values(aggregated);
 };
 
-const Component: React.FC = () => {
+const SalesChart: React.FC = () => {
   const [viewMode, setViewMode] = useState<"daily" | "monthly" | "annually">(
     "daily"
   );
-  const [salesData, setSalesData] = useState<any[]>([]); // State to hold sales data
-  const [filteredData, setFilteredData] = useState<any[]>([]);
+  const [salesData, setSalesData] = useState<SaleEntry[]>([]); // Raw sales data
+  const [filteredData, setFilteredData] = useState<AggregatedSalesData[]>([]); // Aggregated data
 
-  // Fetch data from the Dexie database
+  // Fetch sales data from Dexie
   const fetchSalesData = async () => {
     try {
-      const data = await salesDb.sales.toArray(); // Fetch all sales from the table
+      const data = await salesDb.sales.toArray();
       const formattedData = data.map((sale) => ({
-        date: new Date(sale.purchase_date).toISOString().split("T")[0], // Format date as YYYY-MM-DD
-        sales: sale.total_cost,
+        purchase_date: sale.purchase_date,
+        total_cost: sale.total_cost,
+        payment_mode: sale.payment_mode,
       }));
       setSalesData(formattedData);
     } catch (error) {
@@ -56,13 +75,12 @@ const Component: React.FC = () => {
     }
   };
 
-  // Filter data based on the view mode
+  // Aggregate data whenever salesData or viewMode changes
   useEffect(() => {
-    const data = aggregateData(salesData, viewMode);
-    setFilteredData(data);
+    setFilteredData(aggregateData(salesData, viewMode));
   }, [salesData, viewMode]);
 
-  // Fetch data when the component mounts
+  // Fetch sales data on component mount
   useEffect(() => {
     fetchSalesData();
   }, []);
@@ -72,7 +90,8 @@ const Component: React.FC = () => {
       <CardHeader>
         <CardTitle>Sales Data</CardTitle>
         <CardDescription>
-          View sales data daily, monthly, or annually in INR (₹).
+          View sales data by mode of payment (offline/online) grouped daily,
+          monthly, or annually.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -81,7 +100,9 @@ const Component: React.FC = () => {
           {["daily", "monthly", "annually"].map((mode) => (
             <button
               key={mode}
-              onClick={() => setViewMode(mode as "daily" | "monthly" | "annually")}
+              onClick={() =>
+                setViewMode(mode as "daily" | "monthly" | "annually")
+              }
               style={{
                 marginRight: "0.5rem",
                 padding: "0.5rem 1rem",
@@ -98,15 +119,22 @@ const Component: React.FC = () => {
         </div>
 
         {/* Bar Chart */}
-        <BarChart width={1500} height={300} data={filteredData}>
+        <BarChart width={1500} height={400} data={filteredData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="date" />
-          <Tooltip formatter={(value: number) => `₹${value.toLocaleString()}`} />
+          <Tooltip
+            formatter={(value: number) => `₹${value.toLocaleString()}`}
+          />
           <Legend />
           <Bar
-            dataKey="sales"
-            fill={chartConfig.sales.color}
-            name={chartConfig.sales.label}
+            dataKey="offline"
+            fill={chartConfig.offline.color}
+            name={chartConfig.offline.label}
+          />
+          <Bar
+            dataKey="online"
+            fill={chartConfig.online.color}
+            name={chartConfig.online.label}
           />
         </BarChart>
       </CardContent>
@@ -114,4 +142,4 @@ const Component: React.FC = () => {
   );
 };
 
-export default Component;
+export default SalesChart;

@@ -20,7 +20,7 @@ import DoctorMedicinesManager from "./components/DoctorMedicinesManager";
 import ExpiringMedicines from "./components/ExpiringMedicines";
 import LowStockMedicines from "./components/LowStockMedicines.tsx";
 import ProfilePage from "./components/ProfilePage";
-import ContactUs from "./components/ContactUs.tsx";
+// import ContactUs from "./components/ContactUs.tsx";
 // Custom festival backgrounds
 // const festivalBackgrounds = {
 //   diwali: "https://example.com/diwali-bg.jpg",
@@ -78,6 +78,16 @@ const ProtectedRoutes: React.FC = () => {
       
       
       }
+      {role === "Doctor" && 
+      (
+        <>
+        <Route path="/appointment" element={<Appointment />} />
+        <Route path="/doctormedicinesmanager" element={<DoctorMedicinesManager />} />
+        </>
+      )
+      
+      
+      }
       {role === "Pharmacist" && (
         <>
           <Route path="/stockadd" element={<StockAdd />} />
@@ -87,12 +97,14 @@ const ProtectedRoutes: React.FC = () => {
           <Route path="/expiringmedicines" element={<ExpiringMedicines/>} />
           <Route path="/lowstockmedicines" element={<LowStockMedicines/>} />
           <Route path="/profile" element={<ProfilePage/>} />
+          <Route path="/lowstockmedicines" element={<LowStockMedicines/>} />
+          <Route path="/profile" element={<ProfilePage/>} />
         </>
       )}
       <Route path="/history" element={<History />} />
       <Route path="/patients" element={<Patients />} />
       <Route path="/profile" element={<ProfilePage/>} />
-      <Route path="/contactus" element={<ContactUs/>} />
+      {/* <Route path="/contactus" element={<ContactUs/>} /> */}
       <Route path="*" element={<ComingSoonPage />} />
     </Routes>
   );

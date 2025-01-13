@@ -41,6 +41,7 @@ const Billing: React.FC<Props> = ({ location }) => {  // const location = useLoc
   const [selectedMedicines, setSelectedMedicines] = useState<
     { medicine: MedicineInfo; quantity: number }[]
   >([]);
+  const [paymentMode, setPaymentMode] = useState<"offline" | "online">("offline");
   const [customerName, setCustomerName] = useState("");
   const [openPrintDialog, setOpenPrintDialog] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState(false);
@@ -229,22 +230,32 @@ const handleSearchMedicine = async (query: string) => {
     }
   };
   
-  // Confirm purchase and reduce inventory
-  const handleConfirmPurchase = async () => {
+  const handleConfirmPurchase = () => {
     if (!customerName) {
-      addToast("Customer name is required!","info");
+      addToast("Customer name is required!", "info");
       return;
     }
   
     if (!billingId) {
-      addToast("Billing ID is required!","info");
+      addToast("Billing ID is required!", "info");
       return;
     }
   
     if (!selectedMedicines || selectedMedicines.length === 0) {
-      addToast("No medicines selected for purchase!","error");
+      addToast("No medicines selected for purchase!", "error");
       return;
     }
+  
+    // Set the dialog to open without making changes to the database
+    setOpenDialog(true); // Open the dialog for confirmation
+    addToast("Purchase confirmed, please review and print the bill.", "success");
+  };
+  
+  
+
+  const handlePrintBill = async () => {
+    const today = new Date();
+    const billingDate = today.toLocaleDateString("en-US");
   
     try {
       // Calculate total cost of the purchase
@@ -253,15 +264,16 @@ const handleSearchMedicine = async (query: string) => {
         0
       );
   
-      // Add a new sale entry to the `sales` table
+      // Add a new sale entry to the sales table, including payment mode
       const saleId = await salesDb.sales.add({
         purchase_date: new Date().toISOString(),
         customer_name: customerName,
         total_cost: totalCost,
-        medicines: []
+        medicines: [],
+        payment_mode: paymentMode, // Include the payment mode
       });
   
-      // Map selected medicines to this sale in the `saleMedicines` table
+      // Map selected medicines to this sale in the saleMedicines table
       await salesDb.saleMedicines.bulkPut(
         selectedMedicines.map((item) => ({
           sale_id: saleId,
@@ -270,9 +282,23 @@ const handleSearchMedicine = async (query: string) => {
           selling_price: item.medicine.sellingPrice,
         }))
       );
-      addToast("Purchase confirmed and inventory updated!","success");
-      setConfirmDialog(false);
-      setOpenPrintDialog(true);
+  
+      // Print the bill with all necessary details
+      printBill(
+        selectedMedicines,
+        customerName,
+        patientDetails?.gender || "",
+        patientDetails?.age || 0,
+        billingId,
+        billingDate,
+        patientDetails?.investigation || "",
+        patientDetails?.diagnosis || "",
+        patientDetails?.advice || "",
+        hospitalName,
+        hospitalAddress,
+        hospitalPhone
+      );
+  
       // Update inventory by reducing batch quantities
       for (const item of selectedMedicines) {
         await updateMedicineQuantity(item.medicine.id, item.quantity);
@@ -286,43 +312,21 @@ const handleSearchMedicine = async (query: string) => {
       addToast(`Appointment ${appointmentId} removed successfully!`, "info");
     }
   
-      // // Notify the user of success
-      addToast("inventory update recovered!","success");
-      // setOpenDialog(true);
+      // Clear selected medicines and customer details
+      setSelectedMedicines([]);
+      setCustomerName("");
+      setPatientDetails(null);
+  
+      // Close the dialog box
+      setOpenDialog(false);
+  
+      addToast("Bill printed and inventory updated successfully!", "info");
     } catch (error) {
-      console.error("Error confirming purchase:", error);
-      addToast("Failed to confirm purchase. Please try again.","error");
+      console.error("Error printing bill:", error);
+      addToast("Failed to print the bill. Please try again.", "error");
     }
   };
   
-
-  // Print the bill
-  const handlePrintBill = () => {
-    const today = new Date();
-    const billingDate = today.toLocaleDateString("en-US");
-
-    console.log("selected Medicines: ", selectedMedicines);
-
-    printBill(
-      selectedMedicines,
-      customerName,
-      patientDetails?.gender || "",
-      patientDetails?.age || 0,
-      billingId,
-      billingDate,
-      patientDetails?.investigation || "",
-      patientDetails?.diagnosis || "",
-      patientDetails?.advice || "",
-      hospitalName,
-      hospitalAddress,
-      hospitalPhone
-    );
-    setSelectedMedicines([]);
-  setCustomerName(""); // Clear customer name
-  setPatientDetails(null); // Clear patient details including disease and precautions
-  setOpenPrintDialog(false); // Close the dialog
-  addToast("Bill printed successfully!","info");
-  };
 
   return (
     <div className="mx-auto p-4 border border-gray-300 rounded-lg h-full relative">
@@ -393,69 +397,66 @@ const handleSearchMedicine = async (query: string) => {
       />
 
 <div className="flex items-center justify-center mt-4 space-x-4">
-  <button
-    onClick={() => setConfirmDialog(true)}
-    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-  >
-    Confirm Purchase
-  </button>
-  <button
-    onClick={handleResetForm}
-    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-  >
-    Reset
-  </button>
-</div>
-
-{confirmDialog && (
-  <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-    <div className="bg-white rounded p-4">
-      <h4 className="font-bold">Confirm Purchase</h4>
-      <p>Are you sure you want to confirm purchase?</p>
-      <div className="flex justify-end mt-4">
         <button
-          onClick={() => setConfirmDialog(false)}
-          className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 mr-2"
-        >
-          Cancel
-        </button>
-        <button
-          // onClick={() => setOpenDialog(true)}
           onClick={handleConfirmPurchase}
-          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
-          Yes, Confirm
+          Confirm Purchase
+        </button>
+        <button
+          onClick={handleResetForm}
+          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+        >
+          Reset
         </button>
       </div>
-    </div>
-  </div>
-)}
 
-{openPrintDialog && (
-  <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
-    <div className="bg-white rounded p-4">
-      <h4 className="font-bold">Print Bill</h4>
-      <p>Are you sure you want to print the bill?</p>
-      <div className="flex justify-end mt-4">
-        <button
-          onClick={()=>setOpenPrintDialog(false)}
-          className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 mr-2"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handlePrintBill}
-          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-        >
-          Yes, Print
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      {/* Payment Mode Dialog */}
+      {openDialog && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+          <div className="bg-white rounded p-4">
+            <h4 className="font-bold">Choose Payment Mode</h4>
+            <div>
+              <label>
+                <input
+                  type="radio"
+                  value="offline"
+                  checked={paymentMode === "offline"}
+                  onChange={() => setPaymentMode("offline")}
+                />
+                Offline
+              </label>
+              <br />
+              <label>
+                <input
+                  type="radio"
+                  value="online"
+                  checked={paymentMode === "online"}
+                  onChange={() => setPaymentMode("online")}
+                />
+                Online
+              </label>
+            </div>
+
+            <div className="flex justify-end mt-4">
+              <button
+                 onClick={() => setOpenDialog(false)}
+                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 mr-2"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePrintBill}
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+              >
+                Confirm Mode & Print Bill
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default Billing;
-
