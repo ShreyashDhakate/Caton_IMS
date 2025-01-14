@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "./ui/sonner";
 
 export interface Appointment {
@@ -18,7 +19,6 @@ export interface Appointment {
   date_created: string;
 }
 
-
 const GlobalState = {
   previousCount: -1,
 };
@@ -27,9 +27,8 @@ const Patients: React.FC = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const navigate = useNavigate();
-
   const { addToast } = useToast();
-  // Fetch appointments from the backend
+
   const fetchAppointments = async () => {
     try {
       const userId = localStorage.getItem("userId");
@@ -37,12 +36,10 @@ const Patients: React.FC = () => {
         hospitalId: userId,
       })) as Appointment[];
 
-      // Trigger notification only if there are new patients
       if (GlobalState.previousCount !== -1 && data.length > GlobalState.previousCount) {
         addToast(`New patient added! Total patients: ${data.length}`, "info");
       }
 
-      // Update global previous count and set appointments
       GlobalState.previousCount = data.length;
       setAppointments(data);
     } catch (error) {
@@ -51,17 +48,15 @@ const Patients: React.FC = () => {
     }
   };
 
-  // Poll the backend every 5 seconds for updates
   useEffect(() => {
-    fetchAppointments(); // Initial fetch
-    const interval = setInterval(fetchAppointments, 5000); // Poll every 5 seconds
+    fetchAppointments();
+    const interval = setInterval(fetchAppointments, 5000);
 
-    return () => clearInterval(interval); // Cleanup interval on unmount
+    return () => clearInterval(interval);
   }, []);
 
   const handleRedirectToBilling = () => {
     if (selectedAppointment) {
-      // Store the selected appointment details dynamically using its ID
       const appointmentKey = `appointment_${selectedAppointment.id}`;
       const appointmentData = {
         patient_name: selectedAppointment.patient_name,
@@ -95,70 +90,81 @@ const Patients: React.FC = () => {
           </thead>
           <tbody>
             {appointments.map((appointment, index) => (
-              <tr
-                key={appointment.id || `${appointment.patient_name}-${index}`}
-                onClick={() => setSelectedAppointment(appointment)}
-                className="cursor-pointer hover:bg-gray-100 border-b"
-              >
-                <td className="px-4 py-2">{appointment.patient_name}</td>
-                <td className="px-4 py-2">{appointment.age}</td>
-                <td className="px-4 py-2">{appointment.gender}</td>
-                <td className="px-4 py-2">{appointment.mobile}</td>
-                <td className="px-4 py-2">{appointment.diagnosis}</td>
-                <td className="px-4 py-2">
-                  {new Date(appointment.date_created).toLocaleString()}
-                </td>
-              </tr>
+              <React.Fragment key={appointment.id || `${appointment.patient_name}-${index}`}>
+                <tr
+                  onClick={() => setSelectedAppointment(appointment)}
+                  className="cursor-pointer hover:bg-gray-100 border-b"
+                >
+                  <td className="px-4 py-2">{appointment.patient_name}</td>
+                  <td className="px-4 py-2">{appointment.age}</td>
+                  <td className="px-4 py-2">{appointment.gender}</td>
+                  <td className="px-4 py-2">{appointment.mobile}</td>
+                  <td className="px-4 py-2">{appointment.diagnosis}</td>
+                  <td className="px-4 py-2">
+                    {new Date(appointment.date_created).toLocaleString()}
+                  </td>
+                </tr>
+                <AnimatePresence>
+                  {selectedAppointment?.id === appointment.id && (
+                    <motion.tr
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="bg-white"
+                    >
+                      <td colSpan={6} className="p-4 border-b">
+                        <div>
+                          <h2 className="text-xl font-bold mb-2">Appointment Details</h2>
+                          <p>
+                            <strong>Patient Name:</strong> {selectedAppointment.patient_name}
+                          </p>
+                          <p>
+                            <strong>Gender:</strong> {selectedAppointment.gender}
+                          </p>
+                          <p>
+                            <strong>Age:</strong> {selectedAppointment.age}
+                          </p>
+                          <p>
+                            <strong>Mobile:</strong> {selectedAppointment.mobile}
+                          </p>
+                          <p>
+                            <strong>Disease:</strong> {selectedAppointment.diagnosis}
+                          </p>
+                          <p>
+                            <strong>Precautions:</strong> {selectedAppointment.advice}
+                          </p>
+                          <p>
+                            <strong>Medicines:</strong>{" "}
+                            {selectedAppointment.medicines.map((med) => med.name).join(", ")}
+                          </p>
+                          <p>
+                            <strong>Date:</strong>{" "}
+                            {new Date(selectedAppointment.date_created).toLocaleString()}
+                          </p>
+                          <div className="mt-4 flex space-x-4">
+                            <button
+                              onClick={() => setSelectedAppointment(null)}
+                              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                            >
+                              Close
+                            </button>
+                            <button
+                              onClick={handleRedirectToBilling}
+                              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                            >
+                              Go to Billing
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  )}
+                </AnimatePresence>
+              </React.Fragment>
             ))}
           </tbody>
         </table>
       </div>
-
-      {selectedAppointment && (
-        <div className="p-4 border rounded shadow-md bg-white">
-          <h2 className="text-xl font-bold mb-2">Appointment Details</h2>
-          <p>
-            <strong>Patient Name:</strong> {selectedAppointment.patient_name}
-          </p>
-          <p>
-            <strong>Gender:</strong> {selectedAppointment.gender}
-          </p>
-          <p>
-            <strong>Age:</strong> {selectedAppointment.age}
-          </p>
-          <p>
-            <strong>Mobile:</strong> {selectedAppointment.mobile}
-          </p>
-          <p>
-            <strong>Disease:</strong> {selectedAppointment.diagnosis}
-          </p>
-          <p>
-            <strong>Precautions:</strong> {selectedAppointment.advice}
-          </p>
-          <p>
-            <strong>Medicines:</strong> {selectedAppointment.medicines.map(med => med.name).join(", ")}
-          </p>
-
-          <p>
-            <strong>Date:</strong>{" "}
-            {new Date(selectedAppointment.date_created).toLocaleString()}
-          </p>
-          <div className="mt-4 flex space-x-4">
-            <button
-              onClick={() => setSelectedAppointment(null)}
-              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-            >
-              Close
-            </button>
-            <button
-              onClick={handleRedirectToBilling}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Go to Billing
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
